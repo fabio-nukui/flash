@@ -1,0 +1,39 @@
+# dependencies
+/node_modules
+
+# testing
+/coverage
+
+# Distribution / packaging
+dist/
+/build
+/libs
+
+# misc
+.env*
+env/
+
+# MacOS file
+.DS_Store
+
+# Logs
+*.log
+
+# IDEs/editors
+.idea
+*.iml
+.vscode
+*~
+
+# Serverless
+.serverless
+
+# compiled
+*.pyc
+__pycache__
+
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
