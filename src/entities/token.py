@@ -64,8 +64,10 @@ class TokenAmount:
         self.amount = amount if amount is not None else EMPTY_AMOUNT
 
     def __repr__(self) -> str:
-        amount_str = f'{self.amount:,}' if self.is_empty else 'None'
-        return f'{self.__class__.__name__}({self.token.symbol}: {amount_str}'
+        if self.is_empty:
+            return f'{self.__class__.__name__}({self.token.symbol}: EMPTY)'
+        amount_str = f'{self.amount / 10 ** self.token.decimals:,.2f}'
+        return f'{self.__class__.__name__}({self.token.symbol}: {amount_str})'
 
     @property
     def is_empty(self):

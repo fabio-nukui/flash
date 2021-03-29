@@ -1,8 +1,7 @@
 from web3 import Web3
 
 from entities import TokenAmount
-from caches import ttl_cache
-from cachetools.func import ttl_cache
+from tools.cache import ttl_cache
 
 
 class UniV2Pair:
@@ -40,7 +39,7 @@ class UniV2Pair:
         return Web3.toChecksumAddress(raw.hex()[-40:])
 
     @property
-    @ttl_cache()
+    @ttl_cache
     def reserves(self) -> tuple[TokenAmount, TokenAmount]:
         self.update_amounts()
         return (self.reserve_0, self.reserve_1)

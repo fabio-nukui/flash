@@ -4,15 +4,15 @@ from functools import partial
 from pprint import pprint
 from typing import Callable
 
-from web3 import Web3, WebsocketProvider
+from web3 import HTTPProvider, Web3
 from web3._utils.filters import Filter
 from web3.middleware import geth_poa_middleware
 
-import dotenv; dotenv.load_dotenv()
 import configs
 from dex.curve import CurvePool, EllipsisClient
 from dex.uniswap_v2 import PancakeswapClient, UniV2Pair
 from entities import Token, TokenAmount
+from tools import cache
 
 
 def get_updated_reserves(
@@ -26,6 +26,7 @@ def get_updated_reserves(
         'eps': eps_pool.reserves
     }
     pprint(data)
+    cache.clear_caches()
 
 
 def log_loop(
@@ -40,7 +41,7 @@ def log_loop(
 
 
 def main():
-    web3 = Web3(WebsocketProvider(configs.RCP_WSS_URL))
+    web3 = Web3(HTTPProvider(configs.RCP_HTTPS_ENDPOINT))
     web3.middleware_onion.inject(geth_poa_middleware, layer=0)
 
     tokens_data = json.load(open('addresses/tokens.json'))

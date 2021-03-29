@@ -1,9 +1,7 @@
 from web3 import Web3
 
+from tools.cache import ttl_cache
 from entities import Token, TokenAmount
-from caches import ttl_cache
-from cachetools.func import ttl_cache
-
 
 LENDING_PRECISION = int(10 ** 18)
 PRECISION = int(10 ** 18)
@@ -62,7 +60,7 @@ class CurvePool:
             for rate, balance in zip(self._rates, self._balance())
         )
 
-    def get_D(self, xp: tuple[int, ...], amp: int) -> int:
+    def _get_D(self, xp: tuple[int, ...], amp: int) -> int:
         S = 0
         for _x in xp:
             S += _x
@@ -94,7 +92,7 @@ class CurvePool:
         assert i >= 0
         assert i < self.n_coins
 
-        D = self.get_D(xp_, amp)
+        D = self._get_D(xp_, amp)
         c = D
         S_ = 0
         Ann = amp * self.n_coins

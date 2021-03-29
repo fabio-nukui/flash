@@ -49,9 +49,22 @@ USER=jovyan
 help: ## show this message
 	@$(PYTHON) -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
+start: ## start docker container
+ifeq ($(shell docker ps -a --format "{{.Names}}" | grep ^$(CONTAINER_NAME)$$),)
+	docker run -it \
+		--net=host \
+		-v $(PWD):/home/flash \
+		--name $(CONTAINER_NAME) \
+		--env-file .env \
+		$(IMAGE_NAME)
+else
+	docker start -i $(CONTAINER_NAME)
+endif
+
 start-ipython: ## start docker container running an ipython interpreter
 ifeq ($(shell docker ps -a --format "{{.Names}}" | grep ^$(IPYHTON_CONTAINER_NAME)$$),)
 	docker run -it \
+		--net=host \
 		-v $(PWD):/home/flash \
 		--name $(IPYHTON_CONTAINER_NAME) \
 		--env-file .env \
@@ -63,6 +76,7 @@ endif
 start-python: ## start docker container running a python interpreter
 ifeq ($(shell docker ps -a --format "{{.Names}}" | grep ^$(PYTHON_CONTAINER_NAME)$$),)
 	docker run -it \
+		--net=host \
 		-v $(PWD):/home/flash \
 		--name $(PYTHON_CONTAINER_NAME) \
 		--env-file .env \
