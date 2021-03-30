@@ -1,5 +1,8 @@
 import os
 
+LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
+LOG_AWS = os.getenv('LOG_AWS') == 'True'
+
 RCP_ENDPOINT = os.getenv('RCP_ENDPOINT', 'http://localhost:8545')
 
 PRIVATE_KEY = os.environ['PRIVATE_KEY']
