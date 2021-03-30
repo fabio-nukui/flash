@@ -11,7 +11,15 @@ RUN pip install \
     'cachetools==4.2.1' \
     'httpx==0.17.1'
 
-RUN mkdir /home/flash
+ARG USER=flash
+ARG UID=1000
+ARG GID=100
+ARG HOME=/home/flash
+
+RUN useradd -m -s /bin/bash -N -u $UID $USER && \
+    chmod g+w /etc/passwd
+
+USER $USER
 
 WORKDIR /home/flash
 

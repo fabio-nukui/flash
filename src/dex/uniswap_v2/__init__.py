@@ -1,15 +1,32 @@
-from .client import UniswapV2Protocol, UniswapV2Client
-from .entities import UniV2Pair, UniV2Route
+import json
 
-PancakeswapClient: UniswapV2Client = UniswapV2Protocol(
-    class_name='PancakeswapClient',
-    dex_name='pancakeswap',
-    chain_id=56,
-    swap_fee=20
-)
+from core.entities import Token
+
+from ..base import BaseClient
+from .entities import UniV2Pair
+from .uniswap_v2_dex import UniswapV2Dex
+
+
+class PancakeswapClient(BaseClient):
+    def __init__(
+        self,
+        caller_address: str,
+        private_key: str,
+        provider: str,
+        tokens: list[Token] = None
+    ):
+        pancakeswap_dex = UniswapV2Dex(
+            chain_id=56,
+            addresses_filename='pancakeswap.json',
+            fee=20
+        )
+        if tokens is None:
+            tokens_data = json.load(open('addresses/tokens.json'))
+            tokens = [Token(**data) for data in tokens_data]
+        super().__init__(pancakeswap_dex, caller_address, private_key, provider, tokens=tokens)
+
 
 __all__ = [
     'PancakeswapClient',
     'UniV2Pair',
-    'UniV2Route',
 ]

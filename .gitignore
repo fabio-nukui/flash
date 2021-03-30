@@ -12,6 +12,11 @@ dist/
 # misc
 .env*
 env/
+/.local
+/.cache
+/.bash*
+.gitconfig
+.python_history
 
 # MacOS file
 .DS_Store
@@ -22,7 +27,7 @@ env/
 # IDEs/editors
 .idea
 *.iml
-.vscode
+.vscode*
 *~
 
 # Serverless

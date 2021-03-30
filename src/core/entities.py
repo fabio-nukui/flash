@@ -64,15 +64,21 @@ class TokenAmount:
         self.amount = amount if amount is not None else EMPTY_AMOUNT
 
     def __repr__(self) -> str:
-        if self.is_empty:
+        if self.is_empty():
             return f'{self.__class__.__name__}({self.token.symbol}: EMPTY)'
         amount_str = f'{self.amount / 10 ** self.token.decimals:,.2f}'
         return f'{self.__class__.__name__}({self.token.symbol}: {amount_str})'
 
-    @property
     def is_empty(self):
         return self.amount == EMPTY_AMOUNT
 
     def __lt__(self, other):
         """Keep same ordering as underlying tokens"""
         return self.token < other.token
+
+    def __eq__(self, other):
+        return (
+            type(self) == type(other)
+            and self.token == other.token
+            and self.amount == other.amount
+        )

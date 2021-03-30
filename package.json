@@ -1,10 +1,6 @@
 {
   "name": "flash",
   "version": "1.0.0",
-  "main": "src/index.js",
   "license": "UNLICENCED",
-  "author": "Fabio Nukui <fabio.nukui@gmail.com>",
-  "scripts": {
-    "start": "node src/index.js"
-  }
+  "author": "Fabio Nukui <fabio.nukui@gmail.com>"
 }

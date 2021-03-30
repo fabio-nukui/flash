@@ -1,7 +1,7 @@
 from web3 import Web3
 
+from core.entities import Token, TokenAmount
 from tools.cache import ttl_cache
-from entities import Token, TokenAmount
 
 LENDING_PRECISION = int(10 ** 18)
 PRECISION = int(10 ** 18)

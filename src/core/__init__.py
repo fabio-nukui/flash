@@ -1,4 +1,4 @@
-from .token import Token, TokenAmount
+from .entities import Token, TokenAmount
 
 __all__ = [
     'Token',
