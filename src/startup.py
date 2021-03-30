@@ -23,18 +23,23 @@ def setup_logger():
         logger = logging.getLogger(logger_name)
         logger.setLevel(max(log_level, logging.WARNING))
 
-    default_logger = logging.getLogger()
-    default_logger.setLevel(log_level)
+    root_logger = logging.root
+    root_logger.setLevel(log_level)
     formatter = logging.Formatter(log_format)
 
-    console_handler = logging.StreamHandler(sys.stdout)
+    if not root_logger.handlers:
+        console_handler = logging.StreamHandler(sys.stdout)
+        root_logger.addHandler(console_handler)
+    else:
+        console_handler = root_logger.handlers[0]
+
     console_handler.setFormatter(formatter)
-    default_logger.addHandler(console_handler)
+    root_logger.addHandler(console_handler)
 
     if configs.LOG_AWS is True:
         cloudwatch_handler = watchtower.CloudWatchLogHandler()
         cloudwatch_handler.setFormatter(formatter)
-        default_logger.addHandler(cloudwatch_handler)
+        root_logger.addHandler(cloudwatch_handler)
 
 
 def setup():
