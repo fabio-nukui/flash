@@ -47,14 +47,14 @@ class Dex:
         self.chain_id = chain_id
         self.addresses = self._get_addresses(addresses_filename)
         self.fee = fee
-        self.provider: Web3 = None
+        self.web3: Web3 = None
 
     def _get_addresses(self, filename: str) -> dict[str, str]:
         with open(self.dir_path / 'address' / filename) as f:
             return json.load(f)[str(self.chain_id)]
 
-    def connect(self, provider: Web3):
-        """Populate data from blockchain using web3 provider, to be implemented by subclasses"""
+    def connect(self, web3: Web3, **kwargs):
+        """Populate data from blockchain using web3, to be implemented by subclasses"""
         raise NotImplementedError
 
 
@@ -64,9 +64,8 @@ class BaseClient:
         dex: Dex,
         caller_address: str,
         private_key: str,
-        provider: Web3,
-        *args,
-        **kwargs,
+        web3: Web3,
+        **dex_params,
     ):
         """Client to interact with a decentralized exchange
 
@@ -74,10 +73,10 @@ class BaseClient:
             dex (Dex): Dex to be used implementation
             caller_address (str): Address of caller to trigger contracts
             private_key (str): Prvate key of caller to sign transactions
-            provider (Web3): Web3 provider to interact with blockchain
+            web3 (Web3): Web3 web3 to interact with blockchain
         """
         self.dex = dex
         self.caller_address = Web3.toChecksumAddress(caller_address)
         self.private_key = private_key
 
-        self.dex.connect(provider, *args, **kwargs)
+        self.dex.connect(web3, **dex_params)

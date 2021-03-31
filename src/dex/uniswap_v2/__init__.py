@@ -12,7 +12,7 @@ class PancakeswapClient(BaseClient):
         self,
         caller_address: str,
         private_key: str,
-        provider: str,
+        web3: str,
         tokens: list[Token] = None
     ):
         pancakeswap_dex = UniswapV2Dex(
@@ -20,10 +20,11 @@ class PancakeswapClient(BaseClient):
             addresses_filename='pancakeswap.json',
             fee=20
         )
+
         if tokens is None:
             tokens_data = json.load(open('addresses/tokens.json'))
             tokens = [Token(**data) for data in tokens_data]
-        super().__init__(pancakeswap_dex, caller_address, private_key, provider, tokens=tokens)
+        super().__init__(pancakeswap_dex, caller_address, private_key, web3, tokens=tokens)
 
 
 __all__ = [

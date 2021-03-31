@@ -6,20 +6,22 @@ from web3 import Web3
 from web3._utils.filters import Filter
 
 import configs
-from core.entities import Token
+from core.entities import Token, TokenAmount
 from dex.curve import CurvePool, EllipsisClient
 from dex.uniswap_v2 import PancakeswapClient
 from tools import cache
 
 
+INITIAL_AMOUNT = 10_000  # Initial amount to estimate best trade amount
+MAX_HOPS = 2
 MIN_CONFIRMATIONS = 4
 
 
 class TradeCandidate:
-    def __init__(self, token_in: Token, token_out: Token, provider: Web3):
+    def __init__(self, token_in: Token, token_out: Token, web3: Web3):
         self.token_in = token_in
         self.token_out = token_out
-        self.provider = provider
+        self.web3 = web3
 
         self._is_running = False
         self._transaction_hash = ''
@@ -38,7 +40,7 @@ class TradeCandidate:
     def is_running(self, current_block: int):
         if not self._is_running:
             return False
-        receipt = self.provider.eth.getTransactionReceipt(self.transaction_hash)
+        receipt = self.web3.eth.getTransactionReceipt(self.transaction_hash)
         if receipt.status == 0:
             logging.info(f'Transaction {self.transaction_hash} failed')
             self._reset()
@@ -60,20 +62,26 @@ def wait_for_new_block(block_filter: Filter):
         time.sleep(configs.POLL_INTERVAL)
 
 
-def get_candidates(tokens: list[Token]) -> list[TradeCandidate]:
+def get_candidates(tokens: list[Token], web3: Web3) -> list[TradeCandidate]:
     return [
-        TradeCandidate(token_in, token_out)
+        TradeCandidate(token_in, token_out, web3)
         for token_in, token_out in permutations(tokens, 2)
     ]
 
 
 def get_best_trade(
-    token_in: Token,
-    token_out: Token,
+    trade_candidate: TradeCandidate,
     cake_client: PancakeswapClient,
     pool: CurvePool
 ):
-    pass
+    amount_wei = INITIAL_AMOUNT * 10 ** trade_candidate.token_in.decimals
+    amount_in_eps = TokenAmount(trade_candidate.token_in, amount_wei)
+    amount_out_eps = pool.get_amount_out(amount_in_eps, trade_candidate.token_out)
+    amount_in_cake = cake_client.dex.best_trade_exact_out(
+        trade_candidate.token_in,
+        amount_out_eps,
+        MAX_HOPS
+    )
 
 
 def run_trade(trade, web3: Web3):
@@ -81,12 +89,12 @@ def run_trade(trade, web3: Web3):
 
 
 def run(web3: Web3):
-    """Search for arbitrate oportunity using flash swap starting from pancakeswap and
-    trading in Ellipsis's 3pool (USDT / USDC / BUSD)"""
+    """Search for arbitrate oportunity using flash swap starting from pancakeswap to
+    Ellipsis's 3pool and back (USDT / USDC / BUSD)"""
     cake_client = PancakeswapClient(configs.ADDRESS, configs.PRIVATE_KEY, web3)
     eps_client = EllipsisClient(configs.ADDRESS, configs.PRIVATE_KEY, web3)
     pool = eps_client.dex.pools['3pool']
-    candidates = get_candidates(pool.tokens)
+    candidates = get_candidates(pool.tokens, web3)
 
     block_filter = web3.eth.filter('latest')
     while True:

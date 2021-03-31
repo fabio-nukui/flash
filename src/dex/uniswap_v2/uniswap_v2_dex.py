@@ -19,31 +19,33 @@ class UniswapV2Dex(Dex):
         super().__init__(uniswapV2_protocol, chain_id, addresses_filename, fee)
         self.pairs: list[UniV2Pair] = []
 
-    def connect(self, provider: Web3, tokens: list[Token]):
-        self.provider = provider
-        self.factory_contract = self.provider.eth.contract(
+    def connect(self, web3: Web3, tokens: list[Token]):
+        self.web3 = web3
+        self.tokens = tokens
+        self.factory_contract = self.web3.eth.contract(
             address=Web3.toChecksumAddress(self.addresses['factory']),
             abi=self.abis[FACTORY_ABI]
         )
-        self.router_contract = self.provider.eth.contract(
+        self.router_contract = self.web3.eth.contract(
             address=Web3.toChecksumAddress(self.addresses['router']),
             abi=self.abis[ROUTER_ABI]
         )
         for token_1, token_2 in itertools.combinations(tokens, 2):
+            amount_pair = (TokenAmount(token_1), TokenAmount(token_2))
             try:
                 pair = UniV2Pair(
-                    TokenAmount(token_1),
-                    TokenAmount(token_2),
+                    amount_pair,
                     self.addresses['factory'],
                     self.addresses['init_code_hash'],
                     self.abis[PAIR_ABI],
                     self.fee,
-                    provider
+                    web3
                 )
-                if pair.reserve_0.amount > 0:
+                if pair.reserves[0].amount > 0:
                     self.pairs.append(pair)
-            except Exception:
-                logging.debug(f'Failed to get data for UniswapV2 pair {token_1}/{token_2}')
+            except Exception as e:
+                logging.exception(e)
+                logging.warning(f'Failed to get data for UniswapV2 pair {token_1}/{token_2}')
 
     def best_trade_exact_out(self, token_in: Token, amount_out: TokenAmount, max_hops: int = 1):
-        return UniV2Trade.exact_out(self.pairs, token_in, amount_out, max_hops)
+        return UniV2Trade.best_trade_exact_out(self.pairs, token_in, amount_out, max_hops)

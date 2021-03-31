@@ -8,12 +8,19 @@ import configs
 from startup import setup
 
 
-def get_provider():
-    web3_remote = Web3(WebsocketProvider(configs.RCP_REMOTE_ENDPOINT))
-    web3_local = Web3(HTTPProvider(configs.RCP_LOCAL_ENDPOINT))
+def web3_from_uri(endpoint_uri: str) -> Web3:
+    if endpoint_uri.startswith('http'):
+        return Web3(HTTPProvider(endpoint_uri))
+    if endpoint_uri.startswith('wss'):
+        return Web3(WebsocketProvider(endpoint_uri))
+    raise ValueError(f'Invalid {endpoint_uri=}')
 
-    if configs.CHAIN_ID == 56:
-        # Binance Smart Chain uses PoA
+
+def get_web3():
+    web3_remote = web3_from_uri(configs.RCP_REMOTE_URI)
+    web3_local = web3_from_uri(configs.RCP_LOCAL_URI)
+
+    if configs.POA_CHAIN:
         web3_remote.middleware_onion.inject(geth_poa_middleware, layer=0)
         web3_local.middleware_onion.inject(geth_poa_middleware, layer=0)
 
@@ -50,7 +57,7 @@ def get_provider():
 
 
 def main():
-    web3 = get_provider()
+    web3 = get_web3()
 
     strategy = importlib.import_module(f'strategies.{configs.STRATEGY}')
     logging.info(f'Starting strategy {configs.STRATEGY}')

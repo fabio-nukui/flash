@@ -5,8 +5,11 @@ from enum import Enum
 
 from web3 import Web3
 
-from core.entities import Token, TokenAmount
+from core.entities import Price, Token, TokenAmount
 from tools.cache import ttl_cache
+
+
+DEFAULT_MAX_SLIPPAGE = 30  # Defaul maximum slippage in basis points
 
 
 class TradeType(Enum):
@@ -21,37 +24,36 @@ class InsufficientLiquidity(Exception):
 class UniV2Pair:
     def __init__(
         self,
-        reserve_0: TokenAmount,
-        reserve_1: TokenAmount,
+        reserves: tuple[TokenAmount, TokenAmount],
         factory_address: str,
         init_code_hash: str,
         abi: dict,
         fee: int,
-        provider: Web3
+        web3: Web3
     ):
-        self.reserve_0, self.reserve_1 = sorted([reserve_0, reserve_1])
+        self._reserve_0, self._reserve_1 = sorted(reserves, key=lambda x: x.token)
         self.factory_address = factory_address
         self.init_code_hash = init_code_hash
         self.abi = abi
         self.fee = fee
-        self.provider = provider
+        self.web3 = web3
 
-        self.tokens = (self.reserve_0.token, self.reserve_1.token)
+        self.tokens = (self._reserve_0.token, self._reserve_1.token)
         self.address = self._get_address()
-        self.contract = self.provider.eth.contract(address=self.address, abi=self.abi)
+        self.contract = self.web3.eth.contract(address=self.address, abi=self.abi)
         self.latest_transaction_timestamp = None
 
-        if self.reserve_0.is_empty() or self.reserve_1.is_empty():
-            self.update_amounts()
+        if self._reserve_0.is_empty() or self._reserve_1.is_empty():
+            self._update_amounts()
 
     def __repr__(self):
         return f'{self.__class__.__name__}' \
-               f'({self.reserve_0.token.symbol}/{self.reserve_1.token.symbol})'
+               f'({self._reserve_0.token.symbol}/{self._reserve_1.token.symbol})'
 
     def _get_address(self) -> str:
         """Return address of pair's liquidity pool"""
         encoded_tokens = Web3.solidityKeccak(
-            ['address', 'address'], (self.reserve_0.token.address, self.reserve_1.token.address))
+            ['address', 'address'], (self._reserve_0.token.address, self._reserve_1.token.address))
 
         prefix = Web3.toHex(hexstr='ff')
         raw = Web3.solidityKeccak(
@@ -61,61 +63,65 @@ class UniV2Pair:
         return Web3.toChecksumAddress(raw.hex()[-40:])
 
     @property
-    @ttl_cache
     def reserves(self) -> tuple[TokenAmount, TokenAmount]:
-        self.update_amounts()
-        return (self.reserve_0, self.reserve_1)
+        self._update_amounts()
+        return (self._reserve_0, self._reserve_1)
 
-    def update_amounts(self):
+    @ttl_cache
+    def _get_reserves(self):
+        return self.contract.functions.getReserves().call()
+
+    def _update_amounts(self):
         """Update the reserve amounts of both token pools and the unix timestamp of the latest
         transaction"""
         (
-            self.reserve_0.amount,
-            self.reserve_1.amount,
+            self._reserve_0.amount,
+            self._reserve_1.amount,
             self.latest_transaction_timestamp
-        ) = self.contract.functions.getReserves().call()
+        ) = self._get_reserves()
 
-    def price_of(self, token: Token) -> float:
+    def price_of(self, token: Token) -> Price:
         assert token in self.tokens, f'{token=} not in pair={self}'
         fee_impact = 10_000 / (10_000 - self.fee)
-        if token == self.reserve_0.token:
-            return self.reserve_1.amount / self.reserve_0.amount * fee_impact
-        return self.reserve_0.amount / self.reserve_1.amount * fee_impact
+        if token == self.reserves[0].token:
+            return self.reserves[1] / self.reserves[0] * fee_impact
+        return self.reserves[0] / self.reserves[1] * fee_impact
 
     def get_amount_out(self, amount_in: TokenAmount) -> TokenAmount:
-        assert amount_in in self.tokens
+        assert amount_in.token in self.tokens
         assert amount_in.amount > 0
         if (
-            self.reserve_0.amount == 0
-            or self.reserve_1.amount == 0
+            self.reserves[0].amount == 0
+            or self.reserves[1].amount == 0
         ):
             raise InsufficientLiquidity
-        if amount_in.token == self.reserve_0.token:
-            reserve_in = self.reserve_0
-            reserve_out = self.reserve_1
+        if amount_in.token == self.reserves[0].token:
+            reserve_in = self.reserves[0]
+            reserve_out = self.reserves[1]
         else:
-            reserve_out = self.reserve_0
-            reserve_in = self.reserve_1
+            reserve_out = self.reserves[0]
+            reserve_in = self.reserves[1]
 
         amount_in_with_fee = amount_in.amount * (10_000 - self.fee)
         numerator = amount_in_with_fee * reserve_out.amount
         denominator = reserve_in.amount * 10_000 + amount_in_with_fee
 
-        return numerator // denominator
+        amount_out = numerator // denominator
+        return TokenAmount(reserve_out.token, amount_out)
 
     def get_amount_in(self, amount_out: TokenAmount) -> TokenAmount:
         assert amount_out.token in self.tokens
         assert amount_out.amount > 0
-        if amount_out.token == self.reserve_0.token:
-            reserve_out = self.reserve_0
-            reserve_in = self.reserve_1
+        if amount_out.token == self.reserves[0].token:
+            reserve_out = self.reserves[0]
+            reserve_in = self.reserves[1]
         else:
-            reserve_in = self.reserve_0
-            reserve_out = self.reserve_1
+            reserve_in = self.reserves[0]
+            reserve_out = self.reserves[1]
 
         if (
-            self.reserve_0.amount == 0
-            or self.reserve_1.amount == 0
+            self.reserves[0].amount == 0
+            or self.reserves[1].amount == 0
             or amount_out.amount >= reserve_out.amount
         ):
             raise InsufficientLiquidity
@@ -145,25 +151,26 @@ class UniV2Route:
     def symbols(self) -> str:
         symbol_list = [self.token_in.symbol]
         for pair in self.pairs:
-            if symbol_list[-1] == pair.reserve_0.token.symbol:
-                symbol_list.append(pair.reserve_1.token.symbol)
+            if symbol_list[-1] == pair.tokens[0].symbol:
+                symbol_list.append(pair.tokens[1].symbol)
             else:
-                symbol_list.append(pair.reserve_0.token.symbol)
+                symbol_list.append(pair.tokens[0].symbol)
         return '->'.join(symbol_list)
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.symbols})'
 
-    def mid_price(self) -> float:
-        price = 1
-        token_out = self.token_out
+    def get_amount_out(self, amount_in: TokenAmount) -> TokenAmount:
+        for pair in self.pairs:
+            # amount_out of each iteration is amount_in of next one
+            amount_in = pair.get_amount_out(amount_in)
+        return amount_in
+
+    def get_amount_in(self, amount_out: TokenAmount) -> TokenAmount:
         for pair in reversed(self.pairs):
-            price *= pair.price_of(token_out)
-            if token_out == pair.reserve_0.token:
-                token_out = pair.reserve_1.token
-            else:
-                token_out = pair.reserve_0.token
-        return price
+            # amount_in of each iteration is amount_out of next one
+            amount_out = pair.get_amount_in(amount_out)
+        return amount_out
 
 
 class InvalidRecursion(Exception):
@@ -171,20 +178,43 @@ class InvalidRecursion(Exception):
 
 
 class UniV2Trade:
-    def __init__(self, route: UniV2Route, token_amount: TokenAmount, trade_type: TradeType):
-        assert token_amount.amount > 0
+    def __init__(
+        self,
+        route: UniV2Route,
+        amount_in: TokenAmount = None,
+        amount_out: TokenAmount = None,
+        max_slippage: float = DEFAULT_MAX_SLIPPAGE
+    ):
         self.route = route
-        self.token_amount = token_amount
-        self.trade_type = trade_type
+        if (
+            amount_in is None and amount_out is None
+            or amount_in is not None and amount_out is not None
+        ):
+            raise ValueError('One and only one of amount_in and amount_out must be given')
+        if amount_in is not None:
+            self.amount_in = amount_in
+            self.amount_out = self.route.get_amount_out(amount_in)
+            self.trade_type = TradeType.exact_in
+            self.min_amount_out = self.amount_out * 10_000 // (10_000 + DEFAULT_MAX_SLIPPAGE)
+        else:
+            self.amount_out = amount_out
+            self.amount_in = self.route.get_amount_in(amount_out)
+            self.trade_type = TradeType.exact_out
+            self.max_amount_in = self.amount_in * (10_000 + DEFAULT_MAX_SLIPPAGE) // 10_000
 
     def __repr__(self):
-        str_amount = 'OUT: ' if self.trade_type == TradeType.exact_out else 'IN: '
-        str_amount += f'{self.token_amount.token.symbol}:'
-        str_amount += f'{self.token_amount.amount / 10 ** self.token_amount.token.decimals:,.2f}'
-        return f'{self.__class__.__name__}({self.route.symbols}: {str_amount})'
+        str_out = (
+            f'Out: {self.amount_out.token.symbol}='
+            f'{self.amount_out.amount / 10 ** self.amount_out.token.decimals:,.2f}'
+        )
+        str_in = (
+            f'Max In: {self.max_amount_in.token.symbol}='
+            f'{self.max_amount_in.amount / 10 ** self.max_amount_in.token.decimals:,.2f}'
+        )
+        return f'{self.__class__.__name__}({self.route.symbols}: {str_out}; {str_in})'
 
     @staticmethod
-    def exact_out(
+    def best_trade_exact_out(
         pairs: list[UniV2Pair],
         token_in: Token,
         amount_out: TokenAmount,
@@ -211,7 +241,7 @@ class UniV2Trade:
         original_amount_out = amount_out if original_amount_out is None else original_amount_out
         best_trades = [] if best_trades is None else best_trades
 
-        assert len(pairs) > 0, 'pairs must be positive number'
+        assert len(pairs) > 0, 'at least one pair must be given'
         assert max_hops > 0, 'max_hops must be positive number'
 
         for pair in pairs:
@@ -223,13 +253,12 @@ class UniV2Trade:
                 continue
             if amount_in.token == token_in:
                 route = UniV2Route([pair, *current_pairs], token_in, original_amount_out.token)
-                trade = UniV2Trade(route, original_amount_out, TradeType.exact_out)
+                trade = UniV2Trade(route, amount_out=original_amount_out)
                 best_trades.append(trade)
-                best_trades.sort(key=lambda x: -x.token_amount.amount)
             elif max_hops > 1 and len(pairs) > 1:
                 next_recursion_pairs = copy(pairs)
                 next_recursion_pairs.remove(pair)
-                UniV2Trade.exact_out(
+                UniV2Trade.best_trade_exact_out(
                     pairs=next_recursion_pairs,
                     token_in=token_in,
                     amount_out=amount_in,
@@ -238,4 +267,4 @@ class UniV2Trade:
                     original_amount_out=original_amount_out,
                     best_trades=best_trades
                 )
-        return best_trades[0]
+        return sorted(best_trades, key=lambda x: x.amount_in.amount)[0]

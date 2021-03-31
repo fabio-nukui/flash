@@ -16,20 +16,16 @@ class CurveDex(Dex):
         super().__init__(curve_protocol, chain_id, addresses_filename, fee)
         self.pools: dict[str, CurvePool] = {}
 
-    def connect(self, provider: Web3):
-        self.provider = provider
+    def connect(self, web3: Web3):
+        self.web3 = web3
         for pool_name, addresses in self.addresses.items():
-            tokens = [
-                Token(self.chain_id, address, provider=self.provider)
-                for address in addresses['tokens']
-            ]
             self.pools[pool_name] = CurvePool(
                 pool_name,
-                tokens,
+                chain_id=self.chain_id,
+                web3=self.web3,
                 pool_address=addresses['pool'],
                 pool_token_address=addresses['pool_token'],
                 pool_abi=self.abis[POOL_ABI],
                 pool_token_abi=self.abis[POOL_TOKEN_ABI],
                 fee=self.fee,
-                provider=self.provider
             )

@@ -1,4 +1,5 @@
 from web3 import Web3
+from web3.exceptions import BadFunctionCallOutput
 
 from core.entities import Token, TokenAmount
 from tools.cache import ttl_cache
@@ -13,20 +14,22 @@ class CurvePool:
     def __init__(
         self,
         name: str,
-        tokens: list[Token],
+        chain_id: int,
+        web3: Web3,
         pool_address: str,
         pool_token_address: str,
         pool_abi: str,
         pool_token_abi: str,
         fee: int,
-        provider: Web3
     ):
         self.name = name
-        self.tokens = tokens
-        self.pool_contract = provider.eth.contract(pool_address, abi=pool_abi)
-        self.pool_token_contract = provider.eth.contract(pool_token_address, abi=pool_token_abi)
+        self.chain_id = chain_id
+        self.web3 = web3
+        self.pool_contract = web3.eth.contract(pool_address, abi=pool_abi)
+        self.pool_token_contract = web3.eth.contract(pool_token_address, abi=pool_token_abi)
         self.fee = fee
 
+        self.tokens = self.get_tokens()
         self.n_coins = len(self.tokens)
         self._rates = tuple(int(10 ** t.decimals) for t in self.tokens)
 
@@ -39,6 +42,25 @@ class CurvePool:
             TokenAmount(token, balance)
             for token, balance in zip(self.tokens, self._balance())
         ]
+
+    def get_tokens(self) -> list[Token]:
+        i = 0
+        tokens = []
+        while True:
+            try:
+                token_address = self.pool_contract.functions.coins(i).call()
+            except BadFunctionCallOutput:
+                return tokens
+            tokens.append(Token(self.chain_id, token_address, web3=self.web3))
+            i += 1
+
+    def get_amount_out(self, amount_in: TokenAmount, token_out: Token) -> TokenAmount:
+        amount_out = self._get_dy(
+            self.tokens.index(amount_in.token),
+            self.tokens.index(token_out),
+            amount_in.amount
+        )
+        return TokenAmount(token_out, amount_out)
 
     # Internal functions based from curve's 3pool contract:
     # https://github.com/curvefi/curve-contract/blob/master/contracts/pools/3pool/StableSwap3Pool.vy
