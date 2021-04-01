@@ -13,7 +13,10 @@ dist/
 .env*
 env/
 .bash_history
-/.gitconfig
+.gitconfig
+.cache
+.local
+.python_history
 
 # connections
 *.ipc

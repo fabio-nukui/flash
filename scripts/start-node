@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+set -eux
+
+SYNCMODE="${1:-fast}"
+
+geth \
+    --config ./config.toml \
+    --datadir ./node \
+    --pprof \
+    --pprofaddr 0.0.0.0 \
+    --metrics \
+    --rpc \
+    --rpcaddr 0.0.0.0 \
+    --syncmode "$SYNCMODE"
