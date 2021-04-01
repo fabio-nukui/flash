@@ -21,6 +21,9 @@ class DexProtocol:
             for filename in abi_filenames
         }
 
+    def __repr__(self):
+        return f'{self.__class__.__name__}'
+
     def _get_abi(self, filename: str) -> dict[str, dict]:
         with open(self.dir_path / 'abi' / filename) as f:
             return json.load(f)
@@ -48,6 +51,9 @@ class Dex:
         self.addresses = self._get_addresses(addresses_filename)
         self.fee = fee
         self.web3: Web3 = None
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}'
 
     def _get_addresses(self, filename: str) -> dict[str, str]:
         with open(self.dir_path / 'address' / filename) as f:

@@ -1,9 +1,9 @@
-from core.entities import Token
 from web3 import Web3
 
+from core.entities import Token, TokenAmount
 from dex.base import Dex, DexProtocol
 
-from .entities import CurvePool
+from .entities import CurvePool, CurveTrade
 
 POOL_ABI = 'BasePool.json'
 POOL_TOKEN_ABI = 'PoolToken.json'
@@ -29,3 +29,18 @@ class CurveDex(Dex):
                 pool_token_abi=self.abis[POOL_TOKEN_ABI],
                 fee=self.fee,
             )
+
+    def best_trade_exact_in(
+        self,
+        amoun_in: TokenAmount,
+        token_out: Token,
+        pools: list[str] = None
+    ):
+        if pools is None:
+            pools = self.pools
+        else:
+            pools = {
+                self.pools[name]
+                for name in pools
+            }
+        return CurveTrade.best_trade_exact_in(pools, amoun_in, token_out)

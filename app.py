@@ -1,7 +1,7 @@
 import importlib
 import logging
 
-from web3 import HTTPProvider, Web3, WebsocketProvider
+from web3 import HTTPProvider, IPCProvider, Web3, WebsocketProvider
 from web3.middleware import geth_poa_middleware
 
 import configs
@@ -9,8 +9,11 @@ from startup import setup
 
 
 def web3_from_uri(endpoint_uri: str) -> Web3:
+    if endpoint_uri.startswith('ipc'):
+        raise Web3(IPCProvider(endpoint_uri))
     if endpoint_uri.startswith('http'):
-        return Web3(HTTPProvider(endpoint_uri))
+        logging.warning('HTTPProvider does not support filters')
+        raise Web3(HTTPProvider(endpoint_uri))
     if endpoint_uri.startswith('wss'):
         return Web3(WebsocketProvider(endpoint_uri))
     raise ValueError(f'Invalid {endpoint_uri=}')
@@ -50,7 +53,7 @@ def get_web3():
         web3 = web3_local
 
     logging.info(f'Running on chain_id={configs.CHAIN_ID}')
-    latest_block = web3.eth.getBlock('latest')['number']
+    latest_block = web3.eth.block_number
     logging.info(f'Latest block: {latest_block}')
 
     return web3

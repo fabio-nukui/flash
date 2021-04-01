@@ -1,20 +1,11 @@
 from __future__ import annotations
 
 from copy import copy
-from enum import Enum
 
 from web3 import Web3
 
-from core.entities import Price, Token, TokenAmount
+from core.entities import Price, Token, TokenAmount, Trade
 from tools.cache import ttl_cache
-
-
-DEFAULT_MAX_SLIPPAGE = 30  # Defaul maximum slippage in basis points
-
-
-class TradeType(Enum):
-    exact_in = 1
-    exact_out = 2
 
 
 class InsufficientLiquidity(Exception):
@@ -48,7 +39,7 @@ class UniV2Pair:
 
     def __repr__(self):
         return f'{self.__class__.__name__}' \
-               f'({self._reserve_0.token.symbol}/{self._reserve_1.token.symbol})'
+               f'({self._reserve_0.symbol}/{self._reserve_1.symbol})'
 
     def _get_address(self) -> str:
         """Return address of pair's liquidity pool"""
@@ -89,7 +80,6 @@ class UniV2Pair:
 
     def get_amount_out(self, amount_in: TokenAmount) -> TokenAmount:
         assert amount_in.token in self.tokens
-        assert amount_in.amount > 0
         if (
             self.reserves[0].amount == 0
             or self.reserves[1].amount == 0
@@ -111,7 +101,6 @@ class UniV2Pair:
 
     def get_amount_in(self, amount_out: TokenAmount) -> TokenAmount:
         assert amount_out.token in self.tokens
-        assert amount_out.amount > 0
         if amount_out.token == self.reserves[0].token:
             reserve_out = self.reserves[0]
             reserve_in = self.reserves[1]
@@ -177,41 +166,25 @@ class InvalidRecursion(Exception):
     pass
 
 
-class UniV2Trade:
+class UniV2Trade(Trade):
     def __init__(
         self,
         route: UniV2Route,
         amount_in: TokenAmount = None,
         amount_out: TokenAmount = None,
-        max_slippage: float = DEFAULT_MAX_SLIPPAGE
+        max_slippage: int = None,
     ):
         self.route = route
-        if (
-            amount_in is None and amount_out is None
-            or amount_in is not None and amount_out is not None
-        ):
-            raise ValueError('One and only one of amount_in and amount_out must be given')
-        if amount_in is not None:
-            self.amount_in = amount_in
-            self.amount_out = self.route.get_amount_out(amount_in)
-            self.trade_type = TradeType.exact_in
-            self.min_amount_out = self.amount_out * 10_000 // (10_000 + DEFAULT_MAX_SLIPPAGE)
-        else:
-            self.amount_out = amount_out
-            self.amount_in = self.route.get_amount_in(amount_out)
-            self.trade_type = TradeType.exact_out
-            self.max_amount_in = self.amount_in * (10_000 + DEFAULT_MAX_SLIPPAGE) // 10_000
+        super().__init__(amount_in, amount_out, max_slippage)
 
     def __repr__(self):
-        str_out = (
-            f'Out: {self.amount_out.token.symbol}='
-            f'{self.amount_out.amount / 10 ** self.amount_out.token.decimals:,.2f}'
-        )
-        str_in = (
-            f'Max In: {self.max_amount_in.token.symbol}='
-            f'{self.max_amount_in.amount / 10 ** self.max_amount_in.token.decimals:,.2f}'
-        )
-        return f'{self.__class__.__name__}({self.route.symbols}: {str_out}; {str_in})'
+        return f'{self.__class__.__name__}({self.route.symbols}: {self._str_in_out})'
+
+    def _get_amount_in(self) -> TokenAmount:
+        return self.route.get_amount_in(self.amount_out)
+
+    def _get_amount_out(self) -> TokenAmount:
+        return self.route.get_amount_out(self.amount_in)
 
     @staticmethod
     def best_trade_exact_out(
@@ -219,6 +192,7 @@ class UniV2Trade:
         token_in: Token,
         amount_out: TokenAmount,
         max_hops: int = 1,
+        max_slippage: int = None,
         current_pairs: list[UniV2Pair] = None,
         original_amount_out: TokenAmount = None,
         best_trades: list[UniV2Trade] = None
@@ -230,6 +204,7 @@ class UniV2Trade:
             token_in (Token): Token to be traded in
             amount_out (TokenAmount): Exact amount to be traded out
             max_hops (int): Maximum number of hops
+            max_slippage (int): Maximum slippage in basis points
             current_pairs (List[UniV2Pair], optional): Used for recursion
             original_amount_out (TokenAmount, optional): Used for recursion
             best_trades (list[UniV2Trade], optional):  Used for recursion
@@ -252,8 +227,14 @@ class UniV2Trade:
             except InsufficientLiquidity:
                 continue
             if amount_in.token == token_in:
+                # End of recursion
                 route = UniV2Route([pair, *current_pairs], token_in, original_amount_out.token)
-                trade = UniV2Trade(route, amount_out=original_amount_out)
+                trade = UniV2Trade(
+                    route=route,
+                    amount_in=TokenAmount(token_in),
+                    amount_out=original_amount_out,
+                    max_slippage=max_slippage
+                )
                 best_trades.append(trade)
             elif max_hops > 1 and len(pairs) > 1:
                 next_recursion_pairs = copy(pairs)
@@ -261,10 +242,11 @@ class UniV2Trade:
                 UniV2Trade.best_trade_exact_out(
                     pairs=next_recursion_pairs,
                     token_in=token_in,
-                    amount_out=amount_in,
+                    amount_out=amount_in,  # Amount out of next recursion is current amount_in
                     max_hops=max_hops - 1,
+                    max_slippage=max_slippage,
                     current_pairs=[pair, *current_pairs],
                     original_amount_out=original_amount_out,
                     best_trades=best_trades
                 )
-        return sorted(best_trades, key=lambda x: x.amount_in.amount)[0]
+        return min(best_trades, key=lambda x: x.amount_in)

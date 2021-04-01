@@ -29,5 +29,6 @@ class PancakeswapClient(BaseClient):
 
 __all__ = [
     'PancakeswapClient',
+    'UniswapV2Dex',
     'UniV2Pair',
 ]

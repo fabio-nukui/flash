@@ -15,8 +15,10 @@ env/
 /.local
 /.cache
 /.bash*
-.gitconfig
-.python_history
+/.gitconfig
+/.python_history
+/.ipython
+/.mypy_cache
 
 # MacOS file
 .DS_Store

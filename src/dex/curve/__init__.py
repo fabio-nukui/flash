@@ -17,5 +17,6 @@ class EllipsisClient(BaseClient):
 
 __all__ = [
     'CurvePool',
+    'CurveDex',
     'EllipsisClient',
 ]

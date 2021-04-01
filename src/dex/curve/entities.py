@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 from web3 import Web3
 from web3.exceptions import BadFunctionCallOutput
 
-from core.entities import Token, TokenAmount
+from core.entities import Token, TokenAmount, Trade
 from tools.cache import ttl_cache
 
 LENDING_PRECISION = int(10 ** 18)
@@ -151,3 +153,39 @@ class CurvePool:
         dy = (_xp[j] - y - 1) * PRECISION // self._rates[j]
         fee = self.fee * dy // FEE_DENOMINATOR
         return dy - fee
+
+
+class CurveTrade(Trade):
+    def __init__(
+        self,
+        pool: CurvePool,
+        amount_in: TokenAmount = None,
+        amount_out: TokenAmount = None,
+        max_slippage: int = None,
+    ):
+        self.pool = pool
+        super().__init__(amount_in, amount_out, max_slippage)
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}({self.pool}: {self._str_in_out})'
+
+    def _get_amount_out(self) -> TokenAmount:
+        return self.pool.get_amount_out(self.amount_in, self.token_out)
+
+    def _get_amount_in(self) -> TokenAmount:
+        raise NotImplementedError("'Exact Out' trades not implemented for curve pools")
+
+    @staticmethod
+    def best_trade_exact_in(
+        pools: list[CurvePool],
+        amoun_in: Token,
+        token_out: TokenAmount,
+        max_slippage: int = None,
+    ) -> CurveTrade:
+        best_trades = []
+        for pool in pools:
+            if amoun_in.token not in pool.tokens or token_out not in pool.tokens:
+                continue
+            trade = CurveTrade(pool, amoun_in, TokenAmount(token_out))
+            best_trades.append(trade)
+        return max(best_trades, key=lambda x: x.amount_out)
