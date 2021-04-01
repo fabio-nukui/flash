@@ -17,19 +17,19 @@ for line in sys.stdin:
 		print(line)
 endef
 
+export PRINT_HELP_PYSCRIPT
+
 ###################################################################################################
 ## VARIABLES
 ###################################################################################################
 
-export PRINT_HELP_PYSCRIPT
-export PYTHONPATH=$PYTHONPATH:${PWD}/work/src
-export IMAGE_NAME=flash
-export CONTAINER_NAME=flash
-export DATA_SOURCE=s3://crypto-flash
-export PYTHON=python3
-export DOCKERFILE=Dockerfile
-export GIT_BRANCH=$(shell git rev-parse --verify --short=12 HEAD)
-export GETH_IPC_NODE_PATH=${HOME}/bsc/node/geth.ipc
+IMAGE_NAME = flash
+CONTAINER_NAME = flash
+DATA_SOURCE = s3://crypto-flash
+PYTHON = python3
+DOCKERFILE = Dockerfile
+GIT_BRANCH = $(shell git rev-parse --verify --short=12 HEAD)
+GETH_IPC_PATH ?= ${HOME}/bsc/node/geth.ipc
 
 ###################################################################################################
 ## GENERAL COMMANDS
@@ -43,7 +43,7 @@ ifeq ($(shell docker ps -a --format "{{.Names}}" | grep ^$(CONTAINER_NAME)$$),)
 	docker run -it \
 		--net=host \
 		-v $(PWD):/home/flash/work \
-		-v $(GETH_IPC_NODE_PATH):/home/flash/work/geth.ipc \
+		-v $(GETH_IPC_PATH):/home/flash/work/geth.ipc \
 		--name $(CONTAINER_NAME) \
 		--env-file .env \
 		$(IMAGE_NAME)
