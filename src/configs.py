@@ -3,7 +3,7 @@ import os
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 LOG_AWS = os.getenv('LOG_AWS') == 'True'
 
-RCP_REMOTE_URI = os.getenv('RCP_REMOTE_URI', 'wss://dummy.com')
+RCP_REMOTE_URI = os.getenv('RCP_REMOTE_URI', 'wss://bsc-ws-node.nariox.org:443')
 RCP_LOCAL_URI = os.getenv('RCP_LOCAL_URI', 'geth.ipc')
 
 PRIVATE_KEY = os.environ['PRIVATE_KEY']
