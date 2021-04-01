@@ -12,13 +12,11 @@ dist/
 # misc
 .env*
 env/
-/.local
-/.cache
-/.bash*
+.bash_history
 /.gitconfig
-/.python_history
-/.ipython
-/.mypy_cache
+
+# connections
+*.ipc
 
 # MacOS file
 .DS_Store

@@ -28,12 +28,12 @@ def get_web3():
         web3_local.middleware_onion.inject(geth_poa_middleware, layer=0)
 
     try:
-        last_block_remote = web3_remote.eth.getBlock('latest').number
+        last_block_remote = web3_remote.eth.block_number
     except Exception:
         last_block_remote = None
 
     try:
-        last_block_local = web3_local.eth.getBlock('latest').number
+        last_block_local = web3_local.eth.block_number
     except Exception:
         last_block_local = None
 
@@ -46,7 +46,8 @@ def get_web3():
         logging.info('Using local RCP endpoint')
         web3 = web3_local
     elif last_block_remote - last_block_local > 2:
-        logging.info('Local RCP endpoint is still syncing, using remote endpoint')
+        n = last_block_remote - last_block_local
+        logging.info(f'Local RCP endpoint behind by {n} blocks, using remote endpoint')
         web3 = web3_remote
     else:
         logging.info('Using local RCP endpoint')

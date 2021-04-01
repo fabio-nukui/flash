@@ -30,7 +30,9 @@ RUN pip install \
 
 USER $USER
 
-WORKDIR /home/flash
+RUN mkdir /home/flash/work
 
-ENV PYTHONPATH=/home/flash/src
+WORKDIR /home/flash/work
+
+ENV PYTHONPATH=/home/flash/work/src
 

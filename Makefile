@@ -17,30 +17,19 @@ for line in sys.stdin:
 		print(line)
 endef
 
-define push_image
-	docker tag $(1):latest $(DOCKER_REGISTRY)/$(1):latest
-	docker tag $(1):latest $(DOCKER_REGISTRY)/$(1):$(GIT_BRANCH)
-	docker push $(DOCKER_REGISTRY)/$(1):latest
-	docker push $(DOCKER_REGISTRY)/$(1):$(GIT_BRANCH)
-endef
-
-
 ###################################################################################################
 ## VARIABLES
 ###################################################################################################
 
 export PRINT_HELP_PYSCRIPT
-export PHONY_FIX_PYSCRIPT
 export PYTHONPATH=$PYTHONPATH:${PWD}/work/src
 export IMAGE_NAME=flash
 export CONTAINER_NAME=flash
-export IPYHTON_CONTAINER_NAME=$(CONTAINER_NAME)Ipython
-export PYTHON_CONTAINER_NAME=$(CONTAINER_NAME)Python
 export DATA_SOURCE=s3://crypto-flash
 export PYTHON=python3
 export DOCKERFILE=Dockerfile
-# export GIT_BRANCH=$(shell git rev-parse --verify --short=12 HEAD)
-USER=jovyan
+export GIT_BRANCH=$(shell git rev-parse --verify --short=12 HEAD)
+export GETH_IPC_NODE_PATH=${HOME}/bsc/node/geth.ipc
 
 ###################################################################################################
 ## GENERAL COMMANDS
@@ -53,36 +42,13 @@ start: ## start docker container
 ifeq ($(shell docker ps -a --format "{{.Names}}" | grep ^$(CONTAINER_NAME)$$),)
 	docker run -it \
 		--net=host \
-		-v $(PWD):/home/flash \
+		-v $(PWD):/home/flash/work \
+		-v $(GETH_IPC_NODE_PATH):/home/flash/work/geth.ipc \
 		--name $(CONTAINER_NAME) \
 		--env-file .env \
 		$(IMAGE_NAME)
 else
 	docker start -i $(CONTAINER_NAME)
-endif
-
-start-ipython: ## start docker container running an ipython interpreter
-ifeq ($(shell docker ps -a --format "{{.Names}}" | grep ^$(IPYHTON_CONTAINER_NAME)$$),)
-	docker run -it \
-		--net=host \
-		-v $(PWD):/home/flash \
-		--name $(IPYHTON_CONTAINER_NAME) \
-		--env-file .env \
-		$(IMAGE_NAME) ipython
-else
-	docker start -i $(IPYHTON_CONTAINER_NAME)
-endif
-
-start-python: ## start docker container running a python interpreter
-ifeq ($(shell docker ps -a --format "{{.Names}}" | grep ^$(PYTHON_CONTAINER_NAME)$$),)
-	docker run -it \
-		--net=host \
-		-v $(PWD):/home/flash \
-		--name $(PYTHON_CONTAINER_NAME) \
-		--env-file .env \
-		$(IMAGE_NAME) python
-else
-	docker start -i $(PYTHON_CONTAINER_NAME)
 endif
 
 build: ## (re-)build docker image
