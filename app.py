@@ -9,13 +9,13 @@ from startup import setup
 
 
 def web3_from_uri(endpoint_uri: str) -> Web3:
-    if endpoint_uri.startswith('ipc'):
-        raise Web3(IPCProvider(endpoint_uri))
     if endpoint_uri.startswith('http'):
         logging.warning('HTTPProvider does not support filters')
-        raise Web3(HTTPProvider(endpoint_uri))
+        return Web3(HTTPProvider(endpoint_uri))
     if endpoint_uri.startswith('wss'):
         return Web3(WebsocketProvider(endpoint_uri))
+    if endpoint_uri.endswith('ipc'):
+        return Web3(IPCProvider(endpoint_uri))
     raise ValueError(f'Invalid {endpoint_uri=}')
 
 
