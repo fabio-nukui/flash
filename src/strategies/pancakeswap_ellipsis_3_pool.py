@@ -74,12 +74,12 @@ class ArbitragePair:
 
         return trade_eps.amount_out - trade_cake.amount_in
 
-    def _get_arbitrage_params(self) -> tuple[CurveTrade, UniV2Trade]:
+    def _get_arbitrage_params(self) -> tuple[UniV2Trade, CurveTrade]:
         trade_cake = self.cake_client.dex.best_trade_exact_out(
             self.token_1, self.amount_2, MAX_HOPS)
         trade_eps = self.eps_client.dex.best_trade_exact_in(
             self.amount_2, self.token_1, pools=[POOL_NAME])
-        return trade_eps, trade_cake
+        return trade_cake, trade_eps
 
     def update_estimate(self) -> TokenAmount:
         amount_2_initial = TokenAmount(
@@ -148,7 +148,7 @@ def get_latest_block(block_filter: Filter, web3: Web3) -> int:
             if len(entries) > 1:
                 log.warning(f'More than one block passed since last iteration ({len(entries)})')
             block_number = web3.eth.block_number
-            log.info(f'New block: {block_number}')
+            log.debug(f'New block: {block_number}')
             return block_number
         time.sleep(configs.POLL_INTERVAL)
 
