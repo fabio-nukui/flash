@@ -106,6 +106,7 @@ class ArbitragePair:
     def execute(self):
         log.info(f'Estimated profit: {self.estimated_net_result_usd}')
         log.info(f'Arbitrage params: {self._get_arbitrage_params()}')
+        return
         raise NotImplementedError
         transaction_hash = self.trigger_contract()
         self.mark_running(transaction_hash)

@@ -65,7 +65,13 @@ def main():
 
     strategy = importlib.import_module(f'strategies.{configs.STRATEGY}')
     log.info(f'Starting strategy {configs.STRATEGY}')
-    strategy.run(web3)
+    while True:
+        try:
+            strategy.run(web3)
+        except Exception as e:
+            log.error('Error during strategy execution')
+            log.exception(e)
+            log.info('Restarting strategy')
 
 
 if __name__ == '__main__':
