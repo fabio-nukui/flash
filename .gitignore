@@ -26,6 +26,7 @@ env/
 
 # Logs
 *.log
+/logs
 
 # IDEs/editors
 .idea
