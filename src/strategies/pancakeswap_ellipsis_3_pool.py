@@ -12,7 +12,7 @@ from tools import cache, optimization, price
 from tools.logger import log
 
 MAX_HOPS = 1
-MIN_CONFIRMATIONS = 5
+MIN_CONFIRMATIONS = 3
 POOL_NAME = '3pool'
 GAS_COST = 1_000_000  # TODO: replace with real contract's gas costs
 GAS_PREMIUM_FACTOR = 2  # TODO: Calculate premium via % failed transactions

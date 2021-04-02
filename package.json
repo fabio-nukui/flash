@@ -2,5 +2,13 @@
   "name": "flash",
   "version": "1.0.0",
   "license": "UNLICENCED",
-  "author": "Fabio Nukui <fabio.nukui@gmail.com>"
+  "author": "Fabio Nukui <fabio.nukui@gmail.com>",
+  "devDependencies": {
+    "prettier": "^2.2.1"
+  },
+  "dependencies": {
+    "@studydefi/money-legos": "^2.4.1",
+    "@truffle/hdwallet-provider": "^1.2.6",
+    "dotenv": "^8.2.0"
+  }
 }
