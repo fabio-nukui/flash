@@ -27,6 +27,11 @@ RUN pip install \
     'line_profiler' \
     'isort'
 
+RUN apt-get -q update \
+    && apt-get install -yq less \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
 USER $USER
 
 ENV PATH="${HOME}/.local/bin:${PATH}"
