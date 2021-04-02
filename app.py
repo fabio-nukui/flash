@@ -61,12 +61,11 @@ def get_web3():
 
 
 def main():
-    web3 = get_web3()
-
     strategy = importlib.import_module(f'strategies.{configs.STRATEGY}')
-    log.info(f'Starting strategy {configs.STRATEGY}')
     while True:
         try:
+            web3 = get_web3()
+            log.info(f'Starting strategy {configs.STRATEGY}')
             strategy.run(web3)
         except Exception as e:
             log.error('Error during strategy execution')
