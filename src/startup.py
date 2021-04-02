@@ -19,6 +19,7 @@ def setup_logger():
     dict_config['handlers']['logfile']['filename'] = f'logs/{configs.STRATEGY}.log'
     if not configs.LOG_AWS:
         del dict_config['handlers']['watchtower']
+        dict_config['root']['handlers'].remove('watchtower')
 
     logging.config.dictConfig(dict_config)
 

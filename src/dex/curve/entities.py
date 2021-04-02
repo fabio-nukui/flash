@@ -67,14 +67,14 @@ class CurvePool:
     # Internal functions based from curve's 3pool contract:
     # https://github.com/curvefi/curve-contract/blob/master/contracts/pools/3pool/StableSwap3Pool.vy
 
-    @ttl_cache()
+    @ttl_cache
     def _balance(self) -> list[int]:
         return [
             self.pool_contract.functions.balances(i).call()
             for i in range(self.n_coins)
         ]
 
-    @ttl_cache(ttl=120)  # _A should vary slowly over time, cache can have greater TTL
+    @ttl_cache(ttl=60)  # _A should vary slowly over time, cache can have greater TTL
     def _A(self):
         return self.pool_contract.functions.A().call()
 
