@@ -16,6 +16,7 @@ def setup_warnings():
 def setup_logger():
     dict_config = yaml.safe_load(open('logging_config.yaml'))
     dict_config['root']['level'] = configs.LOG_LEVEL
+    dict_config['handlers']['logfile']['filename'] = f'logs/{configs.STRATEGY}.log'
     if not configs.LOG_AWS:
         del dict_config['handlers']['watchtower']
 

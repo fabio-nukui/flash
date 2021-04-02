@@ -39,7 +39,10 @@ GETH_IPC_PATH ?= ${HOME}/bsc/node/geth.ipc
 help: ## show this message
 	@$(PYTHON) -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
-start-dev: ## start docker container for development
+build: ## (re-)build docker image
+	docker build -t $(IMAGE_NAME) docker
+
+start-dev: ## (re-)start docker container for development
 ifeq ($(shell docker ps -a --format "{{.Names}}" | grep ^$(DEV_CONTAINER_NAME)$$),)
 	docker run -it \
 		--net=host \
@@ -52,24 +55,27 @@ else
 	docker start -i $(DEV_CONTAINER_NAME)
 endif
 
-start-arb: ## start docker running an arbitrage strategy
+rm-dev: ## remove stopped dev container
+	docker rm $(DEV_CONTAINER_NAME)
+
+start-arb: ## (re-)start docker running arbitrage strategy chosen in .env file
 ifeq ($(shell docker ps -a --format "{{.Names}}" | grep ^$(ARBITRAGE_CONTAINER_NAME)$$),)
-	docker run -it \
+	docker run -d \
 		--net=host \
 		-v $(PWD):/home/flash/work \
 		-v $(GETH_IPC_PATH):/home/flash/work/geth.ipc \
 		--name $(ARBITRAGE_CONTAINER_NAME) \
 		--env-file .env \
-		$(IMAGE_NAME)
+		$(IMAGE_NAME) python app.py
 else
-	docker start -i $(ARBITRAGE_CONTAINER_NAME)
+	docker start -d $(ARBITRAGE_CONTAINER_NAME)
 endif
 
-build: ## (re-)build docker image
-	docker build -t $(IMAGE_NAME) docker
+stop-arb:  ## stop docker running arbitrage strategy chosen in .env file
+	docker stop $(ARBITRAGE_CONTAINER_NAME)
 
-rm-dev: ## remove stopped dev container
-	docker rm $(DEV_CONTAINER_NAME)
+rm-arb: ## remove stopped container that ran strategy chosen in .env file
+	docker rm $(ARBITRAGE_CONTAINER_NAME)
 
 check-all: isort lint test ## run tests and code style
 
