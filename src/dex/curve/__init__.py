@@ -2,7 +2,7 @@ from web3 import Web3
 
 from ..base import BaseClient
 from .curve_dex import CurveDex
-from .entities import CurvePool
+from .entities import CurvePool, CurveTrade
 
 
 class EllipsisClient(BaseClient):
@@ -18,5 +18,6 @@ class EllipsisClient(BaseClient):
 __all__ = [
     'CurvePool',
     'CurveDex',
+    'CurveTrade',
     'EllipsisClient',
 ]

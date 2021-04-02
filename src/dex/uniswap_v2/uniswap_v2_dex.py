@@ -1,10 +1,10 @@
 import itertools
-import logging
 
 from web3 import Web3
 
 from core.entities import Token, TokenAmount
 from dex.base import Dex, DexProtocol
+from tools.logger import log
 
 from .entities import UniV2Pair, UniV2Trade
 
@@ -44,8 +44,8 @@ class UniswapV2Dex(Dex):
                 if pair.reserves[0].amount > 0:
                     self.pairs.append(pair)
             except Exception as e:
-                logging.exception(e)
-                logging.warning(f'Failed to get data for UniswapV2 pair {token_1}/{token_2}')
+                log.exception(e)
+                log.warning(f'Failed to get data for UniswapV2 pair {token_1}/{token_2}')
 
     def best_trade_exact_out(self, token_in: Token, amount_out: TokenAmount, max_hops: int = 1):
         return UniV2Trade.best_trade_exact_out(self.pairs, token_in, amount_out, max_hops)

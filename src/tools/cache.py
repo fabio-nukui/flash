@@ -1,10 +1,10 @@
-import logging
 from threading import Lock
 from typing import Callable, Union
 
 from cachetools import TTLCache, cached
 
 import configs
+from tools.logger import log
 
 _cache_locks = []
 
@@ -12,11 +12,11 @@ _cache_locks = []
 class TTLCache(TTLCache):
     def __getitem__(self, key):
         hit = super().__getitem__(key)
-        logging.debug(f'Cache hit: {hit}')
+        log.debug(f'Cache hit: {hit}')
         return hit
 
     def setdefault(self, k, v):
-        logging.debug(f'Cache set: {k=}, {v=}')
+        log.debug(f'Cache set: {k=}, {v=}')
         return super().setdefault(k, v)
 
 

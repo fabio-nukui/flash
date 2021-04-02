@@ -1,5 +1,6 @@
 .PHONY: build
 .DEFAULT_GOAL := help
+include .env
 
 ###################################################################################################
 ## SCRIPTS
@@ -24,10 +25,10 @@ export PRINT_HELP_PYSCRIPT
 ###################################################################################################
 
 IMAGE_NAME = flash
-CONTAINER_NAME = flash
+DEV_CONTAINER_NAME = flash-dev
+ARBITRAGE_CONTAINER_NAME = flash-arbitrage-${STRATEGY}
 DATA_SOURCE = s3://crypto-flash
 PYTHON = python3
-DOCKERFILE = Dockerfile
 GIT_BRANCH = $(shell git rev-parse --verify --short=12 HEAD)
 GETH_IPC_PATH ?= ${HOME}/bsc/node/geth.ipc
 
@@ -38,35 +39,45 @@ GETH_IPC_PATH ?= ${HOME}/bsc/node/geth.ipc
 help: ## show this message
 	@$(PYTHON) -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
-start: ## start docker container
-ifeq ($(shell docker ps -a --format "{{.Names}}" | grep ^$(CONTAINER_NAME)$$),)
+start-dev: ## start docker container for development
+ifeq ($(shell docker ps -a --format "{{.Names}}" | grep ^$(DEV_CONTAINER_NAME)$$),)
 	docker run -it \
 		--net=host \
 		-v $(PWD):/home/flash/work \
 		-v $(GETH_IPC_PATH):/home/flash/work/geth.ipc \
-		--name $(CONTAINER_NAME) \
+		--name $(DEV_CONTAINER_NAME) \
 		--env-file .env \
 		$(IMAGE_NAME)
 else
-	docker start -i $(CONTAINER_NAME)
+	docker start -i $(DEV_CONTAINER_NAME)
+endif
+
+start-arb: ## start docker running an arbitrage strategy
+ifeq ($(shell docker ps -a --format "{{.Names}}" | grep ^$(ARBITRAGE_CONTAINER_NAME)$$),)
+	docker run -it \
+		--net=host \
+		-v $(PWD):/home/flash/work \
+		-v $(GETH_IPC_PATH):/home/flash/work/geth.ipc \
+		--name $(ARBITRAGE_CONTAINER_NAME) \
+		--env-file .env \
+		$(IMAGE_NAME)
+else
+	docker start -i $(ARBITRAGE_CONTAINER_NAME)
 endif
 
 build: ## (re-)build docker image
-	docker build -t $(IMAGE_NAME) -f $(DOCKERFILE) .
+	docker build -t $(IMAGE_NAME) docker
 
-bash: ## run bash inside running container
-	docker exec -it $(CONTAINER_NAME) bash
-
-rm: ## remove stopped container
-	docker rm flash
+rm-dev: ## remove stopped dev container
+	docker rm $(DEV_CONTAINER_NAME)
 
 check-all: isort lint test ## run tests and code style
 
 isort: ## fix import sorting order
-	docker exec -it $(CONTAINER_NAME) isort -y -rc src scripts app.py
+	docker exec -it $(DEV_CONTAINER_NAME) isort -y -rc src scripts app.py
 
 lint: ## run code style checker
-	docker exec -it $(CONTAINER_NAME) flake8 src scripts app.py
+	docker exec -it $(DEV_CONTAINER_NAME) flake8 src scripts app.py
 
 test: ## run test cases in tests directory
-	docker exec -it $(CONTAINER_NAME) pytest -v tests
+	docker exec -it $(DEV_CONTAINER_NAME) pytest -v tests

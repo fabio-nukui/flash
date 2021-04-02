@@ -1,4 +1,3 @@
-import logging
 import time
 from itertools import permutations
 
@@ -7,25 +6,22 @@ from web3._utils.filters import Filter
 
 import configs
 from core.entities import Token, TokenAmount
-from dex.curve import EllipsisClient
-from dex.uniswap_v2 import PancakeswapClient
-from tools import cache, optimization
+from dex.curve import CurveTrade, EllipsisClient
+from dex.uniswap_v2 import PancakeswapClient, UniV2Trade
+from tools import cache, optimization, price
+from tools.logger import log
 
 MAX_HOPS = 1
 MIN_CONFIRMATIONS = 5
 POOL_NAME = '3pool'
-GAS_COST_USD = 2
+GAS_COST = 1_000_000  # TODO: replace with real contract's gas costs
+GAS_PREMIUM_FACTOR = 2  # TODO: Calculate premium via % failed transactions
 
 # Optimization paramenters
 INITIAL_VALUE = 100  # Initial value to estimate best trade
 INCREMENT = 0.0001  # Increment to estimate derivatives in optimization
 TOLERANCE = 0.01  # Tolerance to stop optimization
 MAX_ITERATIONS = 100
-
-
-def _is_close(a, b, rtol=1e-4):
-    """Clecks if a and b are close by relative tolerance tol"""
-    return abs(a - b) / (a + b) / 2 < rtol
 
 
 class ArbitragePair:
@@ -51,9 +47,21 @@ class ArbitragePair:
 
     def __repr__(self):
         return (
-            f'{self.__class__.__name__}({self.token_1.symbol}->'
-            f'{self.token_2.symbol}->{self.token_1.symbol})'
+            f'{self.__class__.__name__}({self.token_1.symbol}->{self.token_2.symbol}->'
+            f'{self.token_1.symbol}, estimated_net_result_usd={self.estimated_net_result_usd:,.2f})'
         )
+
+    @property
+    def estimated_net_result_usd(self) -> float:
+        if self.estimated_result.is_empty():
+            return 0.0
+        token_usd_price = price.get_chainlink_price_usd(
+            self.estimated_result.token.symbol, self.web3)
+
+        gross_result_usd = self.estimated_result.amount_in_units * token_usd_price
+        gas_cost_usd = price.get_gas_cost_usd(GAS_COST * GAS_PREMIUM_FACTOR, self.web3)
+
+        return gross_result_usd - gas_cost_usd
 
     def _estimate_result_int(self, amount_2_int: int) -> int:
         amount_2 = TokenAmount(self.token_2, amount_2_int)
@@ -65,6 +73,13 @@ class ArbitragePair:
             amount_2, self.token_1, pools=[POOL_NAME])
 
         return trade_eps.amount_out - trade_cake.amount_in
+
+    def _get_arbitrage_params(self) -> tuple[CurveTrade, UniV2Trade]:
+        trade_cake = self.cake_client.dex.best_trade_exact_out(
+            self.token_1, self.amount_2, MAX_HOPS)
+        trade_eps = self.eps_client.dex.best_trade_exact_in(
+            self.amount_2, self.token_1, pools=[POOL_NAME])
+        return trade_eps, trade_cake
 
     def update_estimate(self) -> TokenAmount:
         amount_2_initial = TokenAmount(
@@ -78,28 +93,25 @@ class ArbitragePair:
             return
 
         int_amount_2, int_result = optimization.optimizer_second_order(
-            self._estimate_result_int,
-            amount_2_initial.amount,
-            int(INCREMENT * 10 ** self.token_2.decimals),
-            int(TOLERANCE * 10 ** self.token_2.decimals),
-            MAX_ITERATIONS,
+            func=self._estimate_result_int,
+            x0=amount_2_initial.amount,
+            dx=int(INCREMENT * 10 ** self.token_2.decimals),
+            tol=int(TOLERANCE * 10 ** self.token_2.decimals),
+            max_iter=MAX_ITERATIONS,
         )
 
         self.amount_2 = TokenAmount(self.token_2, int_amount_2)
         self.estimated_result = TokenAmount(self.token_1, int_result)
 
-    def get_net_result(self):
-        # TODO: subtract real gas costs
-        gas_costs_in_token_wei = TokenAmount(
-            self.token_1, GAS_COST_USD * 10 ** self.token_1.decimals)
-        return self.estimated_result - gas_costs_in_token_wei
-
     def execute(self):
+        log.info(f'Estimated profit: {self.estimated_net_result_usd}')
+        log.info(f'Arbitrage params: {self._get_arbitrage_params()}')
         raise NotImplementedError
         transaction_hash = self.trigger_contract()
         self.mark_running(transaction_hash)
 
-    def trigger_contract(self):
+    def trigger_contract(self) -> str:
+        return '0x1234'
         raise NotImplementedError
 
     def mark_running(self, transaction_hash: str):
@@ -111,11 +123,13 @@ class ArbitragePair:
         self._transaction_hash = ''
 
     def is_running(self, current_block: int) -> bool:
+        return False
+        raise NotImplementedError
         if not self._is_running:
             return False
-        receipt = self.web3.eth.getTransactionReceipt(self.transaction_hash)
+        receipt = self.web3.eth.getTransactionReceipt(self._transaction_hash)
         if receipt.status == 0:
-            logging.info(f'Transaction {self.transaction_hash} failed')
+            log.info(f'Transaction {self._transaction_hash} failed')
             self._reset()
             return False
         elif current_block - receipt.blockNumber < MIN_CONFIRMATIONS:
@@ -131,8 +145,10 @@ def get_latest_block(block_filter: Filter, web3: Web3) -> int:
         entries = block_filter.get_new_entries()
         if len(entries) > 0:
             if len(entries) > 1:
-                logging.warning(f'More than one block passed since last iteration ({len(entries)})')
-            return web3.eth.block_number
+                log.warning(f'More than one block passed since last iteration ({len(entries)})')
+            block_number = web3.eth.block_number
+            log.info(f'New block: {block_number}')
+            return block_number
         time.sleep(configs.POLL_INTERVAL)
 
 
@@ -164,7 +180,7 @@ def run(web3: Web3):
             continue
         for arb_pair in arbitrage_pairs:
             arb_pair.update_estimate()
-        best_arbitrage = max(arb_pair, key=lambda x: x.estimated_result)
-        if best_arbitrage.get_net_result() > 0:
-            logging.info('Arbitrage opportunity found')
+        best_arbitrage = max(arbitrage_pairs, key=lambda x: x.estimated_net_result_usd)
+        if best_arbitrage.estimated_net_result_usd > 0:
+            log.info('Arbitrage opportunity found')
             best_arbitrage.execute()

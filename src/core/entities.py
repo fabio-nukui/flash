@@ -108,8 +108,12 @@ class TokenAmount:
     def __repr__(self) -> str:
         if self.is_empty():
             return f'{self.__class__.__name__}({self.symbol}: None)'
-        amount_str = f'{self.amount / 10 ** self.token.decimals:,.2f}'
+        amount_str = f'{self.amount_in_units:,.2f}'
         return f'{self.__class__.__name__}({self.symbol}: {amount_str})'
+
+    @property
+    def amount_in_units(self) -> float:
+        return self.amount / 10 ** self.token.decimals
 
     def is_empty(self):
         return self.amount is None

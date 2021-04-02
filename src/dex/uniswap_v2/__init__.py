@@ -3,7 +3,7 @@ import json
 from core.entities import Token
 
 from ..base import BaseClient
-from .entities import UniV2Pair
+from .entities import UniV2Pair, UniV2Trade
 from .uniswap_v2_dex import UniswapV2Dex
 
 
@@ -31,4 +31,5 @@ __all__ = [
     'PancakeswapClient',
     'UniswapV2Dex',
     'UniV2Pair',
+    'UniV2Trade',
 ]

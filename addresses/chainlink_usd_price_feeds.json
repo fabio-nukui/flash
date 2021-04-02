@@ -1,0 +1,20 @@
+{
+    "56": {
+        "BNB": {
+            "address": "0x0567F2323251f0Aab15c8dFb1967E4e8A7D42aeE",
+            "decimals": 8
+        },
+        "BUSD": {
+            "address": "0xcBb98864Ef56E9042e7d2efef76141f15731B82f",
+            "decimals": 8
+        },
+        "USDC": {
+            "address": "0x51597f405303C4377E36123cBc172b13269EA163",
+            "decimals": 8
+        },
+        "USDT": {
+            "address": "0xB97Ad0E74fa7d920791E90258A6E2085088b4320",
+            "decimals": 8
+        }
+    }
+}
