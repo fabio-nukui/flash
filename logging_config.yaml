@@ -28,8 +28,11 @@ handlers:
     send_interval: 5
     create_log_group: True
 root:
+  level: DEBUG
   handlers: [console, logfile, watchtower]
 loggers:
+  asyncio:
+    level: WARNING
   botocore:
     level: WARNING
   urllib3:
@@ -39,4 +42,8 @@ loggers:
   hpack:
     level: WARNING
   httpx:
+    level: WARNING
+  websockets:
+    level: WARNING
+  web3:
     level: WARNING
