@@ -75,15 +75,14 @@ class ArbitragePair:
 
     def _get_arbitrage_trades(self, amount_2: TokenAmount) -> tuple[UniV2Trade, CurveTrade]:
         trade_cake = self.cake_client.dex.best_trade_exact_out(
-            self.token_1, self.amount_2, MAX_HOPS)
+            self.token_1, amount_2, MAX_HOPS)
         trade_eps = self.eps_client.dex.best_trade_exact_in(
-            self.amount_2, self.token_1, pools=[POOL_NAME])
+            amount_2, self.token_1, pools=[POOL_NAME])
         return trade_cake, trade_eps
 
     def update_estimate(self) -> TokenAmount:
         amount_2_initial = TokenAmount(
             self.token_2, int(INITIAL_VALUE * 10 ** self.token_2.decimals))
-
         result_initial = self._estimate_result(amount_2_initial)
         if result_initial < 0:
             # If gross result is negative even with small amount gross, skip optimization
