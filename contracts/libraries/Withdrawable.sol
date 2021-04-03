@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENCED
 pragma solidity ^0.6.6;
 
-import { IERC20 } from "../interfaces/common/IERC20.sol";
+import "../interfaces/common/IERC20.sol";
 
 contract Withdrawable {
     address payable owner = payable(msg.sender);
@@ -11,7 +11,7 @@ contract Withdrawable {
         _;
     }
 
-    receive () external payable {}
+    receive() external payable {}
 
     function withdrawToken(address _tokenAddress) public restricted {
         uint256 balance = IERC20(_tokenAddress).balanceOf(address(this));

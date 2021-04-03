@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENCED
-pragma solidity ^0.8.3;
+pragma solidity ^0.6.6;
 
-import { IERC20 } from "../interfaces/common/IERC20.sol";
-import { ICurveFiCurve } from "../interfaces/curve/ICurveFiPool.sol";
+import "../interfaces/common/IERC20.sol";
+import "../interfaces/curve/ICurveFiPool.sol";
 
 contract CurveSwap {
     // Addresses
@@ -17,7 +17,7 @@ contract CurveSwap {
     // Currency mappings
     mapping(int128 => address) public currencies;
 
-    constructor() {
+    constructor() public {
         currencies[0] = BUSD;
         currencies[1] = USDC;
         currencies[2] = USDT;
@@ -30,11 +30,16 @@ contract CurveSwap {
     }
 
     // Allow the contract to receive Ether
-    receive () external payable {}
+    receive() external payable {}
 
-    function exchange(int128 from, int128 to, uint256 amount, uint256 minOut) external {
+    function exchange(
+        int128 from,
+        int128 to,
+        uint256 amount,
+        uint256 minOut
+    ) external {
         IERC20(currencies[from]).approve(ellipsis3pool, amount);
-        ICurveFiCurve curve = ICurveFiCurve(ellipsis3pool);
+        ICurveFiPool curve = ICurveFiPool(ellipsis3pool);
         curve.exchange(from, to, amount, minOut);
     }
 

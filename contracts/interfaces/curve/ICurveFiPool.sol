@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.3;
+pragma solidity ^0.6.6;
 
-abstract contract ICurveFiCurve {
+abstract contract ICurveFiPool {
     function get_virtual_price() virtual external returns (uint256 out);
 
     function add_liquidity(uint256[2] calldata amounts, uint256 deadline) virtual external;
