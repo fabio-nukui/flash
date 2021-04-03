@@ -4,11 +4,16 @@
   "license": "UNLICENCED",
   "author": "Fabio Nukui <fabio.nukui@gmail.com>",
   "devDependencies": {
+    "@truffle/hdwallet-provider": "^1.2.6",
+    "dotenv": "^8.2.0",
     "prettier": "^2.2.1"
   },
+  "scripts": {
+    "migrate": "truffle migrate --network bsc | tee -a logs/migrations.log"
+  },
   "dependencies": {
-    "@studydefi/money-legos": "^2.4.1",
-    "@truffle/hdwallet-provider": "^1.2.6",
-    "dotenv": "^8.2.0"
+    "@openzeppelin/contracts": "^4.0.0",
+    "@uniswap/v2-core": "^1.0.1",
+    "@uniswap/v2-periphery": "^1.1.0-beta.0"
   }
 }

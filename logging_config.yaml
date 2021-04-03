@@ -5,7 +5,7 @@ formatters:
     format: "%(filename)s %(funcName)s %(lineno)s %(levelname)s %(message)s"
     class: pythonjsonlogger.jsonlogger.JsonFormatter
   plaintext:
-    format: "[%(asctime)s] (%(filename)s:%(lineno)s) %(levelname)s: %(message)s"
+    format: "[%(asctime)s] (%(name)s (%(filename)s:%(lineno)s) %(levelname)s: %(message)s"
 handlers:
   console:
     class: logging.StreamHandler
@@ -47,3 +47,6 @@ loggers:
     level: WARNING
   web3:
     level: WARNING
+  parso:
+    level: WARNING
+

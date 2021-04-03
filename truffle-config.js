@@ -8,8 +8,11 @@ module.exports = {
   networks: {
     development: {
       host: "127.0.0.1",     // Localhost (default: none)
-      port: 8545,            // Standard BSC port (default: none)
+      port: 7475,            // Standard BSC port (default: none)
       network_id: "*",       // Any network (default: none)
+      gas: 1000000,
+      gasPrice: 10000000000,
+      skipDryRun: false,
     },
     testnet: {
       provider: () => new HDWalletProvider({
@@ -31,7 +34,7 @@ module.exports = {
       network_id: 56,
       confirmations: 5,
       timeoutBlocks: 200,
-      gas: 1000000,
+      gas: 7000000,
       gasPrice: 10000000000,
       skipDryRun: true
     },
@@ -45,7 +48,7 @@ module.exports = {
   // Configure your compilers
   compilers: {
     solc: {
-      version: "0.8.3"
+      version: "0.6.12"
       // settings: {          // See the solidity docs for advice about optimization and evmVersion
       //  optimizer: {
       //    enabled: false,
