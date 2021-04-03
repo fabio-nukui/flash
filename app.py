@@ -49,8 +49,7 @@ def get_web3():
     elif last_block_local is not None and last_block_remote is None:
         log.info('Using local RCP endpoint')
         web3 = web3_local
-    elif last_block_remote - last_block_local > 2:
-        n = last_block_remote - last_block_local
+    elif (n := last_block_remote - last_block_local) > 1:
         log.info(f'Local RCP endpoint behind by {n} blocks, using remote endpoint')
         web3 = web3_remote
     else:
