@@ -30,8 +30,8 @@ class UniswapV2Dex(Dex):
             address=Web3.toChecksumAddress(self.addresses['router']),
             abi=self.abis[ROUTER_ABI]
         )
-        for token_1, token_2 in itertools.combinations(tokens, 2):
-            amount_pair = (TokenAmount(token_1), TokenAmount(token_2))
+        for token_0, token_1 in itertools.combinations(tokens, 2):
+            amount_pair = (TokenAmount(token_0), TokenAmount(token_1))
             try:
                 pair = UniV2Pair(
                     amount_pair,
@@ -45,7 +45,7 @@ class UniswapV2Dex(Dex):
                     self.pairs.append(pair)
             except Exception as e:
                 log.exception(e)
-                log.warning(f'Failed to get data for UniswapV2 pair {token_1}/{token_2}')
+                log.warning(f'Failed to get data for UniswapV2 pair {token_0}/{token_1}')
 
     def best_trade_exact_out(self, token_in: Token, amount_out: TokenAmount, max_hops: int = 1):
         return UniV2Trade.best_trade_exact_out(self.pairs, token_in, amount_out, max_hops)

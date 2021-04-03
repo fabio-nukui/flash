@@ -27,20 +27,20 @@ MAX_ITERATIONS = 100
 class ArbitragePair:
     def __init__(
         self,
+        token_0: Token,
         token_1: Token,
-        token_2: Token,
         cake_client: PancakeswapClient,
         eps_client: EllipsisClient,
         web3: Web3,
     ):
+        self.token_0 = token_0
         self.token_1 = token_1
-        self.token_2 = token_2
         self.cake_client = cake_client
         self.eps_client = eps_client
         self.web3 = web3
 
-        self.amount_2 = TokenAmount(token_2)
-        self.estimated_result = TokenAmount(token_1)
+        self.amount_1 = TokenAmount(token_1)
+        self.estimated_result = TokenAmount(token_0)
         self.trade_cake: UniV2Trade = None
         self.trade_eps: CurveTrade = None
 
@@ -49,8 +49,8 @@ class ArbitragePair:
 
     def __repr__(self):
         return (
-            f'{self.__class__.__name__}({self.token_1.symbol}->{self.token_2.symbol}->'
-            f'{self.token_1.symbol}, estimated_net_result_usd={self.estimated_net_result_usd:,.2f})'
+            f'{self.__class__.__name__}({self.token_0.symbol}->{self.token_1.symbol}->'
+            f'{self.token_0.symbol}, estimated_net_result_usd={self.estimated_net_result_usd:,.2f})'
         )
 
     @property
@@ -65,42 +65,42 @@ class ArbitragePair:
 
         return gross_result_usd - gas_cost_usd
 
-    def _estimate_result_int(self, amount_2_int: int) -> int:
-        amount_2 = TokenAmount(self.token_2, amount_2_int)
-        return self._estimate_result(amount_2).amount
+    def _estimate_result_int(self, amount_1_int: int) -> int:
+        amount_1 = TokenAmount(self.token_1, amount_1_int)
+        return self._estimate_result(amount_1).amount
 
-    def _estimate_result(self, amount_2: TokenAmount) -> TokenAmount:
-        trade_cake, trade_eps = self._get_arbitrage_trades(amount_2)
+    def _estimate_result(self, amount_1: TokenAmount) -> TokenAmount:
+        trade_cake, trade_eps = self._get_arbitrage_trades(amount_1)
         return trade_eps.amount_out - trade_cake.amount_in
 
-    def _get_arbitrage_trades(self, amount_2: TokenAmount) -> tuple[UniV2Trade, CurveTrade]:
+    def _get_arbitrage_trades(self, amount_1: TokenAmount) -> tuple[UniV2Trade, CurveTrade]:
         trade_cake = self.cake_client.dex.best_trade_exact_out(
-            self.token_1, amount_2, MAX_HOPS)
+            self.token_0, amount_1, MAX_HOPS)
         trade_eps = self.eps_client.dex.best_trade_exact_in(
-            amount_2, self.token_1, pools=[POOL_NAME])
+            amount_1, self.token_0, pools=[POOL_NAME])
         return trade_cake, trade_eps
 
     def update_estimate(self) -> TokenAmount:
-        amount_2_initial = TokenAmount(
-            self.token_2, int(INITIAL_VALUE * 10 ** self.token_2.decimals))
-        result_initial = self._estimate_result(amount_2_initial)
+        amount_1_initial = TokenAmount(
+            self.token_1, int(INITIAL_VALUE * 10 ** self.token_1.decimals))
+        result_initial = self._estimate_result(amount_1_initial)
         if result_initial < 0:
             # If gross result is negative even with small amount gross, skip optimization
-            self.amount_2 = amount_2_initial
+            self.amount_1 = amount_1_initial
             self.estimated_result = result_initial
             return
 
-        int_amount_2, int_result = optimization.optimizer_second_order(
+        int_amount_1, int_result = optimization.optimizer_second_order(
             func=self._estimate_result_int,
-            x0=amount_2_initial.amount,
-            dx=int(INCREMENT * 10 ** self.token_2.decimals),
-            tol=int(TOLERANCE * 10 ** self.token_2.decimals),
+            x0=amount_1_initial.amount,
+            dx=int(INCREMENT * 10 ** self.token_1.decimals),
+            tol=int(TOLERANCE * 10 ** self.token_1.decimals),
             max_iter=MAX_ITERATIONS,
         )
 
-        self.amount_2 = TokenAmount(self.token_2, int_amount_2)
-        self.estimated_result = TokenAmount(self.token_1, int_result)
-        self.trade_cake, self.trade_eps = self._get_arbitrage_trades(self.amount_2)
+        self.amount_1 = TokenAmount(self.token_1, int_amount_1)
+        self.estimated_result = TokenAmount(self.token_0, int_result)
+        self.trade_cake, self.trade_eps = self._get_arbitrage_trades(self.amount_1)
 
     def execute(self):
         log.info(f'Estimated profit: {self.estimated_net_result_usd}')
@@ -125,8 +125,8 @@ class ArbitragePair:
     def _reset(self):
         self._is_running = False
         self._transaction_hash = ''
-        self.amount_2 = TokenAmount(self.token_2)
-        self.estimated_result = TokenAmount(self.token_1)
+        self.amount_1 = TokenAmount(self.token_1)
+        self.estimated_result = TokenAmount(self.token_0)
         self.trade_cake = None
         self.trade_eps = None
 
