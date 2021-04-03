@@ -41,6 +41,8 @@ class ArbitragePair:
 
         self.amount_2 = TokenAmount(token_2)
         self.estimated_result = TokenAmount(token_1)
+        self.trade_cake: UniV2Trade = None
+        self.trade_eps: CurveTrade = None
 
         self._is_running = False
         self._transaction_hash = ''
@@ -68,13 +70,10 @@ class ArbitragePair:
         return self._estimate_result(amount_2).amount
 
     def _estimate_result(self, amount_2: TokenAmount) -> TokenAmount:
-        trade_cake = self.cake_client.dex.best_trade_exact_out(self.token_1, amount_2, MAX_HOPS)
-        trade_eps = self.eps_client.dex.best_trade_exact_in(
-            amount_2, self.token_1, pools=[POOL_NAME])
-
+        trade_cake, trade_eps = self._get_arbitrage_trades(amount_2)
         return trade_eps.amount_out - trade_cake.amount_in
 
-    def _get_arbitrage_params(self) -> tuple[UniV2Trade, CurveTrade]:
+    def _get_arbitrage_trades(self, amount_2: TokenAmount) -> tuple[UniV2Trade, CurveTrade]:
         trade_cake = self.cake_client.dex.best_trade_exact_out(
             self.token_1, self.amount_2, MAX_HOPS)
         trade_eps = self.eps_client.dex.best_trade_exact_in(
@@ -102,10 +101,15 @@ class ArbitragePair:
 
         self.amount_2 = TokenAmount(self.token_2, int_amount_2)
         self.estimated_result = TokenAmount(self.token_1, int_result)
+        self.trade_cake, self.trade_eps = self._get_arbitrage_trades(self.amount_2)
 
     def execute(self):
         log.info(f'Estimated profit: {self.estimated_net_result_usd}')
-        log.info(f'Arbitrage params: {self._get_arbitrage_params()}')
+        log.info(f'Trades: {self.trade_cake}; {self.trade_eps}')
+        log.info(
+            f'Reserves: cake={self.trade_cake.route.pairs[0].reserves}; '
+            f'eps={self.trade_eps.pool.reserves}'
+        )
         return
         raise NotImplementedError
         transaction_hash = self.trigger_contract()
@@ -122,6 +126,10 @@ class ArbitragePair:
     def _reset(self):
         self._is_running = False
         self._transaction_hash = ''
+        self.amount_2 = TokenAmount(self.token_2)
+        self.estimated_result = TokenAmount(self.token_1)
+        self.trade_cake = None
+        self.trade_eps = None
 
     def is_running(self, current_block: int) -> bool:
         return False
