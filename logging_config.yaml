@@ -28,8 +28,6 @@ handlers:
     send_interval: 5
     create_log_group: True
 root:
-  level: DEBUG
-  propagate: True
   handlers: [console, logfile, watchtower]
 loggers:
   botocore:

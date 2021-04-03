@@ -1,7 +1,6 @@
 import os
 
 # Logs
-LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 LOG_AWS = os.getenv('LOG_AWS') == 'True'
 
 # Web3
