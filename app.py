@@ -9,23 +9,27 @@ from tools.logger import log
 
 
 def web3_from_uri(endpoint_uri: str) -> Web3:
+    middlewares = []
+    if configs.POA_CHAIN:
+        middlewares.append(geth_poa_middleware)
+
     if endpoint_uri.startswith('http'):
         log.warning('HTTPProvider does not support filters')
-        return Web3(HTTPProvider(endpoint_uri))
-    if endpoint_uri.startswith('wss'):
-        return Web3(WebsocketProvider(endpoint_uri))
-    if endpoint_uri.endswith('ipc'):
-        return Web3(IPCProvider(endpoint_uri))
-    raise ValueError(f'Invalid {endpoint_uri=}')
+        provider = HTTPProvider(endpoint_uri)
+    elif endpoint_uri.startswith('wss'):
+        provider = WebsocketProvider(endpoint_uri)
+    elif endpoint_uri.endswith('ipc'):
+        provider = IPCProvider(endpoint_uri)
+    else:
+        raise ValueError(f'Invalid {endpoint_uri=}')
+    web3 = Web3(provider, middlewares)
+
+    return web3
 
 
 def get_web3():
     web3_remote = web3_from_uri(configs.RCP_REMOTE_URI)
     web3_local = web3_from_uri(configs.RCP_LOCAL_URI)
-
-    if configs.POA_CHAIN:
-        web3_remote.middleware_onion.inject(geth_poa_middleware, layer=0)
-        web3_local.middleware_onion.inject(geth_poa_middleware, layer=0)
 
     try:
         last_block_remote = web3_remote.eth.block_number
