@@ -1,5 +1,5 @@
 {
-  "contractName": "UnprofitableFlashSwap",
+  "contractName": "PancakeswapEllipsis3Pool",
   "abi": [
     {
       "inputs": [],
@@ -23,7 +23,8 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function"
+      "type": "function",
+      "constant": true
     },
     {
       "inputs": [],
@@ -47,7 +48,8 @@
     },
     {
       "stateMutability": "payable",
-      "type": "receive"
+      "type": "receive",
+      "payable": true
     },
     {
       "inputs": [
@@ -109,8 +111,8 @@
     "56": {
       "events": {},
       "links": {},
-      "address": "0x60a562DA34Fa424E6738930026b7Bd23277926B4",
-      "transactionHash": "0x60dd4c36768e9abdea2eea5a6dd0fb1e9c8bef4c4819321ec41f3b607a41ce88"
+      "address": "0x8E8De4B20BB51C9A6F674C4d63E19fc62d5216b0",
+      "transactionHash": "0x3fef828c680da7e6561317b23676ff1300cd654b1b2b10a7a002d33c92a1d5b2"
     }
   },
   "schemaVersion": "3.3.4"

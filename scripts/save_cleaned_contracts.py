@@ -10,7 +10,6 @@ KEEP_FIELDS = [
     'compiler',
     'networks',
     'schemaVersion',
-    'updatedAt'
 ]
 
 TEST_NETWORKS = [5777]
