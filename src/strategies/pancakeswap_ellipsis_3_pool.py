@@ -41,7 +41,7 @@ class ArbitragePair:
         self.token_1 = token_1
         self.cake_client = cake_client
         self.eps_client = eps_client
-        self.contract = Contract
+        self.contract = contract
         self.web3 = web3
 
         self.amount_1 = TokenAmount(token_1)
