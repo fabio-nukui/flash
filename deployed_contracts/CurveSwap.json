@@ -23,13 +23,11 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "constant": true
+      "type": "function"
     },
     {
       "stateMutability": "payable",
-      "type": "receive",
-      "payable": true
+      "type": "receive"
     },
     {
       "inputs": [
@@ -82,7 +80,7 @@
   ],
   "compiler": {
     "name": "solc",
-    "version": "0.8.3+commit.8d00100c.Emscripten.clang"
+    "version": "0.6.12+commit.27d51765.Emscripten.clang"
   },
   "networks": {
     "56": {
@@ -93,5 +91,5 @@
     }
   },
   "schemaVersion": "3.3.4",
-  "updatedAt": "2021-04-03T03:45:39.954Z"
+  "updatedAt": "2021-04-04T03:12:17.325Z"
 }

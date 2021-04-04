@@ -23,8 +23,7 @@
     },
     {
       "stateMutability": "payable",
-      "type": "receive",
-      "payable": true
+      "type": "receive"
     },
     {
       "inputs": [
@@ -69,5 +68,5 @@
     }
   },
   "schemaVersion": "3.3.4",
-  "updatedAt": "2021-04-03T21:03:35.400Z"
+  "updatedAt": "2021-04-04T03:12:17.330Z"
 }

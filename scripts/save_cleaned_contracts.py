@@ -13,11 +13,18 @@ KEEP_FIELDS = [
     'updatedAt'
 ]
 
+TEST_NETWORKS = [5777]
+
 
 def main():
     for path in contracts_dir.iterdir():
         with open(path) as f:
             data = json.load(f)
+        data['networks'] = {
+            key: value
+            for key, value in data['networks'].items()
+            if int(key) not in TEST_NETWORKS
+        }
         if not data['networks']:
             continue
         write_data = {

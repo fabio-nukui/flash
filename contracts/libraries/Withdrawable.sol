@@ -7,7 +7,7 @@ contract Withdrawable {
     address payable owner = payable(msg.sender);
 
     modifier restricted() {
-        require(msg.sender == owner);
+        require(msg.sender == owner, 'Withdrawable: RESTRICTED');
         _;
     }
 

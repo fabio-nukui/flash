@@ -14,8 +14,8 @@ from tools.logger import log
 MAX_HOPS = 1
 MIN_CONFIRMATIONS = 3
 POOL_NAME = '3pool'
-GAS_COST = 1_000_000  # TODO: replace with real contract's gas costs
-GAS_PREMIUM_FACTOR = 2  # TODO: Calculate premium via % failed transactions
+GAS_COST = 150_000  # TODO: replace with real contract's gas costs
+GAS_PREMIUM_FACTOR = 5  # TODO: Calculate premium via % failed transactions
 
 # Optimization paramenters
 INITIAL_VALUE = 100  # Initial value to estimate best trade
