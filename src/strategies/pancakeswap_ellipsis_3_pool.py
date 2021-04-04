@@ -182,7 +182,7 @@ def run(web3: Web3):
     cake_client = PancakeswapClient(configs.ADDRESS, configs.PRIVATE_KEY, web3)
     eps_client = EllipsisClient(configs.ADDRESS, configs.PRIVATE_KEY, web3)
     tokens = eps_client.dex.pools[POOL_NAME].tokens
-    contract = contracts.load_contract(CONTRACT_DATA_FILEPATH)
+    contract = contracts.load_contract(CONTRACT_DATA_FILEPATH, web3)
     arbitrage_pairs = get_arbitrage_pairs(tokens, cake_client, eps_client, contract, web3)
 
     block_filter = web3.eth.filter('latest')
