@@ -1,6 +1,7 @@
 import time
 from itertools import permutations
 
+from web3.contract import Contract
 from web3 import Web3
 from web3._utils.filters import Filter
 
@@ -8,7 +9,7 @@ import configs
 from core.entities import Token, TokenAmount
 from dex.curve import CurveTrade, EllipsisClient
 from dex.uniswap_v2 import PancakeswapClient, UniV2Trade
-from tools import cache, optimization, price
+from tools import cache, contracts, optimization, price
 from tools.logger import log
 
 MAX_HOPS = 1
@@ -23,6 +24,8 @@ INCREMENT = 0.0001  # Increment to estimate derivatives in optimization
 TOLERANCE = 0.01  # Tolerance to stop optimization
 MAX_ITERATIONS = 100
 
+CONTRACT_DATA_FILEPATH = 'deployed_contracts/PancakeswapEllipsis3Pool.json'
+
 
 class ArbitragePair:
     def __init__(
@@ -31,12 +34,14 @@ class ArbitragePair:
         token_1: Token,
         cake_client: PancakeswapClient,
         eps_client: EllipsisClient,
+        contract: Contract,
         web3: Web3,
     ):
         self.token_0 = token_0
         self.token_1 = token_1
         self.cake_client = cake_client
         self.eps_client = eps_client
+        self.contract = Contract
         self.web3 = web3
 
         self.amount_1 = TokenAmount(token_1)
@@ -109,18 +114,16 @@ class ArbitragePair:
             f'Reserves: cake={self.trade_cake.route.pairs[0].reserves}; '
             f'eps={self.trade_eps.pool.reserves}'
         )
-        return
-        raise NotImplementedError
-        transaction_hash = self.trigger_contract()
-        self.mark_running(transaction_hash)
 
-    def trigger_contract(self) -> str:
-        return '0x1234'
-        raise NotImplementedError
-
-    def mark_running(self, transaction_hash: str):
+        transaction_hash = contracts.sign_and_send_transaction(
+            self.contract.functions.triggerFlashSwap,
+            token0=self.token_0.address,
+            token1=self.token_1.address,
+            amount1=self.amount_1.amount,
+        )
         self._is_running = True
         self._transaction_hash = transaction_hash
+        log.info(f'Sent transaction with hash {transaction_hash}')
 
     def _reset(self):
         self._is_running = False
@@ -164,10 +167,11 @@ def get_arbitrage_pairs(
     tokens: list[Token],
     cake_client: PancakeswapClient,
     eps_client: EllipsisClient,
+    contract: Contract,
     web3: Web3
 ) -> list[ArbitragePair]:
     return [
-        ArbitragePair(token_in, token_out, cake_client, eps_client, web3)
+        ArbitragePair(token_in, token_out, cake_client, eps_client, contract, web3)
         for token_in, token_out in permutations(tokens, 2)
     ]
 
@@ -178,7 +182,8 @@ def run(web3: Web3):
     cake_client = PancakeswapClient(configs.ADDRESS, configs.PRIVATE_KEY, web3)
     eps_client = EllipsisClient(configs.ADDRESS, configs.PRIVATE_KEY, web3)
     tokens = eps_client.dex.pools[POOL_NAME].tokens
-    arbitrage_pairs = get_arbitrage_pairs(tokens, cake_client, eps_client, web3)
+    contract = contracts.load_contract(CONTRACT_DATA_FILEPATH)
+    arbitrage_pairs = get_arbitrage_pairs(tokens, cake_client, eps_client, contract, web3)
 
     block_filter = web3.eth.filter('latest')
     while True:
