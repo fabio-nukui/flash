@@ -31,7 +31,7 @@ def sign_and_send_transaction(
         'from': ACCOUNT.address,
         'chainId': configs.CHAIN_ID,
         'gas': max_gas_,
-        'nonce': web3.eth.get_transaction_count(ACCOUNT)
+        'nonce': web3.eth.get_transaction_count(ACCOUNT.address)
     })
     signed_tx = ACCOUNT.sign_transaction(tx)
 
