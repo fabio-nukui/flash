@@ -26,12 +26,7 @@ def sign_and_send_transaction(
 ) -> str:
     web3 = func.web3
     assert not (args and kwargs), 'Arguments must be all positional or keyword arguments, not both'
-    if args:
-        func_call = func(*args)
-    elif kwargs:
-        func_call = func(**kwargs)
-    else:
-        func_call = func()
+    func_call = func(*args, **kwargs)
     tx = func_call.buildTransaction({
         'from': ACCOUNT.address,
         'chainId': configs.CHAIN_ID,
