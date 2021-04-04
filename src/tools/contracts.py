@@ -29,7 +29,7 @@ def sign_and_send_transaction(
     if args:
         func_call = func(*args)
     elif kwargs:
-        func_call = func(kwargs)
+        func_call = func(**kwargs)
     else:
         func_call = func()
     tx = func_call.buildTransaction({
