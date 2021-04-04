@@ -1,6 +1,7 @@
 import time
 from itertools import permutations
 
+from web3.exceptions import TransactionNotFound
 from web3 import Web3
 from web3._utils.filters import Filter
 from web3.contract import Contract
@@ -136,7 +137,11 @@ class ArbitragePair:
     def is_running(self, current_block: int) -> bool:
         if not self._is_running:
             return False
-        receipt = self.web3.eth.getTransactionReceipt(self._transaction_hash)
+        try:
+            receipt = self.web3.eth.getTransactionReceipt(self._transaction_hash)
+        except TransactionNotFound:
+            log.info(f'Transaction {self._transaction_hash} not found in node')
+            return True
         if receipt.status == 0:
             log.info(f'Transaction {self._transaction_hash} failed')
             self._reset()
