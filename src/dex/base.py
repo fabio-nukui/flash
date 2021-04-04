@@ -1,88 +1,52 @@
-from __future__ import annotations
-
 import json
 import pathlib
+from typing import Union
 
 from web3 import Web3
 
 
 class DexProtocol:
-    def __init__(self, script_path: str, abi_filenames: list[str]):
-        """Decentralized exchange protocol, which could have more than one
-        implementation (e.g.: uniswapV2 / sushiswap / pancakeswap)
+    def __init__(
+        self,
+        abi_filepaths: list[Union[str, pathlib.Path]],
+        chain_id: int,
+        addresses_filepath: str,
+        fee: int,
+        web3: Web3,
+        *args, **kwargs
+    ):
+        """Decentralized exchange protocol
 
         Args:
-            script_path (str): Path of script, use __file__
-            abi_filenames (list[str]): Name of abi files to load in 'abi' directory
+            abi_filepaths (list[Union[str, pathlib.Path]]): Paths with abi .json files
+            chain_id (int): Chain ID of protocol implementation (e.g.: 56 for Binance Smart Chain)
+            addresses_filepath (str): pathlib.Path to relevant addresses .json file
+            fee (int): Swap fee in basis points (e.g.: 20 for pancakeswap's 0.2% fee)
+            web3 (Web3): Web3 provider to interact with blockchain
         """
-        self.dir_path = pathlib.Path(script_path).parent.absolute()
         self.abis = {
-            filename: self._get_abi(filename)
-            for filename in abi_filenames
+            filepath: self._get_abi(filepath)
+            for filepath in abi_filepaths
         }
+        self.chain_id = chain_id
+        self.addresses = self._get_addresses(addresses_filepath, chain_id)
+        self.fee = fee
+        self.web3 = web3
+        self._connect(*args, **kwargs)
 
     def __repr__(self):
         return f'{self.__class__.__name__}'
 
-    def _get_abi(self, filename: str) -> dict[str, dict]:
-        with open(self.dir_path / 'abi' / filename) as f:
+    @staticmethod
+    def _get_abi(filepath: Union[str, pathlib.Path]) -> dict[str, dict]:
+        with open(filepath) as f:
             return json.load(f)
 
+    @staticmethod
+    def _get_addresses(filepath: Union[str, pathlib.Path], chain_id: int) -> dict:
+        with open(filepath) as f:
+            return json.load(f)[str(chain_id)]
 
-class Dex:
-    def __init__(
-        self,
-        protocol: DexProtocol,
-        chain_id: int,
-        addresses_filename: str,
-        fee: int,
-    ):
-        """Implementation of a dex protocol in a blockchain
-
-        Args:
-            protocol (Protocol): Protocol which this client implements
-            chain_id (int): Chain ID of dex (e.g.: 1 for ethereum main net, 56 for BSC)
-            addresses_filename (str): Name of file to load 'address' directory
-            fee (int): Fee in basis points for swaps (e.g.: 0.3% = 30 basis points)
-        """
-        self.dir_path = protocol.dir_path
-        self.abis = protocol.abis
-        self.chain_id = chain_id
-        self.addresses = self._get_addresses(addresses_filename)
-        self.fee = fee
-        self.web3: Web3 = None
-
-    def __repr__(self):
-        return f'{self.__class__.__name__}'
-
-    def _get_addresses(self, filename: str) -> dict[str, str]:
-        with open(self.dir_path / 'address' / filename) as f:
-            return json.load(f)[str(self.chain_id)]
-
-    def connect(self, web3: Web3, **kwargs):
-        """Populate data from blockchain using web3, to be implemented by subclasses"""
+    def _connect(self, *args, **kwargs):
+        """To be implemented by subclasses, uses web3 to connect to blockchain."""
         raise NotImplementedError
-
-
-class BaseClient:
-    def __init__(
-        self,
-        dex: Dex,
-        caller_address: str,
-        private_key: str,
-        web3: Web3,
-        **dex_params,
-    ):
-        """Client to interact with a decentralized exchange
-
-        Args:
-            dex (Dex): Dex to be used implementation
-            caller_address (str): Address of caller to trigger contracts
-            private_key (str): Prvate key of caller to sign transactions
-            web3 (Web3): Web3 web3 to interact with blockchain
-        """
-        self.dex = dex
-        self.caller_address = Web3.toChecksumAddress(caller_address)
-        self.private_key = private_key
-
-        self.dex.connect(web3, **dex_params)

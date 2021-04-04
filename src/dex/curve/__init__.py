@@ -1,23 +1,21 @@
 from web3 import Web3
 
-from ..base import BaseClient
-from .curve_dex import CurveDex
+from .curve_protocol import CurveProtocol
 from .entities import CurvePool, CurveTrade
 
 
-class EllipsisClient(BaseClient):
-    def __init__(self, caller_address: str, private_key: str, web3: Web3):
-        ellipsis_dex = CurveDex(
+class EllipsisDex(CurveProtocol):
+    def __init__(self, web3: Web3):
+        super().__init__(
             chain_id=56,
-            addresses_filename='ellipsis.json',
-            fee=4
+            addresses_filepath='addresses/dex/curve/ellipsis.json',
+            fee=4,
+            web3=web3,
         )
-        super().__init__(ellipsis_dex, caller_address, private_key, web3)
 
 
 __all__ = [
     'CurvePool',
-    'CurveDex',
     'CurveTrade',
-    'EllipsisClient',
+    'EllipsisDex',
 ]

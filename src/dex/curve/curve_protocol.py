@@ -1,23 +1,32 @@
+import pathlib
+
 from web3 import Web3
 
 from core.entities import Token, TokenAmount
-from dex.base import Dex, DexProtocol
 
+from ..base import DexProtocol
 from .entities import CurvePool, CurveTrade
 
-POOL_ABI = 'BasePool.json'
-POOL_TOKEN_ABI = 'PoolToken.json'
-ZAP_ABI = 'Zap.json'
+ABI_DIRECTORY = pathlib.Path('abis/dex/curve')
+POOL_ABI = ABI_DIRECTORY / 'IBasePool.json'
+POOL_TOKEN_ABI = ABI_DIRECTORY / 'IPoolToken.json'
+ZAP_ABI = ABI_DIRECTORY / 'IZap.json'
 
 
-class CurveDex(Dex):
-    def __init__(self, chain_id: int, addresses_filename: str, fee: int):
-        curve_protocol = DexProtocol(__file__, [POOL_ABI, POOL_TOKEN_ABI, ZAP_ABI])
-        super().__init__(curve_protocol, chain_id, addresses_filename, fee)
+class CurveProtocol(DexProtocol):
+    def __init__(
+        self,
+        chain_id: int,
+        addresses_filepath: str,
+        fee: int,
+        web3: Web3
+    ):
         self.pools: dict[str, CurvePool] = {}
 
-    def connect(self, web3: Web3):
-        self.web3 = web3
+        abi_filepaths = [POOL_ABI, POOL_TOKEN_ABI, ZAP_ABI]
+        super().__init__(abi_filepaths, chain_id, addresses_filepath, fee, web3)
+
+    def _connect(self):
         for pool_name, addresses in self.addresses.items():
             self.pools[pool_name] = CurvePool(
                 pool_name,

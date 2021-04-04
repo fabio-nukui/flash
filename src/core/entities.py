@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import functools
 import json
-import pathlib
 from enum import Enum
 from typing import Union, overload
 
@@ -10,7 +9,7 @@ from web3 import Web3
 
 MAX_UINT_256 = 2 ** 256 - 1
 
-ERC20_ABI_FILE = pathlib.Path(__file__).parent / 'abi' / 'IERC20.json'
+ERC20_ABI_FILE = 'abis/IERC20.json'
 ERC20_ABI = json.load(open(ERC20_ABI_FILE))
 
 DEFAULT_MAX_SLIPPAGE = 30  # Default maximum slippage for trades in basis points

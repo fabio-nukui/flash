@@ -1,26 +1,35 @@
 import itertools
+import pathlib
 
 from web3 import Web3
 
 from core.entities import Token, TokenAmount
-from dex.base import Dex, DexProtocol
 from tools.logger import log
 
+from ..base import DexProtocol
 from .entities import UniV2Pair, UniV2Trade
 
-FACTORY_ABI = 'IUniswapV2Factory.json'
-ROUTER_ABI = 'IUniswapV2Router.json'
-PAIR_ABI = 'IUniswapV2Pair.json'
+ABI_DIRECTORY = pathlib.Path('abis/dex/uniswap_v2')
+FACTORY_ABI = ABI_DIRECTORY / 'IUniswapV2Factory.json'
+ROUTER_ABI = ABI_DIRECTORY / 'IUniswapV2Router.json'
+PAIR_ABI = ABI_DIRECTORY / 'IUniswapV2Pair.json'
 
 
-class UniswapV2Dex(Dex):
-    def __init__(self, chain_id: int, addresses_filename: str, fee: int):
-        uniswapV2_protocol = DexProtocol(__file__, [FACTORY_ABI, ROUTER_ABI, PAIR_ABI])
-        super().__init__(uniswapV2_protocol, chain_id, addresses_filename, fee)
+class UniswapV2Protocol(DexProtocol):
+    def __init__(
+        self,
+        chain_id: int,
+        addresses_filepath: str,
+        fee: int,
+        web3: Web3,
+        tokens: list[Token],
+    ):
         self.pairs: list[UniV2Pair] = []
 
-    def connect(self, web3: Web3, tokens: list[Token]):
-        self.web3 = web3
+        abi_filepaths = [FACTORY_ABI, ROUTER_ABI, PAIR_ABI]
+        super().__init__(abi_filepaths, chain_id, addresses_filepath, fee, web3, tokens)
+
+    def _connect(self, tokens: list[Token]):
         self.tokens = tokens
         self.factory_contract = self.web3.eth.contract(
             address=Web3.toChecksumAddress(self.addresses['factory']),
@@ -39,7 +48,7 @@ class UniswapV2Dex(Dex):
                     self.addresses['init_code_hash'],
                     self.abis[PAIR_ABI],
                     self.fee,
-                    web3
+                    self.web3,
                 )
                 if pair.reserves[0].amount > 0:
                     self.pairs.append(pair)

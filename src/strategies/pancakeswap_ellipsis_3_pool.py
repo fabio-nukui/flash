@@ -1,22 +1,22 @@
 import time
 from itertools import permutations
 
-from web3.contract import Contract
 from web3 import Web3
 from web3._utils.filters import Filter
+from web3.contract import Contract
 
 import configs
 from core.entities import Token, TokenAmount
-from dex.curve import CurveTrade, EllipsisClient
-from dex.uniswap_v2 import PancakeswapClient, UniV2Trade
+from dex.curve import CurveTrade, EllipsisDex
+from dex.uniswap_v2 import PancakeswapDex, UniV2Trade
 from tools import cache, contracts, optimization, price
 from tools.logger import log
 
 MAX_HOPS = 1
 MIN_CONFIRMATIONS = 3
 POOL_NAME = '3pool'
-GAS_COST = 174_000  # TODO: replace with real contract's gas costs
-GAS_PREMIUM_FACTOR = 2  # TODO: Calculate premium via % failed transactions
+GAS_COST = 170_000  # TODO: replace with real contract's gas costs
+GAS_PREMIUM_FACTOR = 5  # TODO: Calculate premium via % failed transactions
 
 # Optimization paramenters
 INITIAL_VALUE = 100  # Initial value to estimate best trade
@@ -32,15 +32,15 @@ class ArbitragePair:
         self,
         token_0: Token,
         token_1: Token,
-        cake_client: PancakeswapClient,
-        eps_client: EllipsisClient,
+        cake_dex: PancakeswapDex,
+        eps_dex: EllipsisDex,
         contract: Contract,
         web3: Web3,
     ):
         self.token_0 = token_0
         self.token_1 = token_1
-        self.cake_client = cake_client
-        self.eps_client = eps_client
+        self.cake_dex = cake_dex
+        self.eps_dex = eps_dex
         self.contract = contract
         self.web3 = web3
 
@@ -79,9 +79,9 @@ class ArbitragePair:
         return trade_eps.amount_out - trade_cake.amount_in
 
     def _get_arbitrage_trades(self, amount_1: TokenAmount) -> tuple[UniV2Trade, CurveTrade]:
-        trade_cake = self.cake_client.dex.best_trade_exact_out(
+        trade_cake = self.cake_dex.best_trade_exact_out(
             self.token_0, amount_1, MAX_HOPS)
-        trade_eps = self.eps_client.dex.best_trade_exact_in(
+        trade_eps = self.eps_dex.best_trade_exact_in(
             amount_1, self.token_0, pools=[POOL_NAME])
         return trade_cake, trade_eps
 
@@ -134,8 +134,6 @@ class ArbitragePair:
         self.trade_eps = None
 
     def is_running(self, current_block: int) -> bool:
-        return False
-        raise NotImplementedError
         if not self._is_running:
             return False
         receipt = self.web3.eth.getTransactionReceipt(self._transaction_hash)
@@ -145,10 +143,9 @@ class ArbitragePair:
             return False
         elif current_block - receipt.blockNumber < MIN_CONFIRMATIONS:
             return True
-        else:
-            # Minimum amount of confimations passed
-            self._reset()
-            return False
+        # Minimum amount of confimations passed
+        self._reset()
+        return False
 
 
 def get_latest_block(block_filter: Filter, web3: Web3) -> int:
@@ -165,13 +162,13 @@ def get_latest_block(block_filter: Filter, web3: Web3) -> int:
 
 def get_arbitrage_pairs(
     tokens: list[Token],
-    cake_client: PancakeswapClient,
-    eps_client: EllipsisClient,
+    cake_dex: PancakeswapDex,
+    eps_dex: EllipsisDex,
     contract: Contract,
     web3: Web3
 ) -> list[ArbitragePair]:
     return [
-        ArbitragePair(token_in, token_out, cake_client, eps_client, contract, web3)
+        ArbitragePair(token_in, token_out, cake_dex, eps_dex, contract, web3)
         for token_in, token_out in permutations(tokens, 2)
     ]
 
@@ -179,11 +176,11 @@ def get_arbitrage_pairs(
 def run(web3: Web3):
     """Search for arbitrate oportunity using flash swap starting from pancakeswap to
     Ellipsis's 3pool and back (USDT / USDC / BUSD)"""
-    cake_client = PancakeswapClient(configs.ADDRESS, configs.PRIVATE_KEY, web3)
-    eps_client = EllipsisClient(configs.ADDRESS, configs.PRIVATE_KEY, web3)
-    tokens = eps_client.dex.pools[POOL_NAME].tokens
+    cake_dex = PancakeswapDex(web3)
+    eps_dex = EllipsisDex(web3)
+    tokens = eps_dex.pools[POOL_NAME].tokens
     contract = contracts.load_contract(CONTRACT_DATA_FILEPATH, web3)
-    arbitrage_pairs = get_arbitrage_pairs(tokens, cake_client, eps_client, contract, web3)
+    arbitrage_pairs = get_arbitrage_pairs(tokens, cake_dex, eps_dex, contract, web3)
 
     block_filter = web3.eth.filter('latest')
     while True:
