@@ -28,7 +28,7 @@ def _get_providers() -> list[Web3]:
 def _keep_provider_alive(web3: Web3):
     while True:
         try:
-            web3.eth.block_number
+            log.debug(f'Connection {web3.provider.endpoint_uri} on block {web3.eth.block_number}')
             time.sleep(CONNECTION_KEEP_ALIVE_TIME_INTERVAL)
         except Exception as e:
             log.error(f'Connection {web3.provider.endpoint_uri!r} failed')
