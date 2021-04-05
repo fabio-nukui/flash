@@ -46,6 +46,7 @@ class BackgroundWeb3:
             return '0x0'
 
     def _keep_alive(self):
+        log.debug(f'Keep-alive: {self.uri}')
         self._thread = Thread(target=self._heartbeat, args=(self.web3,), daemon=True)
         self._thread.start()
 
