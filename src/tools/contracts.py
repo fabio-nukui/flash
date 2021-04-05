@@ -32,7 +32,7 @@ class BackgroundWeb3:
             pool.submit(self._send_transaction, tx)
 
     def is_alive(self):
-        return self._thread.isAlive()
+        return self._thread.is_alive()
 
     def _send_transaction(self, tx: SignedTransaction) -> str:
         try:
