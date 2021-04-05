@@ -149,6 +149,10 @@ class ArbitragePair:
         elif current_block - receipt.blockNumber < MIN_CONFIRMATIONS:
             return True
         # Minimum amount of confimations passed
+        log.info(
+            f'Transaction {self._transaction_hash} succeeded. '
+            f'(Estimated profit: {self.estimated_net_result_usd})'
+        )
         self._reset()
         return False
 

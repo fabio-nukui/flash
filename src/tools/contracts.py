@@ -1,11 +1,65 @@
+import asyncio
 import json
+import time
+from threading import Lock, Thread
 
+from eth_account.datastructures import SignedTransaction
 from web3 import Account, Web3
 from web3.contract import Contract, ContractFunction
 
 import configs
+from tools import web3_tools
 
 ACCOUNT = Account.from_key(configs.PRIVATE_KEY)
+CONNECTION_KEEP_ALIVE_TIME_INTERVAL = 60
+
+
+def _get_providers() -> list[Web3]:
+    endpoints = json.load(open('addresses/public_rcp_endpoints.json'))[str(configs.CHAIN_ID)]
+    endpoints.append(configs.RCP_REMOTE_URI)
+
+    return [
+        web3_tools.from_uri(uri, warn_http_provider=False)
+        for uri in endpoints
+    ]
+
+
+def _keep_provider_alive(web3: Web3):
+    while True:
+        try:
+            time.sleep(CONNECTION_KEEP_ALIVE_TIME_INTERVAL)
+        except Exception as e:
+            import logging
+            logging.exception(e)
+            with PROVIDERS_LOCK:
+                PROVIDERS.remove(web3)
+                del web3
+            break
+
+
+async def _send_transaction(web3: Web3, tx: SignedTransaction) -> str:
+    try:
+        return web3.eth.send_raw_transaction(tx.rawTransaction).hex()
+    except Exception:
+        with PROVIDERS_LOCK:
+            PROVIDERS.remove(web3)
+            del web3
+        return '0x0'
+
+
+async def _send_transactions(tx: SignedTransaction) -> list[str]:
+    with PROVIDERS_LOCK:
+        tasks = [_send_transaction(web3, tx) for web3 in PROVIDERS]
+    return await asyncio.gather(*tasks)
+
+
+def _send_transactions_sync(tx: SignedTransaction):
+    loop = asyncio.new_event_loop()
+    loop.run_until_complete(_send_transactions(tx))
+
+
+def multi_broadcast_transaction(tx: SignedTransaction):
+    Thread(target=_send_transactions_sync, args=(tx,)).start()
 
 
 def load_contract(contract_data_filepath: str, web3: Web3) -> Contract:
@@ -25,7 +79,6 @@ def sign_and_send_transaction(
     **kwargs
 ) -> str:
     web3 = func.web3
-    assert not (args and kwargs), 'Arguments must be all positional or keyword arguments, not both'
     func_call = func(*args, **kwargs)
     tx = func_call.buildTransaction({
         'from': ACCOUNT.address,
@@ -34,5 +87,17 @@ def sign_and_send_transaction(
         'nonce': web3.eth.get_transaction_count(ACCOUNT.address)
     })
     signed_tx = ACCOUNT.sign_transaction(tx)
+    if configs.MULTI_BROADCAST_TRANSACTIONS:
+        multi_broadcast_transaction(signed_tx)
 
     return web3.eth.send_raw_transaction(signed_tx.rawTransaction).hex()
+
+
+if configs.MULTI_BROADCAST_TRANSACTIONS:
+    PROVIDERS = _get_providers()
+    PROVIDERS_LOCK = Lock()
+    with PROVIDERS_LOCK:
+        for provider in PROVIDERS:
+            Thread(target=_keep_provider_alive, args=(provider,)).start()
+else:
+    PROVIDERS = []

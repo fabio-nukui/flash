@@ -1,35 +1,16 @@
 import importlib
 
-from web3 import HTTPProvider, IPCProvider, Web3, WebsocketProvider
-from web3.middleware import geth_poa_middleware
+from web3 import Web3
 
 import configs
 from startup import setup
+from tools import web3_tools
 from tools.logger import log
 
 
-def web3_from_uri(endpoint_uri: str) -> Web3:
-    middlewares = []
-    if configs.POA_CHAIN:
-        middlewares.append(geth_poa_middleware)
-
-    if endpoint_uri.startswith('http'):
-        log.warning('HTTPProvider does not support filters')
-        provider = HTTPProvider(endpoint_uri)
-    elif endpoint_uri.startswith('wss'):
-        provider = WebsocketProvider(endpoint_uri)
-    elif endpoint_uri.endswith('ipc'):
-        provider = IPCProvider(endpoint_uri)
-    else:
-        raise ValueError(f'Invalid {endpoint_uri=}')
-    web3 = Web3(provider, middlewares)
-
-    return web3
-
-
-def get_web3():
-    web3_remote = web3_from_uri(configs.RCP_REMOTE_URI)
-    web3_local = web3_from_uri(configs.RCP_LOCAL_URI)
+def get_web3() -> Web3:
+    web3_remote = web3_tools.from_uri(configs.RCP_REMOTE_URI)
+    web3_local = web3_tools.from_uri(configs.RCP_LOCAL_URI)
 
     try:
         last_block_remote = web3_remote.eth.block_number

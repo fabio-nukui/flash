@@ -135,16 +135,20 @@ class UniV2Route:
         self.pairs = pairs
         self.token_in = token_in
         self.token_out = token_out
+        self.tokens = self._get_tokens()
+
+    def _get_tokens(self) -> list[Token]:
+        tokens = [self.token_in]
+        for pair in self.pairs:
+            if tokens[-1] == pair.tokens[0]:
+                tokens.append(pair.tokens[1])
+            else:
+                tokens.append(pair.tokens[0])
+        return tokens
 
     @property
     def symbols(self) -> str:
-        symbol_list = [self.token_in.symbol]
-        for pair in self.pairs:
-            if symbol_list[-1] == pair.tokens[0].symbol:
-                symbol_list.append(pair.tokens[1].symbol)
-            else:
-                symbol_list.append(pair.tokens[0].symbol)
-        return '->'.join(symbol_list)
+        return '->'.join([token.symbol for token in self.tokens])
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.symbols})'

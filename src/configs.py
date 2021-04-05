@@ -8,6 +8,7 @@ RCP_REMOTE_URI = os.getenv('RCP_REMOTE_URI', 'wss://bsc-ws-node.nariox.org:443')
 RCP_LOCAL_URI = os.getenv('RCP_LOCAL_URI', 'geth.ipc')
 CHAIN_ID = int(os.environ['CHAIN_ID'])
 POA_CHAIN = os.getenv('POA_CHAIN') == 'True'
+MULTI_BROADCAST_TRANSACTIONS = os.getenv('MULTI_BROADCAST_TRANSACTIONS') == 'True'
 
 # Wallet
 PRIVATE_KEY = os.environ['PRIVATE_KEY']
