@@ -99,6 +99,7 @@ def sign_and_send_transaction(
 
 
 def _get_providers() -> list[BackgroundWeb3]:
+    log.info(f'{configs.MULTI_BROADCAST_TRANSACTIONS=}')
     if not configs.MULTI_BROADCAST_TRANSACTIONS:
         return []
     endpoints = json.load(open('addresses/public_rcp_endpoints.json'))[str(configs.CHAIN_ID)]
