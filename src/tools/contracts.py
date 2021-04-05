@@ -47,10 +47,7 @@ async def _send_transaction(web3: Web3, tx: SignedTransaction) -> str:
         return tx_hash
     except Exception:
         log.info(f'Connection {web3.provider.endpoint_uri!r} failed to send transaction')
-        log.info(traceback.format_exc())
-        with PROVIDERS_LOCK:
-            PROVIDERS.remove(web3)
-            del web3
+        log.debug(traceback.format_exc())
         return '0x0'
 
 
