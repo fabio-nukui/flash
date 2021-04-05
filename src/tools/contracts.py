@@ -36,7 +36,6 @@ def _keep_provider_alive(web3: Web3):
             log.info(traceback.format_exc())
             with PROVIDERS_LOCK:
                 PROVIDERS.remove(web3)
-                del web3
             break
 
 
