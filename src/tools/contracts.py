@@ -1,6 +1,7 @@
 import asyncio
 import json
 import time
+import traceback
 from threading import Lock, Thread
 
 from eth_account.datastructures import SignedTransaction
@@ -30,9 +31,9 @@ def _keep_provider_alive(web3: Web3):
         try:
             time.sleep(CONNECTION_KEEP_ALIVE_TIME_INTERVAL)
             log.debug(f'Connection {web3.provider.endpoint_uri} on block {web3.eth.block_number}')
-        except Exception as e:
-            log.info(f'Connection {web3.provider.endpoint_uri!r} to send last block')
-            log.debug(e)
+        except Exception:
+            log.info(f'Connection {web3.provider.endpoint_uri!r} failed to send last block')
+            log.info(traceback.format_exc())
             with PROVIDERS_LOCK:
                 PROVIDERS.remove(web3)
                 del web3
@@ -44,9 +45,9 @@ async def _send_transaction(web3: Web3, tx: SignedTransaction) -> str:
         tx_hash = web3.eth.send_raw_transaction(tx.rawTransaction).hex()
         log.debug(f'Sent transaction using {web3.provider.endpoint_uri}')
         return tx_hash
-    except Exception as e:
+    except Exception:
         log.info(f'Connection {web3.provider.endpoint_uri!r} failed to send transaction')
-        log.exception(e)
+        log.info(traceback.format_exc())
         with PROVIDERS_LOCK:
             PROVIDERS.remove(web3)
             del web3
