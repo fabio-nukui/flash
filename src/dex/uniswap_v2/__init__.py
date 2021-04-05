@@ -15,7 +15,7 @@ class PancakeswapDex(UniswapV2Protocol):
         super().__init__(
             chain_id=56,
             addresses_filepath='addresses/dex/uniswap_v2/pancakeswap.json',
-            fee=4,
+            fee=20,
             web3=web3,
             tokens=tokens
         )
