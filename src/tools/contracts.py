@@ -9,6 +9,7 @@ from web3.contract import Contract, ContractFunction
 
 import configs
 from tools import web3_tools
+from tools.logger import log
 
 ACCOUNT = Account.from_key(configs.PRIVATE_KEY)
 CONNECTION_KEEP_ALIVE_TIME_INTERVAL = 60
@@ -39,7 +40,9 @@ def _keep_provider_alive(web3: Web3):
 
 async def _send_transaction(web3: Web3, tx: SignedTransaction) -> str:
     try:
-        return web3.eth.send_raw_transaction(tx.rawTransaction).hex()
+        tx_hash = web3.eth.send_raw_transaction(tx.rawTransaction).hex()
+        log.debug(f'Sent transaction using {web3.provider.endpoint_uri}')
+        return tx_hash
     except Exception:
         with PROVIDERS_LOCK:
             PROVIDERS.remove(web3)
