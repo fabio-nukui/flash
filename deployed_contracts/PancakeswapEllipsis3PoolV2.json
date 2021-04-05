@@ -23,7 +23,8 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function"
+      "type": "function",
+      "constant": true
     },
     {
       "inputs": [],
@@ -47,7 +48,8 @@
     },
     {
       "stateMutability": "payable",
-      "type": "receive"
+      "type": "receive",
+      "payable": true
     },
     {
       "inputs": [
@@ -104,8 +106,8 @@
     "56": {
       "events": {},
       "links": {},
-      "address": "0x9543a9DdE911FF8c1D0637a94813E3648a373d8b",
-      "transactionHash": "0xff2dc655c0e81299aac0977be62454836a0d9d70fd81844c5f6d129823efb26a"
+      "address": "0x4ef73A62152C209606511DD193BfA9EA9dB60c12",
+      "transactionHash": "0xd70f7b388809e5c2d4ba715858329ff6e3f609a18c8e63b159097f039fc8154c"
     }
   },
   "schemaVersion": "3.3.4"
