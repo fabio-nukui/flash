@@ -1,7 +1,8 @@
-import asyncio
 import json
+import random
 import time
 import traceback
+from concurrent import futures
 from threading import Lock, Thread
 
 from eth_account.datastructures import SignedTransaction
@@ -13,56 +14,52 @@ from tools import web3_tools
 from tools.logger import log
 
 ACCOUNT = Account.from_key(configs.PRIVATE_KEY)
-CONNECTION_KEEP_ALIVE_TIME_INTERVAL = 60
+CONNECTION_KEEP_ALIVE_TIME_INTERVAL = 30
 
 
-def _get_providers() -> list[Web3]:
-    endpoints = json.load(open('addresses/public_rcp_endpoints.json'))[str(configs.CHAIN_ID)]
-    endpoints.append(configs.RCP_REMOTE_URI)
+class BackgroundWeb3:
+    def __init__(self, uri: str):
+        self.uri = uri
+        self.web3 = web3_tools.from_uri(uri, warn_http_provider=False)
+        self.lock = Lock()
+        self._thread: Thread
+        self._keep_alive()
 
-    return [
-        web3_tools.from_uri(uri, warn_http_provider=False)
-        for uri in endpoints
-    ]
+    def send_transaction(self, tx: SignedTransaction):
+        if not self.is_alive():
+            return
+        with futures.ThreadPoolExecutor(1) as pool:
+            pool.submit(self._send_transaction, tx)
 
+    def is_alive(self):
+        return self._thread.isAlive()
 
-def _keep_provider_alive(web3: Web3):
-    while True:
+    def _send_transaction(self, tx: SignedTransaction) -> str:
         try:
-            time.sleep(CONNECTION_KEEP_ALIVE_TIME_INTERVAL)
-            log.debug(f'Connection {web3.provider.endpoint_uri} on block {web3.eth.block_number}')
+            with self.lock:
+                tx_hash = self.web3.eth.send_raw_transaction(tx.rawTransaction).hex()
+            log.debug(f'Sent transaction using {self.uri}')
+            return tx_hash
         except Exception:
-            log.info(f'Connection {web3.provider.endpoint_uri!r} failed to send last block')
-            log.info(traceback.format_exc())
-            with PROVIDERS_LOCK:
-                PROVIDERS.remove(web3)
-            break
+            log.info(f'{self.uri!r} failed to send transaction')
+            log.debug(traceback.format_exc())
+            return '0x0'
 
+    def _keep_alive(self):
+        self._thread = Thread(target=self._heartbeat, args=(self.web3,), daemon=True)
+        self._thread.start()
 
-async def _send_transaction(web3: Web3, tx: SignedTransaction) -> str:
-    try:
-        tx_hash = web3.eth.send_raw_transaction(tx.rawTransaction).hex()
-        log.debug(f'Sent transaction using {web3.provider.endpoint_uri}')
-        return tx_hash
-    except Exception:
-        log.info(f'Connection {web3.provider.endpoint_uri!r} failed to send transaction')
-        log.debug(traceback.format_exc())
-        return '0x0'
-
-
-async def _send_transactions(tx: SignedTransaction) -> list[str]:
-    with PROVIDERS_LOCK:
-        tasks = [_send_transaction(web3, tx) for web3 in PROVIDERS]
-    return await asyncio.gather(*tasks)
-
-
-def _send_transactions_sync(tx: SignedTransaction):
-    loop = asyncio.new_event_loop()
-    loop.run_until_complete(_send_transactions(tx))
-
-
-def multi_broadcast_transaction(tx: SignedTransaction):
-    Thread(target=_send_transactions_sync, args=(tx,)).start()
+    def _heartbeat(self):
+        while True:
+            time.sleep(CONNECTION_KEEP_ALIVE_TIME_INTERVAL + random.random())
+            try:
+                with self.lock:
+                    block_number = self.web3.eth.block_number
+                log.debug(f'Connection {self.uri} on {block_number=}')
+            except Exception:
+                log.info(f'{self.uri!r} failed to send last block')
+                log.info(traceback.format_exc())
+                break
 
 
 def load_contract(contract_data_filepath: str, web3: Web3) -> Contract:
@@ -73,6 +70,11 @@ def load_contract(contract_data_filepath: str, web3: Web3) -> Contract:
     abi = data['abi']
 
     return web3.eth.contract(address, abi=abi)
+
+
+def multi_broadcast_transaction(tx: SignedTransaction):
+    for bg_web3 in LIST_BG_WEB3:
+        bg_web3.send_transaction(tx)
 
 
 def sign_and_send_transaction(
@@ -91,15 +93,16 @@ def sign_and_send_transaction(
     })
     signed_tx = ACCOUNT.sign_transaction(tx)
     if configs.MULTI_BROADCAST_TRANSACTIONS:
-        multi_broadcast_transaction(signed_tx)
+        multi_broadcast_transaction(tx)
 
     return web3.eth.send_raw_transaction(signed_tx.rawTransaction).hex()
 
 
-if configs.MULTI_BROADCAST_TRANSACTIONS:
-    PROVIDERS = _get_providers()
-    PROVIDERS_LOCK = Lock()
-    for provider in PROVIDERS:
-        Thread(target=_keep_provider_alive, args=(provider,)).start()
-else:
-    PROVIDERS = []
+def _get_providers() -> list[BackgroundWeb3]:
+    endpoints = json.load(open('addresses/public_rcp_endpoints.json'))[str(configs.CHAIN_ID)]
+    endpoints.append(configs.RCP_REMOTE_URI)
+
+    return [BackgroundWeb3(uri) for uri in endpoints]
+
+
+LIST_BG_WEB3 = _get_providers()
