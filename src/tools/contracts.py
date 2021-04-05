@@ -28,11 +28,11 @@ def _get_providers() -> list[Web3]:
 def _keep_provider_alive(web3: Web3):
     while True:
         try:
-            log.debug(f'Connection {web3.provider.endpoint_uri} on block {web3.eth.block_number}')
             time.sleep(CONNECTION_KEEP_ALIVE_TIME_INTERVAL)
+            log.debug(f'Connection {web3.provider.endpoint_uri} on block {web3.eth.block_number}')
         except Exception as e:
-            log.error(f'Connection {web3.provider.endpoint_uri!r} failed')
-            log.exception(e)
+            log.info(f'Connection {web3.provider.endpoint_uri!r} to send last block')
+            log.debug(e)
             with PROVIDERS_LOCK:
                 PROVIDERS.remove(web3)
                 del web3
@@ -45,7 +45,7 @@ async def _send_transaction(web3: Web3, tx: SignedTransaction) -> str:
         log.debug(f'Sent transaction using {web3.provider.endpoint_uri}')
         return tx_hash
     except Exception as e:
-        log.error(f'Connection {web3.provider.endpoint_uri!r} failed')
+        log.info(f'Connection {web3.provider.endpoint_uri!r} failed to send transaction')
         log.exception(e)
         with PROVIDERS_LOCK:
             PROVIDERS.remove(web3)
@@ -102,8 +102,7 @@ def sign_and_send_transaction(
 if configs.MULTI_BROADCAST_TRANSACTIONS:
     PROVIDERS = _get_providers()
     PROVIDERS_LOCK = Lock()
-    with PROVIDERS_LOCK:
-        for provider in PROVIDERS:
-            Thread(target=_keep_provider_alive, args=(provider,)).start()
+    for provider in PROVIDERS:
+        Thread(target=_keep_provider_alive, args=(provider,)).start()
 else:
     PROVIDERS = []
