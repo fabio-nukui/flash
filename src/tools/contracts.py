@@ -30,8 +30,8 @@ def _keep_provider_alive(web3: Web3):
         try:
             time.sleep(CONNECTION_KEEP_ALIVE_TIME_INTERVAL)
         except Exception as e:
-            import logging
-            logging.exception(e)
+            log.error(f'Connection {web3.provider.endpoint_uri!r} failed')
+            log.exception(e)
             with PROVIDERS_LOCK:
                 PROVIDERS.remove(web3)
                 del web3
@@ -43,7 +43,9 @@ async def _send_transaction(web3: Web3, tx: SignedTransaction) -> str:
         tx_hash = web3.eth.send_raw_transaction(tx.rawTransaction).hex()
         log.debug(f'Sent transaction using {web3.provider.endpoint_uri}')
         return tx_hash
-    except Exception:
+    except Exception as e:
+        log.error(f'Connection {web3.provider.endpoint_uri!r} failed')
+        log.exception(e)
         with PROVIDERS_LOCK:
             PROVIDERS.remove(web3)
             del web3
