@@ -68,14 +68,12 @@ contract PancakeswapEllipsis3PoolV2 is IPancakeCallee, Withdrawable {
         { // scope for token{0,1}, avoids stack too deep errors
         address token0 = IUniswapV2Pair(msg.sender).token0();
         address token1 = IUniswapV2Pair(msg.sender).token1();
-        require(token0 == path[path.length - 2] || token0 == path[path.length - 1], 'token0 not in data');
-        require(token1 == path[path.length - 2] || token1 == path[path.length - 1], 'token1 not in data');
         require(msg.sender == PancakeswapLibrary.pairFor(cake_factory, token0, token1)); // ensure that msg.sender is actually a V2 pair
         require(amount0 == 0 || amount1 == 0); // this strategy is unidirectional
         amounts = PancakeswapLibrary.getAmountsIn(cake_factory, amountSendCurve, path);
         }
         TransferHelper.safeApprove(path[path.length - 1], eps_3pool, amountSendCurve);
-        exchangeCurve(path[path.length - 1], path[0], amountSendCurve, 1);
+        exchangeCurve(path[path.length - 1], path[0], amountSendCurve, amounts[0]);
 
         address firstPair = PancakeswapLibrary.pairFor(cake_factory, path[0], path[1]);
         TransferHelper.safeTransfer(path[0], firstPair, amounts[0]);
