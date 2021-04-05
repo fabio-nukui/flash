@@ -20,7 +20,7 @@ module.exports = {
         providerOrUrl: "https://data-seed-prebsc-1-s1.binance.org:8545"
       }),
       network_id: 97,
-      confirmations: 3,
+      confirmations: 1,
       timeoutBlocks: 200,
       gas: 1000000,
       gasPrice: 10000000000,
@@ -32,11 +32,10 @@ module.exports = {
         providerOrUrl: "https://bsc-dataseed1.binance.org"
       }),
       network_id: 56,
-      confirmations: 5,
+      confirmations: 2,
       timeoutBlocks: 200,
-      gas: 7000000,
-      gasPrice: 10000000000,
-      skipDryRun: true
+      gas: 10000000,
+      gasPrice: 10000000000
     },
   },
 

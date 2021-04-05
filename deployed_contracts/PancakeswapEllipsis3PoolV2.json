@@ -1,5 +1,5 @@
 {
-  "contractName": "PancakeswapEllipsis3Pool",
+  "contractName": "PancakeswapEllipsis3PoolV2",
   "abi": [
     {
       "inputs": [],
@@ -23,8 +23,7 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "constant": true
+      "type": "function"
     },
     {
       "inputs": [],
@@ -48,24 +47,18 @@
     },
     {
       "stateMutability": "payable",
-      "type": "receive",
-      "payable": true
+      "type": "receive"
     },
     {
       "inputs": [
         {
-          "internalType": "address",
-          "name": "token0",
-          "type": "address"
-        },
-        {
-          "internalType": "address",
-          "name": "token1",
-          "type": "address"
+          "internalType": "address[]",
+          "name": "path",
+          "type": "address[]"
         },
         {
           "internalType": "uint256",
-          "name": "amount1",
+          "name": "amountLast",
           "type": "uint256"
         }
       ],
@@ -111,8 +104,8 @@
     "56": {
       "events": {},
       "links": {},
-      "address": "0xE7C4f51b4c51A11Ab268d70e55b17FE24bdAf296",
-      "transactionHash": "0x52b40ad731753a6f79fb74ec8194bb8fc0367e42a3542a88541963b1a9505d1b"
+      "address": "0x9543a9DdE911FF8c1D0637a94813E3648a373d8b",
+      "transactionHash": "0xff2dc655c0e81299aac0977be62454836a0d9d70fd81844c5f6d129823efb26a"
     }
   },
   "schemaVersion": "3.3.4"
