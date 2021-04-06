@@ -3,15 +3,16 @@ import re
 import time
 from datetime import datetime
 
+from web3.middleware import geth_poa_middleware
+from web3 import Web3, HTTPProvider
+
+
 POOL_INTERVAL = 1
 PAT = re.compile(r'^t=(?P<t>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}).+msg="Imported new chain segment".+\bnumber=(?P<n>\d+)\b')  # noqa: E501
 N_LINES_BUFFER = 100
 
 SECONDS_PER_BLOCK = 3
-REFERENCE_BLOCK = {
-    't': datetime.fromisoformat('2021-03-31T00:56:38'),
-    'n': 6146421
-}
+RCP_ENDPOINT = 'https://bsc-dataseed.binance.org'
 
 DIR_PATH = pathlib.Path(__file__).parent / 'node'
 PREFIX = 'bsc.log.'
@@ -74,6 +75,7 @@ class Blocks:
     def load_new_block(self, block):
         self.blocks.append(block)
         self.blocks = self.blocks[-100:]
+        self.web3 = Web3(HTTPProvider(RCP_ENDPOINT), [geth_poa_middleware])
 
     @property
     def oldest_processed_block(self):
@@ -93,13 +95,7 @@ class Blocks:
 
     @property
     def latest_block(self):
-        now = datetime.utcnow()
-        seconds_from_reference = (now - REFERENCE_BLOCK['t']).total_seconds()
-        block = int(REFERENCE_BLOCK['n'] + seconds_from_reference / SECONDS_PER_BLOCK)
-        return {
-            't': now,
-            'n': block
-        }
+        return self.web3.eth.block_number
 
     @property
     def blocks_remaining(self):
