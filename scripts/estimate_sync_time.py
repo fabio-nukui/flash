@@ -95,7 +95,10 @@ class Blocks:
 
     @property
     def latest_block(self):
-        return self.web3.eth.block_number
+        return {
+            't': datetime.now(),
+            'n': self.web3.eth.block_number
+        }
 
     @property
     def blocks_remaining(self):

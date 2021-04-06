@@ -84,8 +84,7 @@ def sign_and_send_transaction(
     **kwargs
 ) -> str:
     web3 = func.web3
-    func_call = func(*args, **kwargs)
-    tx = func_call.buildTransaction({
+    tx = func(*args, **kwargs).buildTransaction({
         'from': ACCOUNT.address,
         'chainId': configs.CHAIN_ID,
         'gas': max_gas_,
