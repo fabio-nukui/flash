@@ -24,12 +24,12 @@ class BackgroundWeb3:
         self.lock = Lock()
         self._thread: Thread
         self._keep_alive()
+        self._executor = futures.ThreadPoolExecutor(1)
 
     def send_transaction(self, tx: SignedTransaction):
         if not self.is_alive():
             return
-        with futures.ThreadPoolExecutor(1) as pool:
-            pool.submit(self._send_transaction, tx)
+        self._executor.submit(self._send_transaction, tx)
 
     def is_alive(self):
         return self._thread.is_alive()
@@ -60,7 +60,6 @@ class BackgroundWeb3:
             except Exception:
                 log.debug(f'{self.uri!r} failed to send last block')
                 log.debug(traceback.format_exc())
-                break
 
 
 def load_contract(contract_data_filepath: str, web3: Web3) -> Contract:
