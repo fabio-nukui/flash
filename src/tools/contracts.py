@@ -58,8 +58,8 @@ class BackgroundWeb3:
                     block_number = self.web3.eth.block_number
                 log.debug(f'Connection {self.uri} on {block_number=}')
             except Exception:
-                log.info(f'{self.uri!r} failed to send last block')
-                log.info(traceback.format_exc())
+                log.debug(f'{self.uri!r} failed to send last block')
+                log.debug(traceback.format_exc())
                 break
 
 
