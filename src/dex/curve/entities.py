@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from threading import Lock
+
 from web3 import Web3
 from web3.exceptions import BadFunctionCallOutput
 
@@ -30,6 +32,8 @@ class CurvePool:
         self.pool_contract = web3.eth.contract(pool_address, abi=pool_abi)
         self.pool_token_contract = web3.eth.contract(pool_token_address, abi=pool_token_abi)
         self.fee = fee
+
+        self._lock = Lock()
 
         self.tokens = self.get_tokens()
         self.n_coins = len(self.tokens)
@@ -69,14 +73,16 @@ class CurvePool:
 
     @ttl_cache
     def _balance(self) -> list[int]:
-        return [
-            self.pool_contract.functions.balances(i).call()
-            for i in range(self.n_coins)
-        ]
+        with self._lock:
+            return [
+                self.pool_contract.functions.balances(i).call()
+                for i in range(self.n_coins)
+            ]
 
     @ttl_cache(ttl=60)  # _A should vary slowly over time, cache can have greater TTL
     def _A(self):
-        return self.pool_contract.functions.A().call()
+        with self._lock:
+            return self.pool_contract.functions.A().call()
 
     def _xp(self) -> tuple[int, ...]:
         return tuple(

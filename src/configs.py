@@ -20,3 +20,6 @@ POLL_INTERVAL = float(os.environ['POLL_INTERVAL'])
 
 # Arbitrage params
 STRATEGY = os.getenv('STRATEGY', 'no_strategy')
+
+# Debug / optimization
+CACHE_STATS = os.getenv('CACHE_STATS') == 'True'

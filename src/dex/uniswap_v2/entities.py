@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import copy
+from threading import Lock
 
 from web3 import Web3
 
@@ -34,6 +35,8 @@ class UniV2Pair:
         self.contract = self.web3.eth.contract(address=self.address, abi=self.abi)
         self.latest_transaction_timestamp = None
 
+        self._lock = Lock()
+
         if self._reserve_0.is_empty() or self._reserve_1.is_empty():
             self._update_amounts()
 
@@ -60,7 +63,8 @@ class UniV2Pair:
 
     @ttl_cache
     def _get_reserves(self):
-        return self.contract.functions.getReserves().call()
+        with self._lock:
+            return self.contract.functions.getReserves().call()
 
     def _update_amounts(self):
         """Update the reserve amounts of both token pools and the unix timestamp of the latest

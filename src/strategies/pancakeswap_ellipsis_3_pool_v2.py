@@ -4,6 +4,7 @@ from itertools import permutations
 
 from web3 import Web3
 from web3._utils.filters import Filter
+from web3.contract import Contract
 from web3.exceptions import TransactionNotFound
 
 import configs
@@ -29,13 +30,21 @@ CONTRACT_DATA_FILEPATH = 'deployed_contracts/PancakeswapEllipsis3PoolV2.json'
 
 
 class ArbitragePair:
-    def __init__(self, token_first: Token, token_last: Token):
+    def __init__(
+        self,
+        token_first: Token,
+        token_last: Token,
+        cake_dex: PancakeswapDex,
+        eps_dex: EllipsisDex,
+        contract: Contract,
+        web3: Web3
+    ):
         self.token_first = token_first
         self.token_last = token_last
-        self.cake_dex = PancakeswapDex()
-        self.eps_dex = EllipsisDex()
-        self.contract = contracts.load_contract(CONTRACT_DATA_FILEPATH)
-        self.web3 = web3_tools.get_web3()
+        self.cake_dex = cake_dex
+        self.eps_dex = eps_dex
+        self.contract = contract
+        self.web3 = web3
 
         self.amount_last = TokenAmount(token_last)
         self.estimated_result = TokenAmount(token_first)
@@ -56,11 +65,10 @@ class ArbitragePair:
     def estimated_net_result_usd(self) -> float:
         if self.estimated_result.is_empty():
             return 0.0
-        token_usd_price = price.get_chainlink_price_usd(
-            self.estimated_result.token.symbol, self.web3)
+        token_usd_price = price.get_chainlink_price_usd(self.estimated_result.token.symbol)
 
         gross_result_usd = self.estimated_result.amount_in_units * token_usd_price
-        gas_cost_usd = price.get_gas_cost_usd(GAS_COST * GAS_PREMIUM_FACTOR, self.web3)
+        gas_cost_usd = price.get_gas_cost_usd(GAS_COST * GAS_PREMIUM_FACTOR)
 
         return gross_result_usd - gas_cost_usd
 
@@ -73,7 +81,7 @@ class ArbitragePair:
         return trade_eps.amount_out - trade_cake.amount_in
 
     def _get_arbitrage_trades(self, amount_last: TokenAmount) -> tuple[UniV2Trade, CurveTrade]:
-        with futures.ThreadPoolExecutor(2) as pool:
+        with futures.ProcessPoolExecutor(2) as pool:
             fut_trade_cake = pool.submit(
                 self.cake_dex.best_trade_exact_out, self.token_first, amount_last, MAX_HOPS)
             fut_trade_eps = pool.submit(
@@ -97,6 +105,9 @@ class ArbitragePair:
             tol=int(TOLERANCE * 10 ** self.token_last.decimals),
             max_iter=MAX_ITERATIONS,
         )
+
+        # if int_amount_last < 0:
+        #     return
 
         self.amount_last = TokenAmount(self.token_last, int_amount_last)
         self.estimated_result = TokenAmount(self.token_first, int_result)
@@ -167,24 +178,24 @@ def run():
     Ellipsis's 3pool and back (USDT / USDC / BUSD)"""
     web3 = web3_tools.get_web3(verbose=True)
     tokens = EllipsisDex(web3).pools[POOL_NAME].tokens
+    cake_dex = PancakeswapDex()
+    eps_dex = EllipsisDex()
+    contract = contracts.load_contract(CONTRACT_DATA_FILEPATH)
+    arbitrage_pairs = [
+        ArbitragePair(token_first, token_last, cake_dex, eps_dex, contract, web3)
+        for token_first, token_last in permutations(tokens, 2)
+    ]
 
-    token_permutations = list(permutations(tokens, 2))
-    with futures.ThreadPoolExecutor(len(token_permutations)) as pool:
-        fut_pairs = pool.map(lambda x: ArbitragePair(*x), token_permutations)
-        arbitrage_pairs = list(fut_pairs)
-        block_filter = web3.eth.filter('latest')
-        while True:
-            latest_block = get_latest_block(block_filter, web3)
-            cache.clear_caches()
-            fut_is_running = [
-                pool.submit(pair.is_running, latest_block)
-                for pair in arbitrage_pairs
-            ]
-            if any([f.result() for f in fut_is_running]):
-                continue
-            tasks = [pool.submit(arb_pair.update_estimate) for arb_pair in arbitrage_pairs]
-            futures.wait(tasks)
-            best_arbitrage = max(arbitrage_pairs, key=lambda x: x.estimated_net_result_usd)
-            if best_arbitrage.estimated_net_result_usd > 0:
-                log.info('Arbitrage opportunity found')
-                best_arbitrage.execute()
+    block_filter = web3.eth.filter('latest')
+    while True:
+        latest_block = get_latest_block(block_filter, web3)
+        cache.clear_caches()
+        if any([pair.is_running(latest_block) for pair in arbitrage_pairs]):
+            continue
+        with futures.ProcessPoolExecutor(len(arbitrage_pairs)) as pool:
+            for arb_pair in arbitrage_pairs:
+                pool.submit(arb_pair.update_estimate)
+        best_arbitrage = max(arbitrage_pairs, key=lambda x: x.estimated_net_result_usd)
+        if best_arbitrage.estimated_net_result_usd > 0:
+            log.info('Arbitrage opportunity found')
+            best_arbitrage.execute()
