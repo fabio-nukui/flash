@@ -18,8 +18,9 @@ CONNECTION_KEEP_ALIVE_TIME_INTERVAL = 30
 
 
 class BackgroundWeb3:
-    def __init__(self, uri: str):
+    def __init__(self, uri: str, verbose: bool = False):
         self.uri = uri
+        self.verbose = verbose
         self._web3 = web3_tools.from_uri(uri, warn_http_provider=False)
         self._executor = futures.ThreadPoolExecutor(1)
         self._heartbeat_thread: Thread
@@ -53,14 +54,16 @@ class BackgroundWeb3:
             try:
                 future = self._executor.submit(getattr, self._web3.eth, 'block_number')
                 block_number = future.result()
-                log.debug(f'Connection {self.uri} on {block_number=}')
+                if self.verbose:
+                    log.debug(f'Connection {self.uri} on {block_number=}')
             except Exception:
                 log.debug(f'{self.uri!r} failed to send last block')
                 log.debug(traceback.format_exc())
 
 
-def load_contract(contract_data_filepath: str, web3: Web3) -> Contract:
+def load_contract(contract_data_filepath: str, web3: Web3 = None) -> Contract:
     """Load contract and add "sign_and_call" method to its functions"""
+    web3 = web3_tools.get_web3() if web3 is None else web3
     with open(contract_data_filepath) as f:
         data = json.load(f)
     address = data['networks'][str(configs.CHAIN_ID)]['address']
