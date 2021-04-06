@@ -23,7 +23,8 @@ class BackgroundWeb3:
         self._web3 = web3_tools.from_uri(uri, warn_http_provider=False)
         self._executor = futures.ThreadPoolExecutor(1)
         self._heartbeat_thread: Thread
-        self._keep_alive()
+        if not uri == configs.RCP_LOCAL_URI:
+            self._keep_alive()
 
     def send_transaction(self, tx: SignedTransaction):
         if not self.is_alive():
