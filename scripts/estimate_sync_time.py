@@ -15,6 +15,11 @@ N_RECENT_FILES_READ = 2
 SECONDS_PER_BLOCK = 3
 RCP_ENDPOINT = 'https://bsc-dataseed.binance.org'
 
+REFERENCE_BLOCK = {
+    't': datetime.utcnow(),
+    'n': Web3(HTTPProvider(RCP_ENDPOINT), [geth_poa_middleware]).eth.block_number
+}
+
 DIR_PATH = pathlib.Path(__file__).parent / 'node'
 PREFIX = 'bsc.log.'
 
@@ -76,7 +81,6 @@ class Blocks:
     def load_new_block(self, block):
         self.blocks.append(block)
         self.blocks = self.blocks[-100:]
-        self.web3 = Web3(HTTPProvider(RCP_ENDPOINT), [geth_poa_middleware])
 
     @property
     def oldest_processed_block(self):
@@ -96,9 +100,12 @@ class Blocks:
 
     @property
     def latest_block(self):
+        now = datetime.utcnow()
+        seconds_from_reference = (now - REFERENCE_BLOCK['t']).total_seconds()
+        block = int(REFERENCE_BLOCK['n'] + seconds_from_reference / SECONDS_PER_BLOCK)
         return {
-            't': datetime.now(),
-            'n': self.web3.eth.block_number
+            't': now,
+            'n': block
         }
 
     @property
