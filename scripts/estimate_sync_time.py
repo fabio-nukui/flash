@@ -10,6 +10,7 @@ from web3 import Web3, HTTPProvider
 POOL_INTERVAL = 1
 PAT = re.compile(r'^t=(?P<t>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}).+msg="Imported new chain segment".+\bnumber=(?P<n>\d+)\b')  # noqa: E501
 N_LINES_BUFFER = 100
+N_RECENT_FILES_READ = 2
 
 SECONDS_PER_BLOCK = 3
 RCP_ENDPOINT = 'https://bsc-dataseed.binance.org'
@@ -23,7 +24,7 @@ class Logs:
         self.log_files = sorted(self.get_files())
         self.lines = [
             line
-            for file in self.log_files[:-1]
+            for file in self.log_files[-N_RECENT_FILES_READ - 1:-1]
             for line in open(file).readlines()
         ]
         self.file = open(self.log_files[-1])
