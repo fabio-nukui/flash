@@ -1,3 +1,4 @@
+import json
 import time
 from concurrent import futures
 from itertools import permutations
@@ -27,6 +28,7 @@ TOLERANCE = 0.01  # Tolerance to stop optimization
 MAX_ITERATIONS = 100
 
 CONTRACT_DATA_FILEPATH = 'deployed_contracts/PancakeswapEllipsis3PoolV2.json'
+ADDRESS_FILEPATH = 'addresses/strategies/pancakeswap_ellipsis_3_pool_v2.json'
 
 
 class ArbitragePair:
@@ -106,8 +108,8 @@ class ArbitragePair:
             max_iter=MAX_ITERATIONS,
         )
 
-        # if int_amount_last < 0:
-        #     return
+        if int_amount_last < 0:
+            return
 
         self.amount_last = TokenAmount(self.token_last, int_amount_last)
         self.estimated_result = TokenAmount(self.token_first, int_result)
@@ -178,14 +180,15 @@ def run():
     Ellipsis's 3pool and back (USDT / USDC / BUSD)"""
     web3 = web3_tools.get_web3(verbose=True)
     tokens = EllipsisDex(web3).pools[POOL_NAME].tokens
-    cake_dex = PancakeswapDex()
+    with open(ADDRESS_FILEPATH) as f:
+        cake_dex_tokens = json.load(f)['cake_dex']
+        cake_dex = PancakeswapDex(tokens=cake_dex_tokens)
     eps_dex = EllipsisDex()
     contract = contracts.load_contract(CONTRACT_DATA_FILEPATH)
     arbitrage_pairs = [
         ArbitragePair(token_first, token_last, cake_dex, eps_dex, contract, web3)
         for token_first, token_last in permutations(tokens, 2)
     ]
-
     block_filter = web3.eth.filter('latest')
     while True:
         latest_block = get_latest_block(block_filter, web3)
