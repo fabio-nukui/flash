@@ -3,7 +3,7 @@ import random
 import time
 import traceback
 from concurrent import futures
-from threading import Lock, Thread
+from threading import Thread
 
 from eth_account.datastructures import SignedTransaction
 from web3 import Account, Web3
@@ -20,11 +20,10 @@ CONNECTION_KEEP_ALIVE_TIME_INTERVAL = 30
 class BackgroundWeb3:
     def __init__(self, uri: str):
         self.uri = uri
-        self.web3 = web3_tools.from_uri(uri, warn_http_provider=False)
-        self.lock = Lock()
-        self._thread: Thread
-        self._keep_alive()
+        self._web3 = web3_tools.from_uri(uri, warn_http_provider=False)
         self._executor = futures.ThreadPoolExecutor(1)
+        self._heartbeat_thread: Thread
+        self._keep_alive()
 
     def send_transaction(self, tx: SignedTransaction):
         if not self.is_alive():
@@ -32,30 +31,27 @@ class BackgroundWeb3:
         self._executor.submit(self._send_transaction, tx)
 
     def is_alive(self):
-        return self._thread.is_alive()
+        return self._heartbeat_thread.is_alive()
 
-    def _send_transaction(self, tx: SignedTransaction) -> str:
+    def _send_transaction(self, tx: SignedTransaction):
         try:
-            with self.lock:
-                tx_hash = self.web3.eth.send_raw_transaction(tx.rawTransaction).hex()
+            self._web3.eth.send_raw_transaction(tx.rawTransaction)
             log.debug(f'Sent transaction using {self.uri}')
-            return tx_hash
         except Exception:
             log.info(f'{self.uri!r} failed to send transaction')
             log.debug(traceback.format_exc())
-            return '0x0'
 
     def _keep_alive(self):
         log.debug(f'Keep-alive: {self.uri}')
-        self._thread = Thread(target=self._heartbeat, daemon=True)
-        self._thread.start()
+        self._heartbeat_thread = Thread(target=self._heartbeat, daemon=True)
+        self._heartbeat_thread.start()
 
     def _heartbeat(self):
         while True:
             time.sleep(CONNECTION_KEEP_ALIVE_TIME_INTERVAL + random.random())
             try:
-                with self.lock:
-                    block_number = self.web3.eth.block_number
+                future = self._executor.submit(getattr, self._web3.eth, 'block_number')
+                block_number = future.result()
                 log.debug(f'Connection {self.uri} on {block_number=}')
             except Exception:
                 log.debug(f'{self.uri!r} failed to send last block')
