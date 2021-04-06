@@ -94,7 +94,7 @@ def sign_and_send_transaction(
     })
     signed_tx = ACCOUNT.sign_transaction(tx)
     if configs.MULTI_BROADCAST_TRANSACTIONS:
-        multi_broadcast_transaction(tx)
+        multi_broadcast_transaction(signed_tx)
 
     return web3.eth.send_raw_transaction(signed_tx.rawTransaction).hex()
 
