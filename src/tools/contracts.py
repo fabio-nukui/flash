@@ -73,7 +73,7 @@ def load_contract(contract_data_filepath: str, web3: Web3) -> Contract:
     return web3.eth.contract(address, abi=abi)
 
 
-def multi_broadcast_transaction(tx: SignedTransaction):
+def broadcast_transaction(tx: SignedTransaction):
     for bg_web3 in LIST_BG_WEB3:
         bg_web3.send_transaction(tx)
 
@@ -93,18 +93,16 @@ def sign_and_send_transaction(
         'nonce': web3.eth.get_transaction_count(ACCOUNT.address)
     })
     signed_tx = ACCOUNT.sign_transaction(tx)
-    if configs.MULTI_BROADCAST_TRANSACTIONS:
-        multi_broadcast_transaction(signed_tx)
+    broadcast_transaction(signed_tx)
 
-    return web3.eth.send_raw_transaction(signed_tx.rawTransaction).hex()
+    return web3.sha3(signed_tx.rawTransaction).hex()
 
 
 def _get_providers() -> list[BackgroundWeb3]:
     log.info(f'{configs.MULTI_BROADCAST_TRANSACTIONS=}')
-    if not configs.MULTI_BROADCAST_TRANSACTIONS:
-        return []
-    endpoints = json.load(open('addresses/public_rcp_endpoints.json'))[str(configs.CHAIN_ID)]
-    endpoints.append(configs.RCP_REMOTE_URI)
+    endpoints = [configs.RCP_REMOTE_URI, configs.RCP_LOCAL_URI]
+    if configs.MULTI_BROADCAST_TRANSACTIONS:
+        endpoints = json.load(open('addresses/public_rcp_endpoints.json'))[str(configs.CHAIN_ID)]
 
     return [BackgroundWeb3(uri) for uri in endpoints]
 
