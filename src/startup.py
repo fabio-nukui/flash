@@ -22,6 +22,7 @@ def setup_logger():
         del dict_config['handlers']['watchtower']
         dict_config['root']['handlers'].remove('watchtower')
 
+    dict_config['loggers']['tools.cache'] = {'level': configs.CACHE_LOG_LEVEL}
     logging.config.dictConfig(dict_config)
 
 

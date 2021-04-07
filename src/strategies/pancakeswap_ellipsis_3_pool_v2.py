@@ -57,7 +57,7 @@ class ArbitragePair:
 
         self._is_running = False
         self._transaction_hash = ''
-        self._gas_price: int = None
+        self._gas_price = 0
         self.estimated_net_result_usd = 0.0
 
     def __repr__(self):
@@ -66,19 +66,6 @@ class ArbitragePair:
             f'({self.token_first.symbol}->{self.token_last.symbol}->{self.token_first.symbol}, '
             f'estimated_net_result_usd={self.estimated_net_result_usd:,.2f})'
         )
-
-    def _calculate_gas_and_net_result(self):
-        token_usd_price = tools.price.get_chainlink_price_usd(
-            self.estimated_result.token.symbol, self.web3)
-
-        gross_result_usd = self.estimated_result.amount_in_units * token_usd_price
-
-        gas_cost_usd = tools.price.get_gas_cost_usd(GAS_COST, self.web3)
-        gas_premium = GAS_SHARE_OF_PROFIT * gross_result_usd / gas_cost_usd
-        gas_premium = max(gas_premium, 1)
-
-        self._gas_price = int(tools.price.get_gas_price(self.web3) * gas_premium)
-        self.estimated_net_result_usd = gross_result_usd - gas_cost_usd * gas_premium
 
     def _estimate_result_int(self, amount_last_int: int) -> int:
         amount_last = TokenAmount(self.token_last, amount_last_int)
@@ -116,7 +103,20 @@ class ArbitragePair:
         self.amount_last = TokenAmount(self.token_last, int_amount_last)
         self.estimated_result = TokenAmount(self.token_first, int_result)
         self.trade_cake, self.trade_eps = self._get_arbitrage_trades(self.amount_last)
-        self._calculate_gas_and_net_result()
+        self._set_gas_and_net_result()
+
+    def _set_gas_and_net_result(self):
+        token_usd_price = tools.price.get_chainlink_price_usd(
+            self.estimated_result.token.symbol, self.web3)
+
+        gross_result_usd = self.estimated_result.amount_in_units * token_usd_price
+
+        gas_cost_usd = tools.price.get_gas_cost_usd(GAS_COST, self.web3)
+        gas_premium = GAS_SHARE_OF_PROFIT * gross_result_usd / gas_cost_usd
+        gas_premium = max(gas_premium, 1)
+
+        self._gas_price = int(tools.price.get_gas_price(self.web3) * gas_premium)
+        self.estimated_net_result_usd = gross_result_usd - gas_cost_usd * gas_premium
 
     def execute(self):
         log.info(f'Estimated profit: {self.estimated_net_result_usd}')
@@ -150,6 +150,8 @@ class ArbitragePair:
         self.estimated_result = TokenAmount(self.token_first)
         self.trade_cake = None
         self.trade_eps = None
+        self._gas_price = 0
+        self.estimated_net_result_usd = 0.0
 
     def is_running(self, current_block: int) -> bool:
         if not self._is_running:

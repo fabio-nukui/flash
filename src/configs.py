@@ -23,6 +23,7 @@ STRATEGY = os.getenv('STRATEGY', 'no_strategy')
 
 # Debug / optimization
 CACHE_STATS = os.getenv('CACHE_STATS') == 'True'
+CACHE_LOG_LEVEL = os.getenv('CACHE_LOG_LEVEL', 'INFO')
 
 # Gas
 BASELINE_GAS_PRICE_PREMIUM = float(os.getenv('BASELINE_GAS_PRICE_PREMIUM', '1.001'))

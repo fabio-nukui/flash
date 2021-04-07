@@ -1,3 +1,4 @@
+import logging
 from typing import Callable, Union
 
 from cachetools import TTLCache, cached
@@ -5,6 +6,7 @@ from cachetools import TTLCache, cached
 import configs
 
 _caches: list[TTLCache] = []
+log = logging.getLogger(__name__)
 
 
 class TTLCacheWithStats(TTLCache):
@@ -24,11 +26,19 @@ class TTLCacheWithStats(TTLCache):
         hit = super().__getitem__(key)
         self._n_hits += 1
         self._n_hits_total += 1
+        log.debug(f'Cache hit: {key}, {hit}')
         return hit
+
+    def __setitem__(self, k, v):
+        self._n_sets += 1
+        self._n_sets_total += 1
+        log.debug(f'Cache set: {k}, {v}')
+        return super().__setitem__(k, v)
 
     def setdefault(self, k, v):
         self._n_sets += 1
         self._n_sets_total += 1
+        log.debug(f'Cache set: {k}, {v}')
         return super().setdefault(k, v)
 
 
