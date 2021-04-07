@@ -26,7 +26,8 @@ INCREMENT = 0.0001  # Increment to estimate derivatives in optimization
 TOLERANCE = 0.01  # Tolerance to stop optimization
 MAX_ITERATIONS = 100
 
-CONTRACT_DATA_FILEPATH = 'deployed_contracts/PancakeswapEllipsis3PoolV2.json'
+# Use V1 contract for now, as it has lower gas costs
+CONTRACT_DATA_FILEPATH = 'deployed_contracts/PancakeswapEllipsis3Pool.json'
 ADDRESS_FILEPATH = 'addresses/strategies/pancakeswap_ellipsis_3_pool_v2.json'
 
 log = logging.getLogger(__name__)
@@ -88,6 +89,7 @@ class ArbitragePair:
         return trade_eps.amount_out - trade_cake.amount_in
 
     def _get_arbitrage_trades(self, amount_last: TokenAmount) -> tuple[UniV2Trade, CurveTrade]:
+        breakpoint()
         trade_cake = self.cake_dex.best_trade_exact_out(self.token_first, amount_last, MAX_HOPS)
         trade_eps = self.eps_dex.best_trade_exact_in(
             amount_last, self.token_first, pools=[POOL_NAME])
@@ -122,11 +124,18 @@ class ArbitragePair:
         log.info(f'Trades: {self.trade_cake}; {self.trade_eps}')
         log.info(f'Gas price: {self._gas_price / 10 ** 9:,.1f} Gwei')
 
+        # Using V1 contract for now, as it has lower gas cost
         transaction_hash = tools.contracts.sign_and_send_transaction(
             self.contract.functions.triggerFlashSwap,
-            path=[t.address for t in self.trade_cake.route.tokens],
-            amountLast=self.amount_last.amount,
+            token0=self.token_first.address,
+            token1=self.token_last.address,
+            amount1=self.amount_last.amount,
         )
+        # transaction_hash = tools.contracts.sign_and_send_transaction(
+        #     self.contract.functions.triggerFlashSwap,
+        #     path=[t.address for t in self.trade_cake.route.tokens],
+        #     amountLast=self.amount_last.amount,
+        # )
         self._is_running = True
         self._transaction_hash = transaction_hash
         log.info(f'Sent transaction with hash {transaction_hash}')
