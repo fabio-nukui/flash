@@ -55,7 +55,7 @@ def get_chainlink_price_usd(token_symbol: str, web3: Web3) -> float:
 
 @ttl_cache(maxsize=1, ttl=GAS_PRICE_CACHE_TTL)
 def get_gas_price(web3: Web3) -> int:
-    return web3.eth.gas_price * configs.BASELINE_GAS_PRICE_PREMIUM
+    return int(web3.eth.gas_price * configs.BASELINE_GAS_PRICE_PREMIUM)
 
 
 @ttl_cache(maxsize=1, ttl=USD_PRICE_CACHE_TTL)
@@ -67,7 +67,7 @@ def get_gas_cost_usd(gas: int, web3: Web3) -> float:
     address = USD_PRICE_FEED_ADDRESSES[asset_name]['address']
     decimals = USD_PRICE_FEED_ADDRESSES[asset_name]['decimals']
 
-    gas_cost = float(Web3.fromWei(gas, 'ether') * get_gas_price(web3))
+    gas_cost = float(Web3.fromWei(gas, 'ether')) * get_gas_price(web3)
 
     price_native_token_usd = _get_chainlink_data(asset_name, address, decimals, web3)
     return gas_cost * price_native_token_usd
