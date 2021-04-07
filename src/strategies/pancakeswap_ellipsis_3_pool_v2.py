@@ -129,11 +129,15 @@ class ArbitragePair:
             token0=self.token_first.address,
             token1=self.token_last.address,
             amount1=self.amount_last.amount,
+            max_gas_=GAS_COST * 2,
+            gas_price_=self._gas_price,
         )
         # transaction_hash = tools.contracts.sign_and_send_transaction(
         #     self.contract.functions.triggerFlashSwap,
         #     path=[t.address for t in self.trade_cake.route.tokens],
         #     amountLast=self.amount_last.amount,
+        #     max_gas_=GAS_COST * 2,
+        #     gas_price_=self._gas_price,
         # )
         self._is_running = True
         self._transaction_hash = transaction_hash
