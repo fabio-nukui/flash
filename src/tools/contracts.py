@@ -92,7 +92,8 @@ def sign_and_send_transaction(
         'from': ACCOUNT.address,
         'chainId': configs.CHAIN_ID,
         'gas': max_gas_,
-        'nonce': web3.eth.get_transaction_count(ACCOUNT.address)
+        'nonce': web3.eth.get_transaction_count(ACCOUNT.address),
+        'gasPrice': int(web3.eth.gas_price * configs.GAS_PRICE_PREMIUM)
     })
     signed_tx = ACCOUNT.sign_transaction(tx)
     broadcast_transaction(signed_tx)

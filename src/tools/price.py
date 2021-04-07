@@ -62,7 +62,7 @@ def get_gas_cost_usd(gas: int, web3: Web3) -> float:
     address = USD_PRICE_FEED_ADDRESSES[asset_name]['address']
     decimals = USD_PRICE_FEED_ADDRESSES[asset_name]['decimals']
 
-    gas_cost = float(Web3.fromWei(gas, 'ether') * web3.eth.gas_price)
+    gas_cost = float(Web3.fromWei(gas, 'ether') * web3.eth.gas_price) * configs.GAS_PRICE_PREMIUM
 
     price_native_token_usd = _get_chainlink_data(asset_name, address, decimals, web3)
     return gas_cost * price_native_token_usd
