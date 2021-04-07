@@ -4,8 +4,8 @@ ifeq (${STRAT},)
 ENV_FILE=env/.env-dev
 else
 ENV_FILE=env/.env-strat-${STRAT}
-endif
 include $(ENV_FILE)
+endif
 
 ###################################################################################################
 ## SCRIPTS
