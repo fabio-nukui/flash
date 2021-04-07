@@ -9,7 +9,7 @@ import httpx
 from web3 import Web3
 
 import configs
-import tools
+import tools.w3
 from tools.cache import ttl_cache
 
 USD_PRICE_FEED_ADDRESSES = \

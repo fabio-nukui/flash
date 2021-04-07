@@ -11,7 +11,7 @@ from web3 import Account, Web3
 from web3.contract import Contract, ContractFunction
 
 import configs
-import tools
+import tools.w3
 
 ACCOUNT = Account.from_key(configs.PRIVATE_KEY)
 CONNECTION_KEEP_ALIVE_TIME_INTERVAL = 30
