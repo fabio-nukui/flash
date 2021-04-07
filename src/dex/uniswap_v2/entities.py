@@ -4,7 +4,7 @@ from copy import copy
 
 from web3 import Web3
 
-from core.entities import Price, Token, TokenAmount, Trade
+from core.entities import Token, TokenAmount, Trade
 from tools.cache import ttl_cache
 
 N_PAIRS_CACHE = 1000  # Must be at least equal to number of pairs in strategy
@@ -25,8 +25,8 @@ class UniV2Pair:
         web3: Web3
     ):
         self._reserve_0, self._reserve_1 = sorted(reserves, key=lambda x: x.token)
-        self.factory_address = factory_address
-        self.init_code_hash = init_code_hash
+        self._factory_address = factory_address
+        self._init_code_hash = init_code_hash
         self.abi = abi
         self.fee = fee
         self.web3 = web3
@@ -51,7 +51,7 @@ class UniV2Pair:
         prefix = Web3.toHex(hexstr='ff')
         raw = Web3.solidityKeccak(
             ['bytes', 'address', 'bytes', 'bytes'],
-            [prefix, self.factory_address, encoded_tokens, self.init_code_hash]
+            [prefix, self._factory_address, encoded_tokens, self._init_code_hash]
         )
         return Web3.toChecksumAddress(raw.hex()[-40:])
 
@@ -59,10 +59,6 @@ class UniV2Pair:
     def reserves(self) -> tuple[TokenAmount, TokenAmount]:
         self._update_amounts()
         return (self._reserve_0, self._reserve_1)
-
-    @ttl_cache(N_PAIRS_CACHE)
-    def _get_reserves(self):
-        return self.contract.functions.getReserves().call()
 
     def _update_amounts(self):
         """Update the reserve amounts of both token pools and the unix timestamp of the latest
@@ -73,26 +69,37 @@ class UniV2Pair:
             self.latest_transaction_timestamp
         ) = self._get_reserves()
 
-    def price_of(self, token: Token) -> Price:
-        assert token in self.tokens, f'{token=} not in pair={self}'
-        fee_impact = 10_000 / (10_000 - self.fee)
-        if token == self.reserves[0].token:
-            return self.reserves[1] / self.reserves[0] * fee_impact
-        return self.reserves[0] / self.reserves[1] * fee_impact
+    @ttl_cache(N_PAIRS_CACHE)
+    def _get_reserves(self):
+        return self.contract.functions.getReserves().call()
+
+    def _get_in_out_reserves(
+        self,
+        amount_in: TokenAmount = None,
+        amount_out: TokenAmount = None
+    ) -> tuple[TokenAmount, TokenAmount]:
+        assert amount_in is not None or amount_out is not None, \
+            'At least one of token_in or token_out must be passed'
+        assert amount_in is None or amount_in.token in self.tokens, 'amount_in not in pair'
+        assert amount_out is None or amount_out.token in self.tokens, 'amount_out not in pair'
+
+        if self.reserves[0] == 0 or self.reserves[1] == 0:
+            raise InsufficientLiquidity
+        if amount_in is None:
+            token_in = self.tokens[0] if amount_out.token == self.tokens[1] else self.tokens[1]
+        else:
+            token_in = amount_in.token
+
+        if token_in == self.tokens[0]:
+            reserve_in, reserve_out = self.reserves
+        else:
+            reserve_out, reserve_in = self.reserves
+        if amount_out is not None and amount_out >= reserve_out:
+            raise InsufficientLiquidity
+        return reserve_in, reserve_out
 
     def get_amount_out(self, amount_in: TokenAmount) -> TokenAmount:
-        assert amount_in.token in self.tokens
-        if (
-            self.reserves[0].amount == 0
-            or self.reserves[1].amount == 0
-        ):
-            raise InsufficientLiquidity
-        if amount_in.token == self.reserves[0].token:
-            reserve_in = self.reserves[0]
-            reserve_out = self.reserves[1]
-        else:
-            reserve_out = self.reserves[0]
-            reserve_in = self.reserves[1]
+        reserve_in, reserve_out = self._get_in_out_reserves(amount_in=amount_in)
 
         amount_in_with_fee = amount_in.amount * (10_000 - self.fee)
         numerator = amount_in_with_fee * reserve_out.amount
@@ -102,21 +109,7 @@ class UniV2Pair:
         return TokenAmount(reserve_out.token, amount_out)
 
     def get_amount_in(self, amount_out: TokenAmount) -> TokenAmount:
-        assert amount_out.token in self.tokens
-        if amount_out.token == self.reserves[0].token:
-            reserve_out = self.reserves[0]
-            reserve_in = self.reserves[1]
-        else:
-            reserve_in = self.reserves[0]
-            reserve_out = self.reserves[1]
-
-        if (
-            self.reserves[0].amount == 0
-            or self.reserves[1].amount == 0
-            or amount_out.amount >= reserve_out.amount
-        ):
-            raise InsufficientLiquidity
-
+        reserve_in, reserve_out = self._get_in_out_reserves(amount_out=amount_out)
         numerator = reserve_in.amount * amount_out.amount * 10_000
         denominator = (reserve_out.amount - amount_out.amount) * (10_000 - self.fee)
 

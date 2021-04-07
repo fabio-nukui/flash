@@ -13,6 +13,7 @@ N_ITERATIONS = 255  # Number of iterations for numeric calculations
 
 N_POOLS_CACHE = 100  # Must be at least equal to number of pools in strategy
 
+
 class CurvePool:
     def __init__(
         self,

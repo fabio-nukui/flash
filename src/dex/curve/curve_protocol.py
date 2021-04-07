@@ -24,7 +24,7 @@ class CurveProtocol(DexProtocol):
         self.pools: dict[str, CurvePool] = {}
 
         abi_filepaths = [POOL_ABI, POOL_TOKEN_ABI, ZAP_ABI]
-        super().__init__(abi_filepaths, chain_id, addresses_filepath, fee, web3)
+        super().__init__(abi_filepaths, chain_id, addresses_filepath, web3, fee)
 
     def _connect(self):
         for pool_name, addresses in self.addresses.items():

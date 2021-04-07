@@ -11,9 +11,9 @@ class DexProtocol:
         abi_filepaths: list[Union[str, pathlib.Path]],
         chain_id: int,
         addresses_filepath: str,
-        fee: int,
         web3: Web3,
-        *args, **kwargs
+        fee: int = None,
+        **kwargs
     ):
         """Decentralized exchange protocol
 
@@ -21,8 +21,8 @@ class DexProtocol:
             abi_filepaths (list[Union[str, pathlib.Path]]): Paths with abi .json files
             chain_id (int): Chain ID of protocol implementation (e.g.: 56 for Binance Smart Chain)
             addresses_filepath (str): pathlib.Path to relevant addresses .json file
-            fee (int): Swap fee in basis points (e.g.: 20 for pancakeswap's 0.2% fee)
             web3 (Web3): Web3 provider to interact with blockchain
+            fee (int): Swap fee in basis points (e.g.: 20 for pancakeswap's 0.2% fee)
         """
         self.abis = {
             filepath: self._get_abi(filepath)
@@ -32,7 +32,7 @@ class DexProtocol:
         self.addresses = self._get_addresses(addresses_filepath, chain_id)
         self.fee = fee
         self.web3 = web3
-        self._connect(*args, **kwargs)
+        self._connect(**kwargs)
 
     def __repr__(self):
         return f'{self.__class__.__name__}'
@@ -47,6 +47,6 @@ class DexProtocol:
         with open(filepath) as f:
             return json.load(f)[str(chain_id)]
 
-    def _connect(self, *args, **kwargs):
+    def _connect(self, **kwargs):
         """To be implemented by subclasses, uses web3 to connect to blockchain."""
         raise NotImplementedError
