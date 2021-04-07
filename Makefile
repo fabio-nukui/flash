@@ -1,6 +1,11 @@
 .PHONY: build
 .DEFAULT_GOAL := help
-include .env
+ifeq (${STRAT},)
+ENV_FILE=env/.env-dev
+else
+ENV_FILE=env/.env-strat-${STRAT}
+endif
+include $(ENV_FILE)
 
 ###################################################################################################
 ## SCRIPTS
@@ -49,7 +54,7 @@ ifeq ($(shell docker ps -a --format "{{.Names}}" | grep ^$(DEV_CONTAINER_NAME)$$
 		-v $(PWD):/home/flash/work \
 		-v $(GETH_IPC_PATH):/home/flash/work/geth.ipc \
 		--name $(DEV_CONTAINER_NAME) \
-		--env-file .env \
+		--env-file $(ENV_FILE) \
 		$(IMAGE_NAME)
 else
 	docker start -i $(DEV_CONTAINER_NAME)
@@ -58,19 +63,22 @@ endif
 rm-dev: ## remove stopped dev container
 	docker rm $(DEV_CONTAINER_NAME)
 
-start-arb: ## (re-)start docker running arbitrage strategy chosen in .env file
+start: ## (re-)start docker running arbitrage strategy "$STRAT". (e.g.: make start STRAT=1)
 	docker run --rm -d \
 		--net=host \
 		-v $(PWD):/home/flash/work \
 		-v $(GETH_IPC_PATH):/home/flash/work/geth.ipc \
 		--name $(ARBITRAGE_CONTAINER_NAME) \
-		--env-file .env \
+		--env-file $(ENV_FILE) \
 		$(IMAGE_NAME) python app.py
 
-stop-arb:  ## stop docker running arbitrage strategy chosen in .env file
+stop:  ## stop docker conteiner running strategy "$STRAT". (e.g.: make stop STRAT=1)
 	docker stop $(ARBITRAGE_CONTAINER_NAME)
 
 check-all: isort lint test ## run tests and code style
+
+get-env: ## Download .env files
+	aws s3 sync --exclude='.gitkeep' $(DATA_SOURCE)/env env
 
 isort: ## fix import sorting order
 	docker exec -it $(DEV_CONTAINER_NAME) isort -y -rc src scripts app.py

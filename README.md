@@ -11,3 +11,7 @@ Arbitrage using flashloans
 
 ## Project commands
  - Use `make` to see Makefile actions
+
+
+## Current strategies
+ 1. pancakeswap_ellipsis_3_pool_v2: Arbitrage USDC/BUSD/USDC in BSC: [Ellipsis 3pool](https://ellipsis.finance/3pool) vs [pancakeswap](https://exchange.pancakeswap.finance/#/swap). Pancakeswap max_hops=2 to include WBNB liquidity
