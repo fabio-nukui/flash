@@ -127,7 +127,7 @@ class TokenAmount:
         if isinstance(other, (int, float)):
             return self.amount < other
         elif isinstance(other, TokenAmount):
-            return self.token < other.token
+            return self.amount < other.amount
         return NotImplemented
 
     @_same_token

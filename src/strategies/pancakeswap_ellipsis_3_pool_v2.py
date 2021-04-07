@@ -89,7 +89,6 @@ class ArbitragePair:
         return trade_eps.amount_out - trade_cake.amount_in
 
     def _get_arbitrage_trades(self, amount_last: TokenAmount) -> tuple[UniV2Trade, CurveTrade]:
-        breakpoint()
         trade_cake = self.cake_dex.best_trade_exact_out(self.token_first, amount_last, MAX_HOPS)
         trade_eps = self.eps_dex.best_trade_exact_in(
             amount_last, self.token_first, pools=[POOL_NAME])
