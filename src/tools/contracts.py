@@ -35,6 +35,8 @@ class BackgroundWeb3:
         self._executor.submit(self._send_transaction, tx)
 
     def is_alive(self):
+        if self.uri == configs.RCP_LOCAL_URI:
+            return True
         return self._heartbeat_thread.is_alive()
 
     def _send_transaction(self, tx: SignedTransaction):
