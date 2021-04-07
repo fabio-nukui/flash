@@ -8,10 +8,10 @@ from web3.contract import Contract
 from web3.exceptions import TransactionNotFound
 
 import configs
+import tools
 from core.entities import Token, TokenAmount
 from dex.curve import CurveTrade, EllipsisDex
 from dex.uniswap_v2 import PancakeswapDex, UniV2Trade
-from tools import cache, contracts, optimization, price
 
 MAX_HOPS = 1
 MIN_CONFIRMATIONS = 3
@@ -65,11 +65,11 @@ class ArbitragePair:
     def estimated_net_result_usd(self) -> float:
         if self.estimated_result.is_empty():
             return 0.0
-        token_usd_price = price.get_chainlink_price_usd(
+        token_usd_price = tools.price.get_chainlink_price_usd(
             self.estimated_result.token.symbol, self.web3)
 
         gross_result_usd = self.estimated_result.amount_in_units * token_usd_price
-        gas_cost_usd = price.get_gas_cost_usd(GAS_COST * GAS_PREMIUM_FACTOR, self.web3)
+        gas_cost_usd = tools.price.get_gas_cost_usd(GAS_COST * GAS_PREMIUM_FACTOR, self.web3)
 
         return gross_result_usd - gas_cost_usd
 
@@ -98,7 +98,7 @@ class ArbitragePair:
             self.estimated_result = result_initial
             return
 
-        int_amount_1, int_result = optimization.optimizer_second_order(
+        int_amount_1, int_result = tools.optimization.optimizer_second_order(
             func=self._estimate_result_int,
             x0=amount_1_initial.amount,
             dx=int(INCREMENT * 10 ** self.token_1.decimals),
@@ -118,7 +118,7 @@ class ArbitragePair:
             f'eps={self.trade_eps.pool.reserves}'
         )
 
-        transaction_hash = contracts.sign_and_send_transaction(
+        transaction_hash = tools.contracts.sign_and_send_transaction(
             self.contract.functions.triggerFlashSwap,
             token0=self.token_0.address,
             token1=self.token_1.address,
@@ -190,13 +190,13 @@ def run(web3: Web3):
     cake_dex = PancakeswapDex(web3)
     eps_dex = EllipsisDex(web3)
     tokens = eps_dex.pools[POOL_NAME].tokens
-    contract = contracts.load_contract(CONTRACT_DATA_FILEPATH, web3)
+    contract = tools.contracts.load_contract(CONTRACT_DATA_FILEPATH, web3)
     arbitrage_pairs = get_arbitrage_pairs(tokens, cake_dex, eps_dex, contract, web3)
 
     block_filter = web3.eth.filter('latest')
     while True:
         latest_block = get_latest_block(block_filter, web3)
-        cache.clear_caches()
+        tools.cache.clear_caches()
         if any(arb_pair.is_running(latest_block) for arb_pair in arbitrage_pairs):
             continue
         for arb_pair in arbitrage_pairs:

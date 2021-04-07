@@ -11,7 +11,7 @@ from web3 import Account, Web3
 from web3.contract import Contract, ContractFunction
 
 import configs
-from tools import web3_tools
+import tools
 
 ACCOUNT = Account.from_key(configs.PRIVATE_KEY)
 CONNECTION_KEEP_ALIVE_TIME_INTERVAL = 30
@@ -22,7 +22,7 @@ class BackgroundWeb3:
     def __init__(self, uri: str, verbose: bool = False):
         self.uri = uri
         self.verbose = verbose
-        self._web3 = web3_tools.from_uri(uri, warn_http_provider=False)
+        self._web3 = tools.w3.web3_tools.from_uri(uri, warn_http_provider=False)
         self._executor = futures.ThreadPoolExecutor(1)
         self._heartbeat_thread: Thread
         if not uri == configs.RCP_LOCAL_URI:
@@ -64,7 +64,7 @@ class BackgroundWeb3:
 
 def load_contract(contract_data_filepath: str, web3: Web3 = None) -> Contract:
     """Load contract and add "sign_and_call" method to its functions"""
-    web3 = web3_tools.get_web3() if web3 is None else web3
+    web3 = tools.w3.get_web3() if web3 is None else web3
     with open(contract_data_filepath) as f:
         data = json.load(f)
     address = data['networks'][str(configs.CHAIN_ID)]['address']

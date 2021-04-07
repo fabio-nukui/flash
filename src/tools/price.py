@@ -9,7 +9,7 @@ import httpx
 from web3 import Web3
 
 import configs
-from tools import web3_tools
+import tools
 from tools.cache import ttl_cache
 
 USD_PRICE_FEED_ADDRESSES = \
@@ -20,7 +20,7 @@ CHAINLINK_PRICE_FEED_ABI = json.load(open('abis/ChainlinkPriceFeed.json'))
 USD_PRICE_CACHE_TTL = 60
 USD_PRICE_DATA_STALE = 300
 
-WEB3 = web3_tools.get_web3()
+WEB3 = tools.w3.get_web3()
 LOCK = Lock()
 
 log = logging.getLogger(__name__)
