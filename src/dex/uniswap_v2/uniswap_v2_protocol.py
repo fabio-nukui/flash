@@ -1,10 +1,10 @@
 import itertools
+import logging
 import pathlib
 
 from web3 import Web3
 
 from core.entities import Token, TokenAmount
-from tools.logger import log
 
 from ..base import DexProtocol
 from .entities import UniV2Pair, UniV2Trade
@@ -13,6 +13,8 @@ ABI_DIRECTORY = pathlib.Path('abis/dex/uniswap_v2')
 FACTORY_ABI = ABI_DIRECTORY / 'IUniswapV2Factory.json'
 ROUTER_ABI = ABI_DIRECTORY / 'IUniswapV2Router.json'
 PAIR_ABI = ABI_DIRECTORY / 'IUniswapV2Pair.json'
+
+log = logging.getLogger(__name__)
 
 
 class UniswapV2Protocol(DexProtocol):

@@ -16,6 +16,8 @@ def setup_warnings():
 def setup_logger():
     dict_config = yaml.safe_load(open('logging_config.yaml'))
     dict_config['handlers']['logfile']['filename'] = f'logs/{configs.STRATEGY}.log'
+    dict_config['handlers']['watchtower']['stream_name'] = \
+        f'{configs.STRATEGY}-{{strftime:%y-%m-%d}}'
     if not configs.LOG_AWS:
         del dict_config['handlers']['watchtower']
         dict_config['root']['handlers'].remove('watchtower')

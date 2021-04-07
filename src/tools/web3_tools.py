@@ -1,8 +1,11 @@
+import logging
+
 from web3 import HTTPProvider, IPCProvider, Web3, WebsocketProvider
 from web3.middleware import geth_poa_middleware
 
 import configs
-from tools.logger import log
+
+log = logging.getLogger(__name__)
 
 
 def from_uri(endpoint_uri: str, warn_http_provider: bool = True) -> Web3:

@@ -1,4 +1,5 @@
 import json
+import logging
 import urllib.parse
 from datetime import datetime
 from threading import Lock
@@ -10,7 +11,6 @@ from web3 import Web3
 import configs
 from tools import web3_tools
 from tools.cache import ttl_cache
-from tools.logger import log
 
 USD_PRICE_FEED_ADDRESSES = \
     json.load(open('addresses/chainlink_usd_price_feeds.json'))[str(configs.CHAIN_ID)]
@@ -22,6 +22,8 @@ USD_PRICE_DATA_STALE = 300
 
 WEB3 = web3_tools.get_web3()
 LOCK = Lock()
+
+log = logging.getLogger(__name__)
 
 
 def _get_native_token_decimals():

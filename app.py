@@ -1,8 +1,10 @@
 import importlib
+import logging
 
 import configs
 from startup import setup
-from tools.logger import log
+
+log = logging.getLogger(__name__)
 
 
 def main():

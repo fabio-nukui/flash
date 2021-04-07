@@ -1,4 +1,5 @@
 import json
+import logging
 import time
 from concurrent import futures
 from itertools import permutations
@@ -13,7 +14,6 @@ from core.entities import Token, TokenAmount
 from dex.curve import CurveTrade, EllipsisDex
 from dex.uniswap_v2 import PancakeswapDex, UniV2Trade
 from tools import cache, contracts, optimization, price, web3_tools
-from tools.logger import log
 
 MAX_HOPS = 2
 MIN_CONFIRMATIONS = 3
@@ -29,6 +29,8 @@ MAX_ITERATIONS = 100
 
 CONTRACT_DATA_FILEPATH = 'deployed_contracts/PancakeswapEllipsis3PoolV2.json'
 ADDRESS_FILEPATH = 'addresses/strategies/pancakeswap_ellipsis_3_pool_v2.json'
+
+log = logging.getLogger(__name__)
 
 
 class ArbitragePair:

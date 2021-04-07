@@ -1,4 +1,5 @@
 import json
+import logging
 import random
 import time
 import traceback
@@ -11,10 +12,10 @@ from web3.contract import Contract, ContractFunction
 
 import configs
 from tools import web3_tools
-from tools.logger import log
 
 ACCOUNT = Account.from_key(configs.PRIVATE_KEY)
 CONNECTION_KEEP_ALIVE_TIME_INTERVAL = 30
+log = logging.getLogger(__name__)
 
 
 class BackgroundWeb3:
