@@ -22,7 +22,7 @@ class BackgroundWeb3:
     def __init__(self, uri: str, verbose: bool = False):
         self.uri = uri
         self.verbose = verbose
-        self._web3 = tools.w3.web3_tools.from_uri(uri, warn_http_provider=False)
+        self._web3 = tools.w3.from_uri(uri, warn_http_provider=False)
         self._executor = futures.ThreadPoolExecutor(1)
         self._heartbeat_thread: Thread
         if not uri == configs.RCP_LOCAL_URI:

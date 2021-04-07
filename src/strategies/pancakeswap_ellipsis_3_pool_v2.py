@@ -10,10 +10,10 @@ from web3.contract import Contract
 from web3.exceptions import TransactionNotFound
 
 import configs
+import tools
 from core.entities import Token, TokenAmount
 from dex.curve import CurveTrade, EllipsisDex
 from dex.uniswap_v2 import PancakeswapDex, UniV2Trade
-from tools import cache, contracts, optimization, price, web3_tools
 
 MAX_HOPS = 2
 MIN_CONFIRMATIONS = 3
@@ -69,10 +69,10 @@ class ArbitragePair:
     def estimated_net_result_usd(self) -> float:
         if self.estimated_result.is_empty():
             return 0.0
-        token_usd_price = price.get_chainlink_price_usd(self.estimated_result.token.symbol)
+        token_usd_price = tools.price.get_chainlink_price_usd(self.estimated_result.token.symbol)
 
         gross_result_usd = self.estimated_result.amount_in_units * token_usd_price
-        gas_cost_usd = price.get_gas_cost_usd(GAS_COST * GAS_PREMIUM_FACTOR)
+        gas_cost_usd = tools.price.get_gas_cost_usd(GAS_COST * GAS_PREMIUM_FACTOR)
 
         return gross_result_usd - gas_cost_usd
 
@@ -102,7 +102,7 @@ class ArbitragePair:
             self.estimated_result = result_initial
             return
 
-        int_amount_last, int_result = optimization.optimizer_second_order(
+        int_amount_last, int_result = tools.optimization.optimizer_second_order(
             func=self._estimate_result_int,
             x0=amount_last_initial.amount,
             dx=int(INCREMENT * 10 ** self.token_last.decimals),
@@ -125,7 +125,7 @@ class ArbitragePair:
             f'eps={self.trade_eps.pool.reserves}'
         )
 
-        transaction_hash = contracts.sign_and_send_transaction(
+        transaction_hash = tools.contracts.sign_and_send_transaction(
             self.contract.functions.triggerFlashSwap,
             path=[t.address for t in self.trade_cake.route.tokens],
             amountLast=self.amount_last.amount,
@@ -180,13 +180,13 @@ def get_latest_block(block_filter: Filter, web3: Web3) -> int:
 def run():
     """Search for arbitrate oportunity using flash swap starting from pancakeswap to
     Ellipsis's 3pool and back (USDT / USDC / BUSD)"""
-    web3 = web3_tools.get_web3(verbose=True)
+    web3 = tools.w3.get_web3(verbose=True)
     tokens = EllipsisDex(web3).pools[POOL_NAME].tokens
     with open(ADDRESS_FILEPATH) as f:
         cake_dex_tokens = json.load(f)['cake_dex']
         cake_dex = PancakeswapDex(tokens=cake_dex_tokens)
     eps_dex = EllipsisDex()
-    contract = contracts.load_contract(CONTRACT_DATA_FILEPATH)
+    contract = tools.contracts.load_contract(CONTRACT_DATA_FILEPATH)
     arbitrage_pairs = [
         ArbitragePair(token_first, token_last, cake_dex, eps_dex, contract, web3)
         for token_first, token_last in permutations(tokens, 2)
@@ -194,7 +194,7 @@ def run():
     block_filter = web3.eth.filter('latest')
     while True:
         latest_block = get_latest_block(block_filter, web3)
-        cache.clear_caches()
+        tools.cache.clear_caches()
         if any([pair.is_running(latest_block) for pair in arbitrage_pairs]):
             continue
         with futures.ProcessPoolExecutor(len(arbitrage_pairs)) as pool:
