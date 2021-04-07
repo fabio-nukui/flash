@@ -15,6 +15,7 @@ import tools.w3
 
 ACCOUNT = Account.from_key(configs.PRIVATE_KEY)
 CONNECTION_KEEP_ALIVE_TIME_INTERVAL = 30
+PUBLIC_ENDPOINTS_FILEPATH = 'addresses/public_rcp_endpoints.json'
 log = logging.getLogger(__name__)
 
 
@@ -99,9 +100,10 @@ def sign_and_send_transaction(
 
 def _get_providers() -> list[BackgroundWeb3]:
     log.info(f'{configs.MULTI_BROADCAST_TRANSACTIONS=}')
-    endpoints = [configs.RCP_REMOTE_URI, configs.RCP_LOCAL_URI]
+    endpoints = [configs.RCP_LOCAL_URI, configs.RCP_REMOTE_URI]
     if configs.MULTI_BROADCAST_TRANSACTIONS:
-        endpoints = json.load(open('addresses/public_rcp_endpoints.json'))[str(configs.CHAIN_ID)]
+        public_endpoints = json.load(open(PUBLIC_ENDPOINTS_FILEPATH))[str(configs.CHAIN_ID)]
+        endpoints.extend(public_endpoints)
 
     return [BackgroundWeb3(uri) for uri in endpoints]
 
