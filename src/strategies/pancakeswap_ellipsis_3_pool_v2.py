@@ -15,7 +15,7 @@ from dex.curve import CurveTrade, EllipsisDex
 from dex.uniswap_v2 import PancakeswapDex, UniV2Trade
 
 MAX_HOPS = 1
-MIN_CONFIRMATIONS = 3
+MIN_CONFIRMATIONS = 1
 POOL_NAME = '3pool'
 GAS_COST = 170_000
 GAS_SHARE_OF_PROFIT = 0.2
@@ -166,7 +166,7 @@ class ArbitragePair:
             log.info(f'Transaction {self._transaction_hash} failed')
             self._reset()
             return False
-        elif current_block - receipt.blockNumber < MIN_CONFIRMATIONS:
+        elif current_block - receipt.blockNumber < (MIN_CONFIRMATIONS - 1):
             return True
         # Minimum amount of confimations passed
         log.info(
