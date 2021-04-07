@@ -80,7 +80,7 @@ class Blocks:
 
     def load_new_block(self, block):
         self.blocks.append(block)
-        self.blocks = self.blocks[-100:]
+        self.blocks = self.blocks[-N_LINES_BUFFER:]
 
     @property
     def oldest_processed_block(self):
