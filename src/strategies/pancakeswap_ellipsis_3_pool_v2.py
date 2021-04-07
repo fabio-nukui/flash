@@ -19,7 +19,7 @@ MIN_CONFIRMATIONS = 1
 POOL_NAME = '3pool'
 GAS_COST = 170_000
 GAS_SHARE_OF_PROFIT = 0.2
-MIN_ESTIMATED_PROFIT = 5
+MIN_ESTIMATED_PROFIT = 1
 
 # Optimization paramenters
 INITIAL_VALUE = 100  # Initial value to estimate best trade
