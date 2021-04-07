@@ -14,11 +14,11 @@ from core.entities import Token, TokenAmount
 from dex.curve import CurveTrade, EllipsisDex
 from dex.uniswap_v2 import PancakeswapDex, UniV2Trade
 
-MAX_HOPS = 2
+MAX_HOPS = 1
 MIN_CONFIRMATIONS = 3
 POOL_NAME = '3pool'
-GAS_COST = 260_000
-GAS_PREMIUM_FACTOR = 5  # TODO: Calculate premium via % failed transactions
+GAS_COST = 170_000
+GAS_SHARE_OF_PROFIT = 0.2
 
 # Optimization paramenters
 INITIAL_VALUE = 100  # Initial value to estimate best trade
@@ -56,6 +56,8 @@ class ArbitragePair:
 
         self._is_running = False
         self._transaction_hash = ''
+        self._gas_price: int = None
+        self.estimated_net_result_usd = 0.0
 
     def __repr__(self):
         return (
@@ -64,17 +66,18 @@ class ArbitragePair:
             f'estimated_net_result_usd={self.estimated_net_result_usd:,.2f})'
         )
 
-    @property
-    def estimated_net_result_usd(self) -> float:
-        if self.estimated_result.is_empty():
-            return 0.0
+    def _calculate_gas_and_net_result(self):
         token_usd_price = tools.price.get_chainlink_price_usd(
             self.estimated_result.token.symbol, self.web3)
 
         gross_result_usd = self.estimated_result.amount_in_units * token_usd_price
-        gas_cost_usd = tools.price.get_gas_cost_usd(GAS_COST * GAS_PREMIUM_FACTOR, self.web3)
 
-        return gross_result_usd - gas_cost_usd
+        gas_cost_usd = tools.price.get_gas_cost_usd(GAS_COST, self.web3)
+        gas_premium = GAS_SHARE_OF_PROFIT * gross_result_usd / gas_cost_usd
+        gas_premium = max(gas_premium, 1)
+
+        self._gas_price = int(tools.price.get_gas_price(self.web3) * gas_premium)
+        self.estimated_net_result_usd = gross_result_usd - gas_cost_usd * gas_premium
 
     def _estimate_result_int(self, amount_last_int: int) -> int:
         amount_last = TokenAmount(self.token_last, amount_last_int)
@@ -112,14 +115,12 @@ class ArbitragePair:
         self.amount_last = TokenAmount(self.token_last, int_amount_last)
         self.estimated_result = TokenAmount(self.token_first, int_result)
         self.trade_cake, self.trade_eps = self._get_arbitrage_trades(self.amount_last)
+        self._calculate_gas_and_net_result()
 
     def execute(self):
         log.info(f'Estimated profit: {self.estimated_net_result_usd}')
         log.info(f'Trades: {self.trade_cake}; {self.trade_eps}')
-        log.info(
-            f'Reserves: cake={self.trade_cake.route.pairs[0].reserves}; '
-            f'eps={self.trade_eps.pool.reserves}'
-        )
+        log.info(f'Gas price: {self._gas_price / 10 ** 9:,.1f} Gwei')
 
         transaction_hash = tools.contracts.sign_and_send_transaction(
             self.contract.functions.triggerFlashSwap,

@@ -25,4 +25,4 @@ STRATEGY = os.getenv('STRATEGY', 'no_strategy')
 CACHE_STATS = os.getenv('CACHE_STATS') == 'True'
 
 # Gas
-GAS_PRICE_PREMIUM = float(os.getenv('GAS_PRICE_PREMIUM', '1.01'))
+BASELINE_GAS_PRICE_PREMIUM = float(os.getenv('BASELINE_GAS_PRICE_PREMIUM', '1.001'))

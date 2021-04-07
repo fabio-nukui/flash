@@ -8,7 +8,6 @@ import httpx
 from web3 import Web3
 
 import configs
-import tools.w3
 from tools.cache import ttl_cache
 
 USD_PRICE_FEED_ADDRESSES = \
@@ -17,6 +16,7 @@ CHAINLINK_PRICE_FEED_ABI = json.load(open('abis/ChainlinkPriceFeed.json'))
 
 # These functions should not be used for too time-critical data, so ttl can be higher
 USD_PRICE_CACHE_TTL = 360
+GAS_PRICE_CACHE_TTL = 1800
 USD_PRICE_DATA_STALE = 3600
 
 log = logging.getLogger(__name__)
@@ -53,6 +53,11 @@ def get_chainlink_price_usd(token_symbol: str, web3: Web3) -> float:
     return _get_chainlink_data(token_symbol, address, decimals, web3)
 
 
+@ttl_cache(maxsize=1, ttl=GAS_PRICE_CACHE_TTL)
+def get_gas_price(web3: Web3) -> int:
+    return web3.eth.gas_price * configs.BASELINE_GAS_PRICE_PREMIUM
+
+
 @ttl_cache(maxsize=1, ttl=USD_PRICE_CACHE_TTL)
 def get_gas_cost_usd(gas: int, web3: Web3) -> float:
     if configs.CHAIN_ID == 56:
@@ -62,7 +67,7 @@ def get_gas_cost_usd(gas: int, web3: Web3) -> float:
     address = USD_PRICE_FEED_ADDRESSES[asset_name]['address']
     decimals = USD_PRICE_FEED_ADDRESSES[asset_name]['decimals']
 
-    gas_cost = float(Web3.fromWei(gas, 'ether') * web3.eth.gas_price) * configs.GAS_PRICE_PREMIUM
+    gas_cost = float(Web3.fromWei(gas, 'ether') * get_gas_price(web3))
 
     price_native_token_usd = _get_chainlink_data(asset_name, address, decimals, web3)
     return gas_cost * price_native_token_usd

@@ -42,7 +42,7 @@ class BackgroundWeb3:
     def _send_transaction(self, tx: SignedTransaction):
         try:
             self._web3.eth.send_raw_transaction(tx.rawTransaction)
-            log.debug(f'Sent transaction using {self.uri}')
+            log.info(f'Sent transaction using {self.uri}')
         except Exception:
             log.info(f'{self.uri!r} failed to send transaction')
             log.debug(traceback.format_exc())
@@ -85,15 +85,17 @@ def sign_and_send_transaction(
     func: ContractFunction,
     *args,
     max_gas_: int = 1_000_000,
+    gas_price_: int = None,
     **kwargs
 ) -> str:
     web3 = func.web3
+    gas_price_ = tools.price.get_gas_price(web3) if gas_price_ is None else gas_price_
     tx = func(*args, **kwargs).buildTransaction({
         'from': ACCOUNT.address,
         'chainId': configs.CHAIN_ID,
         'gas': max_gas_,
         'nonce': web3.eth.get_transaction_count(ACCOUNT.address),
-        'gasPrice': int(web3.eth.gas_price * configs.GAS_PRICE_PREMIUM)
+        'gasPrice': gas_price_
     })
     signed_tx = ACCOUNT.sign_transaction(tx)
     broadcast_transaction(signed_tx)
