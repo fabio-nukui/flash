@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from threading import Lock
-
 from web3 import Web3
 from web3.exceptions import BadFunctionCallOutput
 
@@ -13,6 +11,7 @@ PRECISION = int(10 ** 18)
 FEE_DENOMINATOR = 10_000  # We use basis points (1/10_000) instead of vyper contract's 1/1e10
 N_ITERATIONS = 255  # Number of iterations for numeric calculations
 
+N_POOLS_CACHE = 100  # Must be at least equal to number of pools in strategy
 
 class CurvePool:
     def __init__(
@@ -32,8 +31,6 @@ class CurvePool:
         self.pool_contract = web3.eth.contract(pool_address, abi=pool_abi)
         self.pool_token_contract = web3.eth.contract(pool_token_address, abi=pool_token_abi)
         self.fee = fee
-
-        self._lock = Lock()
 
         self.tokens = self.get_tokens()
         self.n_coins = len(self.tokens)
@@ -71,18 +68,16 @@ class CurvePool:
     # Internal functions based from curve's 3pool contract:
     # https://github.com/curvefi/curve-contract/blob/master/contracts/pools/3pool/StableSwap3Pool.vy
 
-    @ttl_cache
+    @ttl_cache(N_POOLS_CACHE)
     def _balance(self) -> list[int]:
-        with self._lock:
-            return [
-                self.pool_contract.functions.balances(i).call()
-                for i in range(self.n_coins)
-            ]
+        return [
+            self.pool_contract.functions.balances(i).call()
+            for i in range(self.n_coins)
+        ]
 
-    @ttl_cache(ttl=60)  # _A should vary slowly over time, cache can have greater TTL
+    @ttl_cache(ttl=180)  # _A should vary slowly over time, cache can have greater TTL
     def _A(self):
-        with self._lock:
-            return self.pool_contract.functions.A().call()
+        return self.pool_contract.functions.A().call()
 
     def _xp(self) -> tuple[int, ...]:
         return tuple(

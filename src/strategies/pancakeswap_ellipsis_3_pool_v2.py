@@ -1,7 +1,6 @@
 import json
 import logging
 import time
-from concurrent import futures
 from itertools import permutations
 
 from web3 import Web3
@@ -69,10 +68,11 @@ class ArbitragePair:
     def estimated_net_result_usd(self) -> float:
         if self.estimated_result.is_empty():
             return 0.0
-        token_usd_price = tools.price.get_chainlink_price_usd(self.estimated_result.token.symbol)
+        token_usd_price = tools.price.get_chainlink_price_usd(
+            self.estimated_result.token.symbol, self.web3)
 
         gross_result_usd = self.estimated_result.amount_in_units * token_usd_price
-        gas_cost_usd = tools.price.get_gas_cost_usd(GAS_COST * GAS_PREMIUM_FACTOR)
+        gas_cost_usd = tools.price.get_gas_cost_usd(GAS_COST * GAS_PREMIUM_FACTOR, self.web3)
 
         return gross_result_usd - gas_cost_usd
 
@@ -85,12 +85,10 @@ class ArbitragePair:
         return trade_eps.amount_out - trade_cake.amount_in
 
     def _get_arbitrage_trades(self, amount_last: TokenAmount) -> tuple[UniV2Trade, CurveTrade]:
-        with futures.ProcessPoolExecutor(2) as pool:
-            fut_trade_cake = pool.submit(
-                self.cake_dex.best_trade_exact_out, self.token_first, amount_last, MAX_HOPS)
-            fut_trade_eps = pool.submit(
-                self.eps_dex.best_trade_exact_in, amount_last, self.token_first, pools=[POOL_NAME])
-        return fut_trade_cake.result(), fut_trade_eps.result()
+        trade_cake = self.cake_dex.best_trade_exact_out(self.token_first, amount_last, MAX_HOPS)
+        trade_eps = self.eps_dex.best_trade_exact_in(
+            amount_last, self.token_first, pools=[POOL_NAME])
+        return trade_cake, trade_eps
 
     def update_estimate(self) -> TokenAmount:
         amount_last_initial = TokenAmount(
@@ -109,10 +107,8 @@ class ArbitragePair:
             tol=int(TOLERANCE * 10 ** self.token_last.decimals),
             max_iter=MAX_ITERATIONS,
         )
-
-        if int_amount_last < 0:
+        if int_amount_last < 0:  # Fail-safe in case optimizer returns negative inputs
             return
-
         self.amount_last = TokenAmount(self.token_last, int_amount_last)
         self.estimated_result = TokenAmount(self.token_first, int_result)
         self.trade_cake, self.trade_eps = self._get_arbitrage_trades(self.amount_last)
@@ -197,9 +193,8 @@ def run():
         tools.cache.clear_caches()
         if any([pair.is_running(latest_block) for pair in arbitrage_pairs]):
             continue
-        with futures.ProcessPoolExecutor(len(arbitrage_pairs)) as pool:
-            for arb_pair in arbitrage_pairs:
-                pool.submit(arb_pair.update_estimate)
+        for arb_pair in arbitrage_pairs:
+            arb_pair.update_estimate()
         best_arbitrage = max(arbitrage_pairs, key=lambda x: x.estimated_net_result_usd)
         if best_arbitrage.estimated_net_result_usd > 0:
             log.info('Arbitrage opportunity found')

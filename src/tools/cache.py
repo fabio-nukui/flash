@@ -1,11 +1,10 @@
-from threading import Lock
 from typing import Callable, Union
 
 from cachetools import TTLCache, cached
 
 import configs
 
-_cache_locks: list[tuple[TTLCache, Lock]] = []
+_caches: list[TTLCache] = []
 
 
 class TTLCacheWithStats(TTLCache):
@@ -33,46 +32,40 @@ class TTLCacheWithStats(TTLCache):
         return super().setdefault(k, v)
 
 
-def _get_ttl_cache_lock(maxsize: int = 1, ttl: float = configs.CACHE_TTL) -> tuple[TTLCache, Lock]:
-    """Return (TTLCacke, Lock) pairs to allow for safe cache clear"""
-    lock = Lock()
-
+def _get_ttl_cache(maxsize: int = 1, ttl: float = configs.CACHE_TTL) -> TTLCache:
     if configs.CACHE_STATS:
         cache = TTLCacheWithStats(maxsize, ttl)
     else:
         cache = TTLCache(maxsize, ttl)
 
-    cache_lock_pair = (cache, lock)
-    _cache_locks.append(cache_lock_pair)
-
-    return cache_lock_pair
+    _caches.append(cache)
+    return cache
 
 
-def ttl_cache(maxsize: Union[int, Callable] = 1, ttl: Union[int, float] = configs.CACHE_TTL):
+def ttl_cache(maxsize: Union[int, Callable] = 100, ttl: Union[int, float] = configs.CACHE_TTL):
     """TTL cache decorator with safe global clear function"""
     if callable(maxsize):
         # ttl_cache was applied directly
         func = maxsize
-        cache, lock = _get_ttl_cache_lock()
+        cache = _get_ttl_cache()
 
-        return cached(cache, lock=lock)(func)
+        return cached(cache)(func)
     else:
-        cache, lock = _get_ttl_cache_lock(maxsize, ttl)
-        return cached(cache, lock=lock)
+        cache = _get_ttl_cache(maxsize, ttl)
+        return cached(cache)
 
 
 def clear_caches():
-    for cache, lock in _cache_locks:
-        with lock:
-            cache.clear()
+    for cache in _caches:
+        cache.clear()
 
 
 def get_stats():
     if not configs.CACHE_STATS:
         raise Exception('Stats only available if configs.CACHE_STATS=True')
     return {
-        'n_hits': sum(cache._n_hits for cache, _ in _cache_locks),
-        'n_sets': sum(cache._n_sets for cache, _ in _cache_locks),
-        'n_hits_total': sum(cache._n_hits_total for cache, _ in _cache_locks),
-        'n_sets_total': sum(cache._n_hits_total for cache, _ in _cache_locks),
+        'n_hits': sum(cache._n_hits for cache in _caches),
+        'n_sets': sum(cache._n_sets for cache in _caches),
+        'n_hits_total': sum(cache._n_hits_total for cache in _caches),
+        'n_sets_total': sum(cache._n_hits_total for cache in _caches),
     }

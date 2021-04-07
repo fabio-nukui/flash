@@ -2,7 +2,6 @@ import json
 import logging
 import urllib.parse
 from datetime import datetime
-from threading import Lock
 from typing import Iterable
 
 import httpx
@@ -16,12 +15,9 @@ USD_PRICE_FEED_ADDRESSES = \
     json.load(open('addresses/chainlink_usd_price_feeds.json'))[str(configs.CHAIN_ID)]
 CHAINLINK_PRICE_FEED_ABI = json.load(open('abis/ChainlinkPriceFeed.json'))
 
-# This function should not be used for too time-critical data, so ttl can be higher
-USD_PRICE_CACHE_TTL = 60
-USD_PRICE_DATA_STALE = 300
-
-WEB3 = tools.w3.get_web3()
-LOCK = Lock()
+# These functions should not be used for too time-critical data, so ttl can be higher
+USD_PRICE_CACHE_TTL = 360
+USD_PRICE_DATA_STALE = 3600
 
 log = logging.getLogger(__name__)
 
@@ -32,12 +28,11 @@ def _get_native_token_decimals():
     raise NotImplementedError
 
 
-def _get_chainlink_data(asset_name: str, address: str, decimals: int) -> float:
-    contract = WEB3.eth.contract(address, abi=CHAINLINK_PRICE_FEED_ABI)
-    with LOCK:
-        (
-            round_id, answer, started_at, updated_at, answered_in_round
-        ) = contract.functions.latestRoundData().call()
+def _get_chainlink_data(asset_name: str, address: str, decimals: int, web3: Web3) -> float:
+    contract = web3.eth.contract(address, abi=CHAINLINK_PRICE_FEED_ABI)
+    (
+        round_id, answer, started_at, updated_at, answered_in_round
+    ) = contract.functions.latestRoundData().call()
 
     dt_updated_at = datetime.fromtimestamp(updated_at)
     seconds_since_last_update = (dt_updated_at - datetime.utcnow()).total_seconds()
@@ -47,19 +42,19 @@ def _get_chainlink_data(asset_name: str, address: str, decimals: int) -> float:
     return answer / 10 ** decimals
 
 
-@ttl_cache(maxsize=100, ttl=USD_PRICE_CACHE_TTL)
-def get_chainlink_price_usd(token_symbol: str) -> float:
+@ttl_cache(maxsize=2000, ttl=USD_PRICE_CACHE_TTL)
+def get_chainlink_price_usd(token_symbol: str, web3: Web3) -> float:
     if configs.CHAIN_ID == 56 and token_symbol == 'WBNB':
         token_symbol = 'BNB'
 
     address = USD_PRICE_FEED_ADDRESSES[token_symbol]['address']
     decimals = USD_PRICE_FEED_ADDRESSES[token_symbol]['decimals']
 
-    return _get_chainlink_data(token_symbol, address, decimals)
+    return _get_chainlink_data(token_symbol, address, decimals, web3)
 
 
-@ttl_cache(maxsize=100, ttl=USD_PRICE_CACHE_TTL)
-def get_gas_cost_usd(gas: int) -> float:
+@ttl_cache(maxsize=1, ttl=USD_PRICE_CACHE_TTL)
+def get_gas_cost_usd(gas: int, web3: Web3) -> float:
     if configs.CHAIN_ID == 56:
         asset_name = 'BNB'
     else:
@@ -67,10 +62,9 @@ def get_gas_cost_usd(gas: int) -> float:
     address = USD_PRICE_FEED_ADDRESSES[asset_name]['address']
     decimals = USD_PRICE_FEED_ADDRESSES[asset_name]['decimals']
 
-    with LOCK:
-        gas_cost = float(Web3.fromWei(gas, 'ether') * WEB3.eth.gas_price)
+    gas_cost = float(Web3.fromWei(gas, 'ether') * web3.eth.gas_price)
 
-    price_native_token_usd = _get_chainlink_data(asset_name, address, decimals)
+    price_native_token_usd = _get_chainlink_data(asset_name, address, decimals, web3)
     return gas_cost * price_native_token_usd
 
 

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from copy import copy
-from threading import Lock
 
 from web3 import Web3
 
 from core.entities import Price, Token, TokenAmount, Trade
 from tools.cache import ttl_cache
+
+N_PAIRS_CACHE = 1000  # Must be at least equal to number of pairs in strategy
 
 
 class InsufficientLiquidity(Exception):
@@ -35,8 +36,6 @@ class UniV2Pair:
         self.contract = self.web3.eth.contract(address=self.address, abi=self.abi)
         self.latest_transaction_timestamp = None
 
-        self._lock = Lock()
-
         if self._reserve_0.is_empty() or self._reserve_1.is_empty():
             self._update_amounts()
 
@@ -61,10 +60,9 @@ class UniV2Pair:
         self._update_amounts()
         return (self._reserve_0, self._reserve_1)
 
-    @ttl_cache
+    @ttl_cache(N_PAIRS_CACHE)
     def _get_reserves(self):
-        with self._lock:
-            return self.contract.functions.getReserves().call()
+        return self.contract.functions.getReserves().call()
 
     def _update_amounts(self):
         """Update the reserve amounts of both token pools and the unix timestamp of the latest
