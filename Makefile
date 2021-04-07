@@ -63,7 +63,7 @@ endif
 rm-dev: ## remove stopped dev container
 	docker rm $(DEV_CONTAINER_NAME)
 
-start: ## (re-)start docker running arbitrage strategy "$STRAT". (e.g.: make start STRAT=1)
+start: ## start docker running arbitrage strategy "$STRAT". (e.g.: make start STRAT=1)
 	docker run --rm -d \
 		--net=host \
 		-v $(PWD):/home/flash/work \
@@ -74,6 +74,8 @@ start: ## (re-)start docker running arbitrage strategy "$STRAT". (e.g.: make sta
 
 stop:  ## stop docker conteiner running strategy "$STRAT". (e.g.: make stop STRAT=1)
 	docker stop $(ARBITRAGE_CONTAINER_NAME)
+
+restart: stop start  ## Restart running strategy  "$STRAT". (e.g.: make restart STRAT=1)
 
 check-all: isort lint test ## run tests and code style
 
