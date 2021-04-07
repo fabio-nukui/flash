@@ -19,6 +19,7 @@ MIN_CONFIRMATIONS = 3
 POOL_NAME = '3pool'
 GAS_COST = 170_000
 GAS_SHARE_OF_PROFIT = 0.2
+MIN_ESTIMATED_PROFIT = 5
 
 # Optimization paramenters
 INITIAL_VALUE = 100  # Initial value to estimate best trade
@@ -211,6 +212,6 @@ def run():
         for arb_pair in arbitrage_pairs:
             arb_pair.update_estimate()
         best_arbitrage = max(arbitrage_pairs, key=lambda x: x.estimated_net_result_usd)
-        if best_arbitrage.estimated_net_result_usd > 0:
+        if best_arbitrage.estimated_net_result_usd > MIN_ESTIMATED_PROFIT:
             log.info('Arbitrage opportunity found')
             best_arbitrage.execute()
