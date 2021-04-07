@@ -42,7 +42,7 @@ class BackgroundWeb3:
     def _send_transaction(self, tx: SignedTransaction):
         try:
             self._web3.eth.send_raw_transaction(tx.rawTransaction)
-            log.info(f'Sent transaction using {self.uri}')
+            log.debug(f'Sent transaction using {self.uri}')
         except Exception:
             log.info(f'{self.uri!r} failed to send transaction')
             log.debug(traceback.format_exc())
