@@ -1,29 +1,10 @@
 {
-  "contractName": "PancakeswapEllipsis3PoolV2",
+  "contractName": "PancakeswapEllipsis3PoolV1B",
   "abi": [
     {
       "inputs": [],
       "stateMutability": "nonpayable",
       "type": "constructor"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "name": "eps_pool_idx",
-      "outputs": [
-        {
-          "internalType": "int128",
-          "name": "",
-          "type": "int128"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
     },
     {
       "inputs": [],
@@ -47,18 +28,47 @@
     },
     {
       "stateMutability": "payable",
-      "type": "receive"
+      "type": "receive",
+      "payable": true
     },
     {
       "inputs": [
         {
-          "internalType": "address[]",
-          "name": "path",
-          "type": "address[]"
+          "internalType": "address",
+          "name": "token0",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "token1",
+          "type": "address"
         },
         {
           "internalType": "uint256",
-          "name": "amountLast",
+          "name": "amount1",
+          "type": "uint256"
+        }
+      ],
+      "name": "triggerFlashSwapDiscounted",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "token0",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "token1",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount1",
           "type": "uint256"
         }
       ],
@@ -104,8 +114,8 @@
     "56": {
       "events": {},
       "links": {},
-      "address": "0x4ef73A62152C209606511DD193BfA9EA9dB60c12",
-      "transactionHash": "0xd70f7b388809e5c2d4ba715858329ff6e3f609a18c8e63b159097f039fc8154c"
+      "address": "0x3884b1Ba3865c3DC1288F97Be226d7709c3d50f1",
+      "transactionHash": "0x0df60f133db9d316a60dc95653b97d0100b04ef50fb9b5e7e085f99a8744e0b5"
     }
   },
   "schemaVersion": "3.3.4"
