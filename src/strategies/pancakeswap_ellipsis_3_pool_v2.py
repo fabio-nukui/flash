@@ -28,7 +28,7 @@ TOLERANCE = 0.01  # Tolerance to stop optimization
 MAX_ITERATIONS = 100
 
 # Use V1 contract for now, as it has lower gas costs
-CONTRACT_DATA_FILEPATH = 'deployed_contracts/PancakeswapEllipsis3Pool.json'
+CONTRACT_DATA_FILEPATH = 'deployed_contracts/PancakeswapEllipsis3PoolV1B.json'
 ADDRESS_FILEPATH = 'addresses/strategies/pancakeswap_ellipsis_3_pool_v2.json'
 
 log = logging.getLogger(__name__)
@@ -124,9 +124,12 @@ class ArbitragePair:
         log.info(f'Trades: {self.trade_cake}; {self.trade_eps}')
         log.info(f'Gas price: {self._gas_price / 10 ** 9:,.1f} Gwei')
 
-        # Using V1 contract for now, as it has lower gas cost
+        if self._gas_price < 2 * tools.price.get_gas_price(self.web3):
+            func = self.contract.functions.triggerFlashSwap
+        else:
+            func = self.contract.functions.triggerFlashSwapDiscounted
         transaction_hash = tools.contracts.sign_and_send_transaction(
-            self.contract.functions.triggerFlashSwap,
+            func,
             token0=self.token_first.address,
             token1=self.token_last.address,
             amount1=self.amount_last.amount,
