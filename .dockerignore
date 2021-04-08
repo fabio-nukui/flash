@@ -1,0 +1,15 @@
+# dependencies
+/node_modules
+
+# connections
+*.ipc
+
+# Logs
+*.log
+/logs
+
+# IDEs/editors
+.idea
+*.iml
+.vscode*
+*~

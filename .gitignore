@@ -19,6 +19,9 @@ env/
 .local
 .python_history
 
+# jupyter notebooks
+*.ipynb
+
 # connections
 *.ipc
 

@@ -30,8 +30,10 @@ export PRINT_HELP_PYSCRIPT
 ###################################################################################################
 
 IMAGE_NAME = flash
+DEV_IMAGE_NAME = flash-dev
 DEV_CONTAINER_NAME = flash-dev
 ARBITRAGE_CONTAINER_NAME = flash-arbitrage-${STRATEGY}
+JUPYTER_PORT=8888
 DATA_SOURCE = s3://crypto-flash
 PYTHON = python3
 GIT_BRANCH = $(shell git rev-parse --verify --short=12 HEAD)
@@ -44,8 +46,8 @@ GETH_IPC_PATH ?= ${HOME}/bsc/node/geth.ipc
 help: ## show this message
 	@$(PYTHON) -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
-build: ## (re-)build docker image
-	docker build -t $(IMAGE_NAME) docker
+build-dev: ## (re-)build docker dev image
+	docker build --target dev -t $(DEV_IMAGE_NAME) -f docker/Dockerfile .
 
 start-dev: ## (re-)start docker container for development
 ifeq ($(shell docker ps -a --format "{{.Names}}" | grep ^$(DEV_CONTAINER_NAME)$$),)
@@ -53,9 +55,11 @@ ifeq ($(shell docker ps -a --format "{{.Names}}" | grep ^$(DEV_CONTAINER_NAME)$$
 		--net=host \
 		-v $(PWD):/home/flash/work \
 		-v $(GETH_IPC_PATH):/home/flash/work/geth.ipc \
+        -p $(JUPYTER_PORT):$(JUPYTER_PORT) \
 		--name $(DEV_CONTAINER_NAME) \
 		--env-file $(ENV_FILE) \
-		$(IMAGE_NAME)
+		$(DEV_IMAGE_NAME) \
+		jupyter lab --allow-root --ServerApp.token='' --port=$(JUPYTER_PORT)
 else
 	docker start -i $(DEV_CONTAINER_NAME)
 endif
@@ -63,19 +67,22 @@ endif
 rm-dev: ## remove stopped dev container
 	docker rm $(DEV_CONTAINER_NAME)
 
+build: ## (re-)build docker prod image
+	docker build --target prod -t $(IMAGE_NAME) -f docker/Dockerfile .
+
 start: ## start docker running arbitrage strategy "$STRAT". (e.g.: make start STRAT=1)
 	docker run --rm -d \
 		--net=host \
-		-v $(PWD):/home/flash/work \
+		-v $(PWD)/logs:/home/flash/work/logs \
 		-v $(GETH_IPC_PATH):/home/flash/work/geth.ipc \
 		--name $(ARBITRAGE_CONTAINER_NAME) \
 		--env-file $(ENV_FILE) \
-		$(IMAGE_NAME) python app.py
+		$(IMAGE_NAME)
 
 stop:  ## stop docker conteiner running strategy "$STRAT". (e.g.: make stop STRAT=1)
 	docker stop $(ARBITRAGE_CONTAINER_NAME)
 
-restart: stop start  ## Restart running strategy  "$STRAT". (e.g.: make restart STRAT=1)
+restart: build stop start  ## Restart running strategy  "$STRAT". (e.g.: make restart STRAT=1)
 
 check-all: isort lint test ## run tests and code style
 
