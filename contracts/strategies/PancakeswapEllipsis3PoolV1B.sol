@@ -33,8 +33,8 @@ contract PancakeswapEllipsis3PoolV1B is IPancakeCallee, Withdrawable, CHIBurner 
         address token0,
         address token1,
         uint256 amount1
-    ) external discountCHI {
-        this.triggerFlashSwap(token0, token1, amount1);
+    ) external discountCHI restricted {
+        _triggerFlashSwap(token0, token1, amount1);
     }
 
     function triggerFlashSwap(
@@ -42,6 +42,14 @@ contract PancakeswapEllipsis3PoolV1B is IPancakeCallee, Withdrawable, CHIBurner 
         address token1,
         uint256 amount1
     ) external restricted {
+        _triggerFlashSwap(token0, token1, amount1);
+    }
+
+    function _triggerFlashSwap(
+        address token0,
+        address token1,
+        uint256 amount1
+    ) internal {
         address cake_pair = PancakeswapLibrary.pairFor(cake_factory, token0, token1);
         (address tokenA, ) = PancakeswapLibrary.sortTokens(token0, token1);
         uint256 amountAOut = tokenA == token1 ? amount1 : 0;
