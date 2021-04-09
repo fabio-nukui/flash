@@ -4,6 +4,9 @@
 # connections
 *.ipc
 
+# notebooks
+/notebooks
+
 # Logs
 *.log
 /logs
