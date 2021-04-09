@@ -99,4 +99,6 @@ RUN jupyter labextension install -y \
     rm -rf $HOME/.local && \
     fix-permissions $HOME $CONDA_DIR
 
+COPY docker/jupyter_lab_config.py $HOME/.jupyter/
+
 USER $USER
