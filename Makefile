@@ -32,6 +32,7 @@ export PRINT_HELP_PYSCRIPT
 IMAGE_NAME = flash
 DEV_IMAGE_NAME = flash-dev
 DEV_CONTAINER_NAME = flash-dev
+LAB_CONTAINER_NAME = flash-lab
 ARBITRAGE_CONTAINER_NAME = flash-arbitrage-${STRATEGY}
 JUPYTER_PORT=8888
 DATA_SOURCE = s3://crypto-flash
@@ -55,13 +56,26 @@ ifeq ($(shell docker ps -a --format "{{.Names}}" | grep ^$(DEV_CONTAINER_NAME)$$
 		--net=host \
 		-v $(PWD):/home/flash/work \
 		-v $(GETH_IPC_PATH):/home/flash/work/geth.ipc \
-        -p $(JUPYTER_PORT):$(JUPYTER_PORT) \
 		--name $(DEV_CONTAINER_NAME) \
 		--env-file $(ENV_FILE) \
-		$(DEV_IMAGE_NAME) \
-		jupyter lab --allow-root --ServerApp.token='' --port=$(JUPYTER_PORT)
+		$(DEV_IMAGE_NAME)
 else
 	docker start -i $(DEV_CONTAINER_NAME)
+endif
+
+start-lab: ## Start docker container running jupyterlab
+ifeq ($(shell docker ps -a --format "{{.Names}}" | grep ^$(LAB_CONTAINER_NAME)$$),)
+	docker run -it \
+		--net=host \
+		-v $(PWD):/home/flash/work \
+		-v $(GETH_IPC_PATH):/home/flash/work/geth.ipc \
+        -p $(JUPYTER_PORT):$(JUPYTER_PORT) \
+		--name $(LAB_CONTAINER_NAME) \
+		--env-file $(ENV_FILE) \
+		$(DEV_IMAGE_NAME) \
+		jupyter lab --port=$(JUPYTER_PORT)
+else
+	docker start -i $(LAB_CONTAINER_NAME)
 endif
 
 rm-dev: ## Remove stopped dev container

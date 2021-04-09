@@ -64,9 +64,12 @@ RUN apt-get -q update && \
 
 USER $USER
 
+RUN conda install --quiet --yes 'nodejs'
+
 RUN conda install --quiet --yes \
         'autopep8' \
         'bottleneck' \
+        'dtale' \
         'flake8' \
         'ipython' \
         'ipywidgets' \
@@ -87,16 +90,15 @@ RUN conda install --quiet --yes \
     rm -rf $HOME/.cache/yarn  && \
     fix-permissions $HOME $CONDA_DIR
 
-RUN jupyter labextension install jupyterlab-chart-editor --no-build && \
-    jupyter labextension install jupyterlab-kernelspy --no-build && \
-    jupyter labextension install jupyterlab-plotly --no-build && \
-    jupyter labextension install qgrid2 --no-build && \
-    jupyter lab build && \
-        jupyter lab clean && \
-        jlpm cache clean && \
-        npm cache clean --force && \
-        rm -rf $HOME/.node-gyp && \
-        rm -rf $HOME/.local && \
+RUN jupyter labextension install -y \
+        jupyterlab-chart-editor \
+        jupyterlab-kernelspy \
+        jupyterlab-plotly \
+    jupyter lab clean && \
+    jlpm cache clean && \
+    npm cache clean --force && \
+    rm -rf $HOME/.node-gyp && \
+    rm -rf $HOME/.local && \
     fix-permissions $HOME $CONDA_DIR
 
 USER $USER
