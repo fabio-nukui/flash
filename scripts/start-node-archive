@@ -2,8 +2,6 @@
 
 set -eux
 
-SYNCMODE="${1:-fast}"
-
 geth \
     --config ./config.toml \
     --datadir ./node \
@@ -13,4 +11,5 @@ geth \
     --rpc \
     --cache 8192 \
     --rpcaddr 0.0.0.0 \
-    --gcmode archive
+    --gcmode archive \
+    --syncmode full
