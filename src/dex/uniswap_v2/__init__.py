@@ -43,8 +43,7 @@ class ValueDefiDexDex(ValueDefiProtocol):
 
 
 __all__ = [
-    'PancakeswapClient',
-    'UniswapV2Dex',
+    'PancakeswapDex',
     'UniV2Pair',
     'UniV2Trade',
     'ValueDefiPair',
