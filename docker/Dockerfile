@@ -23,12 +23,11 @@ RUN useradd -m -s /bin/bash -N -u $UID $USER && \
 
 USER $USER
 
-RUN conda install --quiet --yes 'python==3.9.2'
-
 RUN conda install --quiet --yes \
         'boto3==1.17.44' \
         'cachetools==4.2.1' \
         'httpx==0.17.1' \
+	'python==3.9.2' \
         'python-json-logger==2.0.1' \
         'pyyaml==5.4.1' \
         'watchtower==1.0.6' \
@@ -64,8 +63,6 @@ RUN apt-get -q update && \
 
 USER $USER
 
-RUN conda install --quiet --yes 'nodejs'
-
 RUN conda install --quiet --yes \
         'autopep8' \
         'bottleneck' \
@@ -79,6 +76,7 @@ RUN conda install --quiet --yes \
         'jupyterlab_execute_time' \
         'line_profiler' \
         'matplotlib' \
+	'nodejs' \
         'numexpr' \
         'pandas' \
         'plotly' \
