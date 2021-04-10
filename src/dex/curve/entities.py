@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from typing import Iterable
+
 from web3 import Web3
 from web3.exceptions import BadFunctionCallOutput
 
-from core.entities import Token, TokenAmount, Trade
+from core import Token, TokenAmount, Trade
 from tools.cache import ttl_cache
 
 LENDING_PRECISION = int(10 ** 18)
@@ -179,7 +181,7 @@ class CurveTrade(Trade):
 
     @staticmethod
     def best_trade_exact_in(
-        pools: list[CurvePool],
+        pools: Iterable[CurvePool],
         amoun_in: Token,
         token_out: TokenAmount,
         max_slippage: int = None,
@@ -188,6 +190,6 @@ class CurveTrade(Trade):
         for pool in pools:
             if amoun_in.token not in pool.tokens or token_out not in pool.tokens:
                 continue
-            trade = CurveTrade(pool, amoun_in, TokenAmount(token_out))
+            trade = CurveTrade(pool, amoun_in, TokenAmount(token_out), max_slippage=max_slippage)
             best_trades.append(trade)
         return max(best_trades, key=lambda x: x.amount_out)

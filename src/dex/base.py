@@ -4,6 +4,8 @@ from typing import Union
 
 from web3 import Web3
 
+from core import Token, TokenAmount, TradePairs
+
 
 class DexProtocol:
     def __init__(
@@ -50,3 +52,36 @@ class DexProtocol:
     def _connect(self, **kwargs):
         """To be implemented by subclasses, uses web3 to connect to blockchain."""
         raise NotImplementedError
+
+
+class TradePairsMixin:
+    """Mixin class for Dex based on liquidity pool pairs."""
+    def best_trade_exact_out(
+        self,
+        token_in: Token,
+        amount_out: TokenAmount,
+        max_hops: int = 1,
+        max_slippage: int = None,
+    ) -> TradePairs:
+        return TradePairs.best_trade_exact_out(
+            self.pairs,
+            token_in,
+            amount_out,
+            max_hops,
+            max_slippage,
+        )
+
+    def best_trade_exact_in(
+        self,
+        amount_in: TokenAmount,
+        token_out: Token,
+        max_hops: int = 1,
+        max_slippage: int = None,
+    ) -> TradePairs:
+        return TradePairs.best_trade_exact_in(
+            self.pairs,
+            amount_in,
+            token_out,
+            max_hops,
+            max_slippage,
+        )

@@ -7,13 +7,14 @@ from .entities import CurvePool, CurveTrade
 
 
 class EllipsisDex(CurveProtocol):
-    def __init__(self, web3: Web3 = None):
+    def __init__(self, pool_names: list[str], web3: Web3 = None):
         web3 = tools.w3.get_web3() if web3 is None else web3
         super().__init__(
             chain_id=56,
             addresses_filepath='addresses/dex/curve/ellipsis.json',
             fee=4,
             web3=web3,
+            pool_names=pool_names,
         )
 
 

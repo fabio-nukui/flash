@@ -1,3 +1,4 @@
+"""Pancakeswap (pcs) x Elipsis 3pool (eps3pool)"""
 import json
 import logging
 import time
@@ -10,13 +11,12 @@ from web3.exceptions import TransactionNotFound
 
 import configs
 import tools
-from core.entities import Token, TokenAmount
+from core import Token, TokenAmount, TradePairs
 from dex.curve import CurveTrade, EllipsisDex
-from dex.uniswap_v2 import PancakeswapDex, UniV2Trade
+from dex.uniswap_v2 import PancakeswapDex
 
 MAX_HOPS = 1
 MIN_CONFIRMATIONS = 1
-POOL_NAME = '3pool'
 GAS_COST = 170_000
 GAS_SHARE_OF_PROFIT = 0.4
 MIN_ESTIMATED_PROFIT = 1
@@ -27,9 +27,8 @@ INCREMENT = 0.0001  # Increment to estimate derivatives in optimization
 TOLERANCE = 0.01  # Tolerance to stop optimization
 MAX_ITERATIONS = 100
 
-# Use V1 contract for now, as it has lower gas costs
 CONTRACT_DATA_FILEPATH = 'deployed_contracts/PancakeswapEllipsis3PoolV1B.json'
-ADDRESS_FILEPATH = 'addresses/strategies/pancakeswap_ellipsis_3_pool_v2.json'
+ADDRESS_FILEPATH = 'addresses/strategies/pcs_eps_3pool_v1.json'
 
 log = logging.getLogger(__name__)
 
@@ -53,7 +52,7 @@ class ArbitragePair:
 
         self.amount_last = TokenAmount(token_last)
         self.estimated_result = TokenAmount(token_first)
-        self.trade_cake: UniV2Trade = None
+        self.trade_cake: TradePairs = None
         self.trade_eps: CurveTrade = None
 
         self._is_running = False
@@ -76,10 +75,9 @@ class ArbitragePair:
         trade_cake, trade_eps = self._get_arbitrage_trades(amount_last)
         return trade_eps.amount_out - trade_cake.amount_in
 
-    def _get_arbitrage_trades(self, amount_last: TokenAmount) -> tuple[UniV2Trade, CurveTrade]:
+    def _get_arbitrage_trades(self, amount_last: TokenAmount) -> tuple[TradePairs, CurveTrade]:
         trade_cake = self.cake_dex.best_trade_exact_out(self.token_first, amount_last, MAX_HOPS)
-        trade_eps = self.eps_dex.best_trade_exact_in(
-            amount_last, self.token_first, pools=[POOL_NAME])
+        trade_eps = self.eps_dex.best_trade_exact_in(amount_last, self.token_first)
         return trade_cake, trade_eps
 
     def update_estimate(self) -> TokenAmount:
@@ -196,15 +194,15 @@ def run():
     """Search for arbitrate oportunity using flash swap starting from pancakeswap to
     Ellipsis's 3pool and back (USDT / USDC / BUSD)"""
     web3 = tools.w3.get_web3(verbose=True)
-    tokens = EllipsisDex(web3).pools[POOL_NAME].tokens
-    with open(ADDRESS_FILEPATH) as f:
-        cake_dex_tokens = json.load(f)['cake_dex']
-        cake_dex = PancakeswapDex(tokens=cake_dex_tokens)
-    eps_dex = EllipsisDex()
+    addresses = json.load(open(ADDRESS_FILEPATH))
+
+    cake_dex = PancakeswapDex(tokens=addresses['cake_dex'])
+    eps_dex = EllipsisDex(pool_names=addresses['eps_dex'])
+
     contract = tools.contracts.load_contract(CONTRACT_DATA_FILEPATH)
     arbitrage_pairs = [
         ArbitragePair(token_first, token_last, cake_dex, eps_dex, contract, web3)
-        for token_first, token_last in permutations(tokens, 2)
+        for token_first, token_last in permutations(eps_dex.tokens, 2)
     ]
     block_filter = web3.eth.filter('latest')
     while True:

@@ -4,18 +4,18 @@ from typing import Union
 from web3 import Web3
 
 import tools
-from core.entities import Token
+from core import Token
 
-from .entities import UniV2Pair, UniV2Trade
-from .uniswap_v2_protocol import UniswapV2Protocol, ValueDefiProtocol
-from .valuedefiswap_entities import ValueDefiPair
+from .entities import UniV2Pair
+from .uniswap_v2_protocol import UniswapV2Protocol
 
 
 class PancakeswapDex(UniswapV2Protocol):
     def __init__(self, tokens: list[Union[dict, Token]] = None, web3: Web3 = None):
         web3 = tools.w3.get_web3() if web3 is None else web3
         if tokens is None:
-            tokens_data = json.load(open('addresses/tokens.json'))
+            with open('addresses/dex/uniswap_v2/pancakeswap_default_tokens.json') as f:
+                tokens_data = json.load(f)
             tokens = [Token(**data) for data in tokens_data]
         elif isinstance(tokens[0], dict):
             tokens = [Token(**data, web3=web3) for data in tokens]
@@ -31,21 +31,7 @@ class PancakeswapDex(UniswapV2Protocol):
         )
 
 
-class ValueDefiDexDex(ValueDefiProtocol):
-    def __init__(self, pairs_data: list[dict], web3: Web3 = None):
-        web3 = tools.w3.get_web3() if web3 is None else web3
-        super().__init__(
-            chain_id=56,
-            addresses_filepath='addresses/dex/uniswap_v2/valuedefiswap.json',
-            web3=web3,
-            pairs_data=pairs_data
-        )
-
-
 __all__ = [
     'PancakeswapDex',
     'UniV2Pair',
-    'UniV2Trade',
-    'ValueDefiPair',
-    'ValueDefiDexDex',
 ]

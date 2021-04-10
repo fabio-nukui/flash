@@ -1,0 +1,18 @@
+{
+    "56": [
+        {
+            "token_0": "0x0610C2d9F6EbC40078cf081e2D1C4252dD50ad15",
+            "token_1": "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56",
+            "fee": 30,
+            "address": "0xf98313f818c53E40Bd758C5276EF4B434463Bec4",
+            "token_0_weight": 98
+        },
+        {
+            "token_0": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
+            "token_1": "0xC1eDCc306E6faab9dA629efCa48670BE4678779D",
+            "fee": 80,
+            "address": "0x5D69a0e5E91d1E66459A76Da2a4D8863E97cD90d",
+            "token_0_weight": 30
+        }
+    ]
+}
