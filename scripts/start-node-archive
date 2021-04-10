@@ -2,14 +2,14 @@
 
 set -eux
 
+CACHE="$(1:-16384)"
+
 geth \
     --config ./config.toml \
     --datadir ./node \
     --pprof \
     --pprofaddr 0.0.0.0 \
     --metrics \
-    --rpc \
-    --cache 8192 \
-    --rpcaddr 0.0.0.0 \
+    --cache "$CACHE" \
     --gcmode archive \
     --syncmode full
