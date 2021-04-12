@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: UNLICENCED
 pragma solidity ^0.6.6;
 
-import '@uniswap/lib/contracts/libraries/TransferHelper.sol';
 import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol';
 
 import '../interfaces/common/IERC20.sol';
+import '../libraries/TransferHelper.sol';
 import '../libraries/Withdrawable.sol';
 import '../libraries/uniswap_v2/PancakeswapLibrary.sol';
 
