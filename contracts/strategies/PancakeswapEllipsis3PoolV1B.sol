@@ -29,19 +29,12 @@ contract PancakeswapEllipsis3PoolV1B is IPancakeCallee, Withdrawable, CHIBurner 
         eps_pool_idx[USDT] = 2;
     }
 
-    function triggerFlashSwapDiscounted(
-        address token0,
-        address token1,
-        uint256 amount1
-    ) external discountCHI restricted {
-        _triggerFlashSwap(token0, token1, amount1);
-    }
-
     function triggerFlashSwap(
         address token0,
         address token1,
-        uint256 amount1
-    ) external restricted {
+        uint256 amount1,
+        uint8 flagChi
+    ) external discountCHI(flagChi) restricted {
         _triggerFlashSwap(token0, token1, amount1);
     }
 

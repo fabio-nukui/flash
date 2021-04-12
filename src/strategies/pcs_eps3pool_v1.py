@@ -121,12 +121,8 @@ class ArbitragePair:
         log.info(f'Trades: {self.trade_cake}; {self.trade_eps}')
         log.info(f'Gas price: {self._gas_price / 10 ** 9:,.1f} Gwei')
 
-        if self._gas_price < 2 * tools.price.get_gas_price():
-            func = self.contract.functions.triggerFlashSwap
-        else:
-            func = self.contract.functions.triggerFlashSwapDiscounted
         transaction_hash = tools.contracts.sign_and_send_transaction(
-            func,
+            func=self.contract.functions.triggerFlashSwap,
             token0=self.token_first.address,
             token1=self.token_last.address,
             amount1=self.amount_last.amount,
