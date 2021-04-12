@@ -9,27 +9,29 @@ interface ChiToken {
 contract CHIBurner {
     ChiToken constant private chi = ChiToken(0x0000000000004946c0e9F43F4Dee607b0eF1fA1c);
 
-    modifier discountCHIFrom {
+    modifier discountCHIFrom(uint8 chiFlag) {
         uint256 gasStart = gasleft();
 
         _;
 
-        uint256 initialGas = 21000 + 16 * msg.data.length;
-        uint256 gasSpent = initialGas + gasStart - gasleft();
-        uint256 freeUpValue = (gasSpent + 14154) / 41947;
+        if ((chiFlag & 0x1) == 1) {
+            uint256 gasSpent = 21000 + 16 * msg.data.length + gasStart - gasleft();
+            uint256 freeUpValue = (gasSpent + 14154) / 41947;
 
-        chi.freeFromUpTo(msg.sender, freeUpValue);
+            chi.freeFromUpTo(msg.sender, freeUpValue);
+        }
     }
 
-    modifier discountCHI {
+    modifier discountCHI(uint8 chiFlag) {
         uint256 gasStart = gasleft();
 
         _;
 
-        uint256 initialGas = 21000 + 16 * msg.data.length;
-        uint256 gasSpent = initialGas + gasStart - gasleft();
-        uint256 freeUpValue = (gasSpent + 9529) / 41947;
+        if ((chiFlag & 0x1) == 1) {
+            uint256 gasSpent = 21000 + 16 * msg.data.length + gasStart - gasleft();
+            uint256 freeUpValue = (gasSpent + 9529) / 41947;
 
-        chi.freeUpTo(freeUpValue);
+            chi.freeUpTo(freeUpValue);
+        }
     }
 }

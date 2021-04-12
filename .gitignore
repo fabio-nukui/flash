@@ -9,6 +9,7 @@ dist/
 /build
 /libs
 **/artifacts/*.json
+.deps
 
 # misc
 .env*

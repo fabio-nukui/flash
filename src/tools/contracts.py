@@ -17,6 +17,7 @@ ACCOUNT = Account.from_key(configs.PRIVATE_KEY)
 CONNECTION_KEEP_ALIVE_TIME_INTERVAL = 30
 PUBLIC_ENDPOINTS_FILEPATH = 'addresses/public_rcp_endpoints.json'
 log = logging.getLogger(__name__)
+CHI_FLAG = 'chiFlag'
 
 
 class BackgroundWeb3:
@@ -81,6 +82,11 @@ def broadcast_transaction(tx: SignedTransaction):
         bg_web3.send_transaction(tx)
 
 
+def _has_chi_flag(func: ContractFunction):
+    function_inputs = [e for e in func.contract_abi if e.get('name') == func.fn_name][0]['inputs']
+    return any(fn_input.get('name') == CHI_FLAG for fn_input in function_inputs)
+
+
 def sign_and_send_transaction(
     func: ContractFunction,
     *args,
@@ -90,6 +96,9 @@ def sign_and_send_transaction(
 ) -> str:
     web3 = func.web3
     gas_price_ = tools.price.get_gas_price() if gas_price_ is None else gas_price_
+    if _has_chi_flag(func) and CHI_FLAG not in kwargs:
+        kwargs[CHI_FLAG] = 0 if gas_price_ < 2 * tools.price.get_gas_price() else 1
+
     tx = func(*args, **kwargs).buildTransaction({
         'from': ACCOUNT.address,
         'chainId': configs.CHAIN_ID,

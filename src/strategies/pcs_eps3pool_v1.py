@@ -27,9 +27,9 @@ INCREMENT = 0.0001  # Increment to estimate derivatives in optimization
 TOLERANCE = 0.01  # Tolerance to stop optimization
 MAX_ITERATIONS = 100
 
-# Created with notebooks/2021-04-12-pcs_vds_v1.ipynb
+# Use V1 contract for now, as it has lower gas costs
+CONTRACT_DATA_FILEPATH = 'deployed_contracts/PancakeswapEllipsis3PoolV1B.json'
 ADDRESS_FILEPATH = 'addresses/strategies/pcs_eps_3pool_v1.json'
-CONTRACT_DATA_FILEPATH = ''
 
 log = logging.getLogger(__name__)
 

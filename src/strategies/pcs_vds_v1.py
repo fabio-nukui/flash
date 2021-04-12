@@ -35,9 +35,9 @@ INCREMENT = 0.001  # Increment to estimate derivatives in optimization
 TOLERANCE_USD = 0.01  # Tolerance to stop optimization
 MAX_ITERATIONS = 100
 
-# Use V1 contract for now, as it has lower gas costs
-CONTRACT_DATA_FILEPATH = 'deployed_contracts/PancakeswapEllipsis3PoolV1B.json'
-ADDRESS_FILEPATH = 'addresses/strategies/pcs_vds_v1.json'
+# Created with notebooks/2021-04-12-pcs_vds_v1.ipynb
+ADDRESS_FILEPATH = 'addresses/strategies/pcs_eps_3pool_v1.json'
+CONTRACT_DATA_FILEPATH = ''
 
 log = logging.getLogger(__name__)
 
@@ -148,16 +148,15 @@ class ArbitragePair:
         self.estimated_net_result_usd = gross_result_usd - gas_cost_usd * gas_premium
 
     def _get_contract_function(self):
-        if len(self.first_trade.route.pairs) == 1:
-            if self._gas_price < 2 * tools.price.get_gas_price():
-                return self.contract.functions.swapOneHop
-            else:
-                return self.contract.functions.swapOneHopDiscounted
-        else:
-            if self._gas_price < 2 * tools.price.get_gas_price():
-                return self.contract.functions.swap
-            else:
-                return self.contract.functions.swapDiscounted
+        if isinstance(self.first_dex, PancakeswapDex):
+            return self.contract.functions.swapPcsFirst
+        return self.contract.functions.swapVdsFirst
+
+    def _get_mid_path_argument(self):
+        if isinstance(self.first_dex, PancakeswapDex):
+            vdf_pair_address = self.second_trade.route.pairs[0]
+            return [vdf_pair_address] + self.first_trade.route.tokens[1:-1]
+        return self.first_trade.route.tokens[1:-1]
 
     def execute(self):
         log.info(f'Estimated profit: {self.estimated_net_result_usd}')
@@ -166,9 +165,10 @@ class ArbitragePair:
 
         transaction_hash = tools.contracts.sign_and_send_transaction(
             func=self._get_contract_function(),
-            token0=self.token_first.address,
-            token1=self.token_last.address,
-            amount1=self.amount_last.amount,
+            tokenFirst=self.token_first.address,
+            tokenLast=self.token_last.address,
+            amountLast=self.amount_last.amount,
+            midPath=self._get_mid_path_argument(),
             max_gas_=GAS_COST * MAX_GAS_MULTIPLIER,
             gas_price_=self._gas_price,
         )
