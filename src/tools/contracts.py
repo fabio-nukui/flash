@@ -89,7 +89,7 @@ def sign_and_send_transaction(
     **kwargs
 ) -> str:
     web3 = func.web3
-    gas_price_ = tools.price.get_gas_price(web3) if gas_price_ is None else gas_price_
+    gas_price_ = tools.price.get_gas_price() if gas_price_ is None else gas_price_
     tx = func(*args, **kwargs).buildTransaction({
         'from': ACCOUNT.address,
         'chainId': configs.CHAIN_ID,

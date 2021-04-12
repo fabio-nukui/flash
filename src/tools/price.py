@@ -8,6 +8,8 @@ import httpx
 from web3 import Web3
 
 import configs
+import tools
+from core import LiquidityPair, Token
 from tools.cache import ttl_cache
 
 USD_PRICE_FEED_ADDRESSES = \
@@ -18,7 +20,14 @@ CHAINLINK_PRICE_FEED_ABI = json.load(open('abis/ChainlinkPriceFeed.json'))
 USD_PRICE_CACHE_TTL = 360
 GAS_PRICE_CACHE_TTL = 1800
 USD_PRICE_DATA_STALE = 3600
+TOKEN_SYNONYMS = {
+    'BTCB': 'BTC',
+    'WTCB': 'BTC',
+    'WBNB': 'BNB',
+    'WETH': 'ETH',
+}
 
+WEB3 = tools.w3.get_web3()
 log = logging.getLogger(__name__)
 
 
@@ -28,6 +37,7 @@ def _get_native_token_decimals():
     raise NotImplementedError
 
 
+@ttl_cache(maxsize=1000, ttl=USD_PRICE_CACHE_TTL)
 def _get_chainlink_data(asset_name: str, address: str, decimals: int, web3: Web3) -> float:
     contract = web3.eth.contract(address, abi=CHAINLINK_PRICE_FEED_ABI)
     (
@@ -42,10 +52,8 @@ def _get_chainlink_data(asset_name: str, address: str, decimals: int, web3: Web3
     return answer / 10 ** decimals
 
 
-@ttl_cache(maxsize=2000, ttl=USD_PRICE_CACHE_TTL)
-def get_chainlink_price_usd(token_symbol: str, web3: Web3) -> float:
-    if configs.CHAIN_ID == 56 and token_symbol == 'WBNB':
-        token_symbol = 'BNB'
+def get_chainlink_price_usd(token_symbol: str, web3: Web3 = WEB3) -> float:
+    token_symbol = TOKEN_SYNONYMS.get(token_symbol, token_symbol)
 
     address = USD_PRICE_FEED_ADDRESSES[token_symbol]['address']
     decimals = USD_PRICE_FEED_ADDRESSES[token_symbol]['decimals']
@@ -53,13 +61,12 @@ def get_chainlink_price_usd(token_symbol: str, web3: Web3) -> float:
     return _get_chainlink_data(token_symbol, address, decimals, web3)
 
 
-@ttl_cache(maxsize=1, ttl=GAS_PRICE_CACHE_TTL)
-def get_gas_price(web3: Web3) -> int:
-    return int(web3.eth.gas_price * configs.BASELINE_GAS_PRICE_PREMIUM)
+@ttl_cache(maxsize=100, ttl=GAS_PRICE_CACHE_TTL)
+def get_gas_price(web3: Web3 = WEB3) -> int:
+    return int(WEB3.eth.gas_price * configs.BASELINE_GAS_PRICE_PREMIUM)
 
 
-@ttl_cache(maxsize=1, ttl=USD_PRICE_CACHE_TTL)
-def get_gas_cost_usd(gas: int, web3: Web3) -> float:
+def get_gas_cost_usd(gas: int, web3: Web3 = WEB3) -> float:
     if configs.CHAIN_ID == 56:
         asset_name = 'BNB'
     else:
@@ -86,3 +93,33 @@ async def get_prices_congecko(addresses: Iterable[str]) -> dict[str, float]:
         key: value['usd']
         for key, value in res.json().items()
     }
+
+
+def get_price_usd(token: Token, pairs: list[LiquidityPair], web3: Web3 = WEB3) -> float:
+    """Return token price in USD using chainlink and, if token not in chainlink, by comparing
+    vs liquidity pair with largest liquidity and with chainlink usd price
+    """
+    try:
+        return get_chainlink_price_usd(token.symbol, web3)
+    except KeyError:
+        pass
+    liquidity_prices = []
+    for pair in pairs:
+        if token not in pair.tokens:
+            continue
+        if pair.tokens[0] == token:
+            paired_token = pair.tokens[1]
+            same_reserve, paired_reserve = pair.reserves
+        else:
+            paired_token = pair.tokens[0]
+            paired_reserve, same_reserve = pair.reserves
+        try:
+            price_paired_token = get_chainlink_price_usd(paired_token.symbol, web3)
+        except KeyError:
+            continue
+        liquidity = price_paired_token * paired_reserve.amount_in_units * 2
+        price_token = price_paired_token * paired_reserve.amount / same_reserve.amount
+        liquidity_prices.append((liquidity, price_token))
+    if not liquidity_prices:
+        raise Exception('Found no token with chainlink price linked to input token.')
+    return max(liquidity_prices)[1]

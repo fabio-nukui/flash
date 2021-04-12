@@ -1,6 +1,7 @@
 import logging
 import pathlib
 
+from web3.contract import Contract
 from web3 import Web3
 
 from core import Token, TokenAmount
@@ -22,27 +23,70 @@ class ValueDefiProtocol(DexProtocol, TradePairsMixin):
         chain_id: int,
         addresses_filepath: str,
         web3: Web3,
-        pairs_data: list[dict],
+        pairs_addresses: list[str] = None,
+        pairs_data: list[dict] = None,
+        verbose_init: bool = False,
     ):
         self.tokens: list[Token]
         self.pairs: list[ValueDefiPair] = []
+        self.factory_contract: Contract
 
         abi_filepaths = [FACTORY_ABI, PAIR_ABI]
-        super().__init__(abi_filepaths, chain_id, addresses_filepath, web3, pairs_data=pairs_data)
 
-    def _connect(self, pairs_data: list[dict]):
-        for data in pairs_data:
-            token_0 = Token(self.chain_id, data['token_0'], web3=self.web3)
-            token_1 = Token(self.chain_id, data['token_1'], web3=self.web3)
-            reserves = (TokenAmount(token_0), TokenAmount(token_1))
-            pair = ValueDefiPair(
-                reserves,
-                self.abis[PAIR_ABI],
-                data['fee'],
-                self.web3,
-                data['address'],
-                data['token_0_weight'],
-            )
-            if pair.reserves[0] > 0:
-                self.pairs.append(pair)
+        if pairs_addresses is None and pairs_data is None:
+            raise ValueError("None one of 'pairs_addresses' or 'pairs_data' were passed")
+        super().__init__(
+            abi_filepaths,
+            chain_id,
+            addresses_filepath,
+            web3,
+            pairs_data=pairs_data,
+            pairs_addresses=pairs_addresses,
+            verbose_init=verbose_init,
+        )
+
+    def _connect(
+        self,
+        pairs_addresses: list[str],
+        pairs_data: list[dict],
+        verbose_init: bool = False,
+    ):
+        self.factory_contract = self.web3.eth.contract(
+            address=Web3.toChecksumAddress(self.addresses['factory']),
+            abi=self.abis[FACTORY_ABI]
+        )
+        if pairs_addresses is not None:
+            if verbose_init:
+                from tqdm import tqdm
+                pairs_addresses = tqdm(pairs_addresses)
+            for address in pairs_addresses:
+                try:
+                    pair = ValueDefiPair.from_address(
+                        self.chain_id,
+                        address,
+                        self.abis[PAIR_ABI],
+                        self.web3,
+                    )
+                    if pair.reserves[0] > 0:
+                        self.pairs.append(pair)
+                except Exception as e:
+                    log.info(f'Failed to load pair {address=} ({e})')
+        else:
+            for data in pairs_data:
+                token_0 = Token(self.chain_id, data['token_0'], web3=self.web3)
+                token_1 = Token(self.chain_id, data['token_1'], web3=self.web3)
+                reserves = (TokenAmount(token_0), TokenAmount(token_1))
+                try:
+                    pair = ValueDefiPair(
+                        reserves,
+                        data['fee'],
+                        tuple(data['weights']),
+                        data['address'],
+                        self.abis[PAIR_ABI],
+                        self.web3,
+                    )
+                    if pair.reserves[0] > 0:
+                        self.pairs.append(pair)
+                except Exception as e:
+                    log.info(f'Failed to get data for ValueDefi pair {token_0}/{token_1} ({e})')
         self.tokens = list({token for pair in self.pairs for token in pair.tokens})

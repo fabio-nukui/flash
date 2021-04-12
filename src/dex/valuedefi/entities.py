@@ -1,30 +1,51 @@
+from __future__ import annotations
+
+from web3.contract import Contract
 from web3 import Web3
 
-from core import TokenAmount, LiquidityPair
+from core import LiquidityPair, TokenAmount
 from tools.cache import ttl_cache
 
-N_PAIRS_CACHE = 1000  # Must be at least equal to number of pairs in strategy
+from ..base import UniV2PairInitMixin
 
 
-class ValueDefiPair(LiquidityPair):
+N_PAIRS_CACHE = 1_000  # Must be at least equal to number of pairs in strategy
+
+
+class ValueDefiPair(LiquidityPair, UniV2PairInitMixin):
     def __init__(
         self,
         reserves: tuple[TokenAmount, TokenAmount],
-        abi: dict,
         fee: int,
-        web3: Web3,
-        address: str,
-        token_0_weight: int,
+        weights: tuple[int, int] = None,
+        address: str = None,
+        abi: dict = None,
+        web3: Web3 = None,
+        contract: Contract = None,
     ):
-        super().__init__(reserves, abi, fee, web3)
+        if contract is None:
+            if address is None or abi is None or web3 is None:
+                raise ValueError('`contract` or (`address` + `abi` + `web3`) must be passed')
+            contract = web3.eth.contract(address, abi=abi)
+        if weights is None:
+            weights = tuple(contract.functions.getTokenWeights().call())
+        assert sum(weights) == 100, f'sum(weights) must be 100, received {weights=}'
+        self.weights = weights
+        super().__init__(reserves, fee, contract=contract)
 
-        self.address = address
-        self.weights = (token_0_weight, 100 - token_0_weight)
-        self.contract = self.web3.eth.contract(address=self.address, abi=self.abi)
-        self.latest_transaction_timestamp = None
+    def __repr__(self):
+        return (
+            f'{self.__class__.__name__}'
+            f'({self._reserve_0.symbol}/{self._reserve_1.symbol}: '
+            f'{self.weights[0]}/{self.weights[1]})'
+        )
 
-        if self._reserve_0.is_empty() or self._reserve_1.is_empty():
-            self._update_amounts()
+    @classmethod
+    def from_address(cls, chain_id: int, address: str, abi: dict, web3: Web3):
+        contract = web3.eth.contract(address, abi=abi)
+        fee = contract.functions.getSwapFee().call() * 10
+
+        return super().from_address(chain_id, fee, contract=contract)
 
     @ttl_cache(N_PAIRS_CACHE)
     def _get_reserves(self):
@@ -55,7 +76,8 @@ class ValueDefiPair(LiquidityPair):
         base = reserve_in.amount * 10_000 / (amount_in_with_fee + reserve_in.amount * 10_000)
         power = weight_in / weight_out
 
-        return reserve_out * (1 - base ** power)
+        # Use abs(base) to allow for negative values during optimization tests
+        return reserve_out * (1 - abs(base) ** power)
 
     def get_amount_in(self, amount_out: TokenAmount) -> TokenAmount:
         if self.weights == (50, 50):
@@ -67,4 +89,5 @@ class ValueDefiPair(LiquidityPair):
         base = reserve_out.amount / (reserve_out.amount - amount_out.amount)
         power = weight_out / weight_in
 
-        return reserve_in * ((base ** power - 1) * fee_impact) + 1
+        # Use abs(base) to allow for negative values during optimization tests
+        return reserve_in * ((abs(base) ** power - 1) * fee_impact) + 1

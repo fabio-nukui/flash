@@ -1,36 +1,50 @@
 from __future__ import annotations
 
+from web3.contract import Contract
 from web3 import Web3
 
 from core import LiquidityPair, TokenAmount
 from tools.cache import ttl_cache
 
-N_PAIRS_CACHE = 1000  # Must be at least equal to number of pairs in strategy
+from ..base import UniV2PairInitMixin
+
+N_PAIRS_CACHE = 50_000  # Must be at least equal to number of pairs in strategy
 
 
-class UniV2Pair(LiquidityPair):
+class UniV2Pair(LiquidityPair, UniV2PairInitMixin):
     def __init__(
         self,
         reserves: tuple[TokenAmount, TokenAmount],
-        abi: dict,
         fee: int,
-        web3: Web3,
+        abi: dict = None,
+        web3: Web3 = None,
+        factory_address: str = None,
+        init_code_hash: str = None,
+        contract: Contract = None,
+    ) -> UniV2Pair:
+        if contract is None:
+            if abi is None or web3 is None:
+                raise ValueError('`contract` or (`abi` + `web3`) must be passed')
+            address = self._get_address(
+                reserves[0].token.address,
+                reserves[1].token.address,
+                factory_address,
+                init_code_hash
+            )
+            contract = web3.eth.contract(address=address, abi=abi)
+        super().__init__(reserves, fee, contract=contract)
+
+    @staticmethod
+    def _get_address(
+        token_0_address: str,
+        token_1_address: str,
         factory_address: str,
         init_code_hash: str,
-    ):
-        super().__init__(reserves, abi, fee, web3)
-
-        self.address = self._get_address(factory_address, init_code_hash)
-        self.contract = self.web3.eth.contract(address=self.address, abi=self.abi)
-        self.latest_transaction_timestamp: int = None
-
-        if self._reserve_0.is_empty() or self._reserve_1.is_empty():
-            self._update_amounts()
-
-    def _get_address(self, factory_address: str, init_code_hash: str) -> str:
-        """Return address of pair's liquidity pool"""
+    ) -> str:
+        """Return address of liquidity pool using uniswap_v2's implementation of CREATE2"""
+        address_0, address_1 = sorted([token_0_address, token_1_address])
         encoded_tokens = Web3.solidityKeccak(
-            ['address', 'address'], (self._reserve_0.token.address, self._reserve_1.token.address))
+            ['address', 'address'], (address_0, address_1))
 
         prefix = Web3.toHex(hexstr='ff')
         raw = Web3.solidityKeccak(

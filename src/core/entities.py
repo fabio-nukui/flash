@@ -7,7 +7,9 @@ from enum import Enum
 from typing import Union, overload
 
 from web3 import Web3
+from web3.contract import Contract
 
+from exceptions import InsufficientLiquidity
 
 MAX_UINT_256 = 2 ** 256 - 1
 
@@ -15,10 +17,6 @@ ERC20_ABI_FILE = 'abis/IERC20.json'
 ERC20_ABI = json.load(open(ERC20_ABI_FILE))
 
 DEFAULT_MAX_SLIPPAGE = 30  # Default maximum slippage for trades in basis points
-
-
-class InsufficientLiquidity(Exception):
-    pass
 
 
 class TradeType(Enum):
@@ -113,7 +111,9 @@ class TokenAmount:
     def __repr__(self) -> str:
         if self.is_empty():
             return f'{self.__class__.__name__}({self.symbol}: None)'
-        return f'{self.__class__.__name__}({self.symbol}: {self.amount_in_units:,.2f})'
+        if self.amount_in_units > 1:
+            return f'{self.__class__.__name__}({self.symbol}: {self.amount_in_units:,.2f})'
+        return f'{self.__class__.__name__}({self.symbol}: {self.amount_in_units})'
 
     @property
     def amount_in_units(self) -> float:
@@ -176,9 +176,9 @@ class TokenAmount:
         return NotImplemented
 
     @_not_empty
-    def __floordiv__(self, other: int) -> TokenAmount:
-        if isinstance(other, int):
-            return TokenAmount(self.token, self.amount // other)
+    def __floordiv__(self, other: Union[int, float]) -> TokenAmount:
+        if isinstance(other, (int, float)):
+            return TokenAmount(self.token, int(self.amount // other))
         return NotImplemented
 
 
@@ -186,44 +186,41 @@ class Price:
     def __init__(self, amount_in: TokenAmount, amount_out: TokenAmount):
         self.amount_in = amount_in
         self.amount_out = amount_out
-        self.value = self.amount_in.amount // self.amount_out.amount
+        self.value = self.amount_in.amount / self.amount_out.amount
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.amount_in}/{self.amount_out}: {self.value:,})'
 
     @overload
-    def __mul__(self, other: int) -> Price: ...  # noqa: E704
+    def __mul__(self, other: (int, float)) -> Price: ...  # noqa: E704
 
     @overload
     def __mul__(self, other: TokenAmount) -> TokenAmount: ...  # noqa: E704
 
     def __mul__(self, other):
-        if isinstance(other, int):
+        if isinstance(other, (int, float)):
             return Price(self.amount_in * other, self.amount_out)
         if isinstance(other, TokenAmount):
             if self.amount_out.token != other.token:
                 raise TypeError(
                     "Can only multiply Price whose amount_out Token is same as ValueTokens' Token"
                 )
-            return self.amount_in * other.amount
+            return self.amount_in * other.amount / self.amount_out.amount
         return NotImplemented
 
 
 class LiquidityPair:
-    def __init__(
-        self,
-        reserves: tuple[TokenAmount, TokenAmount],
-        abi: dict,
-        fee: int,
-        web3: Web3,
-    ):
+    def __init__(self, reserves: tuple[TokenAmount, TokenAmount], fee: int, *, contract: Contract):
         """Abstract class representing all liquidity pools with 2 different assets"""
         # Follow Uniswap convension of tokens sorted by address
         self._reserve_0, self._reserve_1 = sorted(reserves, key=lambda x: x.token)
-        self.abi = abi
-        self.fee = fee
-        self.web3 = web3
         self.tokens = (self._reserve_0.token, self._reserve_1.token)
+        self.fee = fee
+        self.address = contract.address
+        self.contract = contract
+
+        if self._reserve_0.is_empty() or self._reserve_1.is_empty():
+            self._update_amounts()
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self._reserve_0.symbol}/{self._reserve_1.symbol})'
@@ -303,6 +300,7 @@ class RoutePairs:
         pairs: list[LiquidityPair],
         token_in: Token,
         token_out: Token,
+        hop_penalty: float = None,
     ):
         """Route of liquidity pairs, use to compute trade with in/out amounts"""
         assert token_in in pairs[0].tokens
@@ -310,6 +308,7 @@ class RoutePairs:
         self.pairs = pairs
         self.token_in = token_in
         self.token_out = token_out
+        self.hop_penalty = hop_penalty
         self.tokens = self._get_tokens()
 
     def _get_tokens(self) -> list[Token]:
@@ -329,15 +328,19 @@ class RoutePairs:
         return f'{self.__class__.__name__}({self.symbols})'
 
     def get_amount_out(self, amount_in: TokenAmount) -> TokenAmount:
-        for pair in self.pairs:
+        for i, pair in enumerate(self.pairs):
             # amount_out of each iteration is amount_in of next one
             amount_in = pair.get_amount_out(amount_in)
+            if i > 0 and self.hop_penalty:
+                amount_in //= (1 + self.hop_penalty)
         return amount_in
 
     def get_amount_in(self, amount_out: TokenAmount) -> TokenAmount:
-        for pair in reversed(self.pairs):
+        for i, pair in enumerate(reversed(self.pairs)):
             # amount_in of each iteration is amount_out of next one
             amount_out = pair.get_amount_in(amount_out)
+            if i > 0 and self.hop_penalty:
+                amount_out *= (1 + self.hop_penalty)
         return amount_out
 
 
@@ -418,24 +421,48 @@ class TradePairs(Trade):
     def _get_amount_out(self) -> TokenAmount:
         return self.route.get_amount_out(self.amount_in)
 
-    @staticmethod
+    @classmethod
     def best_trade_exact_in(
+        cls,
         pairs: list[LiquidityPair],
         amount_in: TokenAmount,
         token_out: Token,
         max_hops: int = 1,
+        hop_penalty: float = None,
+        max_slippage: int = None,
+    ) -> TradePairs:
+        trades = cls.trades_exact_in(
+            pairs,
+            amount_in,
+            token_out,
+            max_hops,
+            hop_penalty,
+            max_slippage,
+        )
+        if not trades:
+            raise InsufficientLiquidity('No route with suficient liquidity')
+        return max(trades, key=lambda x: x.amount_out)
+
+    @staticmethod
+    def trades_exact_in(
+        pairs: list[LiquidityPair],
+        amount_in: TokenAmount,
+        token_out: Token,
+        max_hops: int = 1,
+        hop_penalty: float = None,
         max_slippage: int = None,
         current_pairs: list[LiquidityPair] = None,
         original_amount_in: TokenAmount = None,
         best_trades: list[TradePairs] = None
     ) -> TradePairs:
-        """Return best trade given a list of liquidity pairs and an amount in
+        """Return possible trades given a list of liquidity pairs and an amount in
 
         Args:
             pairs (list[LiquidityPair]): List of possible liquidity pairs for route
             amount_in (TokenAmount): Exact amount to be traded in
             token_out (Token): Token to be traded out
             max_hops (int): Maximum number of hops
+            hop_penalty (float, optional): Penalty % on additional hops to account for higher gas
             max_slippage (int): Maximum slippage in basis points
             current_pairs (List[LiquidityPair], optional): Used for recursion
             original_amount_in (TokenAmount, optional): Used for recursion
@@ -450,7 +477,6 @@ class TradePairs(Trade):
 
         assert len(pairs) > 0, 'at least one pair must be given'
         assert max_hops > 0, 'max_hops must be positive number'
-        assert amount_in > 0, 'amount_in must be greater than zero'
 
         for pair in pairs:
             if amount_in.token not in pair.tokens:
@@ -461,7 +487,12 @@ class TradePairs(Trade):
                 continue
             if amount_out.token == token_out:
                 # End of recursion
-                route = RoutePairs([*current_pairs, pair], original_amount_in.token, token_out)
+                route = RoutePairs(
+                    [*current_pairs, pair],
+                    original_amount_in.token,
+                    token_out,
+                    hop_penalty=hop_penalty,
+                )
                 trade = TradePairs(
                     route=route,
                     amount_in=original_amount_in,
@@ -472,38 +503,61 @@ class TradePairs(Trade):
             elif max_hops > 1 and len(pairs) > 1:
                 next_recursion_pairs = copy(pairs)
                 next_recursion_pairs.remove(pair)
-                TradePairs.best_trade_exact_in(
+                TradePairs.trades_exact_in(
                     pairs=next_recursion_pairs,
                     amount_in=amount_out,  # Amount in of next recursion is current amount_out
                     token_out=token_out,
                     max_hops=max_hops - 1,
+                    hop_penalty=hop_penalty,
                     max_slippage=max_slippage,
                     current_pairs=[pair, *current_pairs],
                     original_amount_in=original_amount_in,
                     best_trades=best_trades
                 )
-        if len(best_trades) == 0:
-            raise InsufficientLiquidity('No route with suficient liquidity found')
-        return max(best_trades, key=lambda x: x.amount_out)
+        return best_trades
 
-    @staticmethod
+    @classmethod
     def best_trade_exact_out(
+        cls,
         pairs: list[LiquidityPair],
         token_in: Token,
         amount_out: TokenAmount,
         max_hops: int = 1,
+        hop_penalty: float = None,
+        max_slippage: int = None,
+    ) -> TradePairs:
+        trades = cls.trades_exact_out(
+            pairs,
+            token_in,
+            amount_out,
+            max_hops,
+            hop_penalty,
+            max_slippage,
+        )
+        if not trades:
+            raise InsufficientLiquidity('No route with suficient liquidity')
+        return min(trades, key=lambda x: x.amount_in)
+
+    @staticmethod
+    def trades_exact_out(
+        pairs: list[LiquidityPair],
+        token_in: Token,
+        amount_out: TokenAmount,
+        max_hops: int = 1,
+        hop_penalty: float = None,
         max_slippage: int = None,
         current_pairs: list[LiquidityPair] = None,
         original_amount_out: TokenAmount = None,
         best_trades: list[TradePairs] = None
-    ) -> TradePairs:
-        """Return best trade given a list of liquidity pairs and an amount out
+    ) -> list[TradePairs]:
+        """Return possible trades given a list of liquidity pairs and an amount out
 
         Args:
             pairs (list[LiquidityPair]): List of possible liquidity pairs for route
             token_in (Token): Token to be traded in
             amount_out (TokenAmount): Exact amount to be traded out
             max_hops (int): Maximum number of hops
+            hop_penalty (float, optional): Penalty on additional hops
             max_slippage (int): Maximum slippage in basis points
             current_pairs (List[LiquidityPair], optional): Used for recursion
             original_amount_out (TokenAmount, optional): Used for recursion
@@ -518,7 +572,6 @@ class TradePairs(Trade):
 
         assert len(pairs) > 0, 'at least one pair must be given'
         assert max_hops > 0, 'max_hops must be positive number'
-        assert amount_out > 0, 'amount_out must be greater than zero'
 
         for pair in pairs:
             if amount_out.token not in pair.tokens:
@@ -529,7 +582,12 @@ class TradePairs(Trade):
                 continue
             if amount_in.token == token_in:
                 # End of recursion
-                route = RoutePairs([pair, *current_pairs], token_in, original_amount_out.token)
+                route = RoutePairs(
+                    [pair, *current_pairs],
+                    token_in,
+                    original_amount_out.token,
+                    hop_penalty,
+                )
                 trade = TradePairs(
                     route=route,
                     amount_in=TokenAmount(token_in),
@@ -540,16 +598,15 @@ class TradePairs(Trade):
             elif max_hops > 1 and len(pairs) > 1:
                 next_recursion_pairs = copy(pairs)
                 next_recursion_pairs.remove(pair)
-                TradePairs.best_trade_exact_out(
+                TradePairs.trades_exact_out(
                     pairs=next_recursion_pairs,
                     token_in=token_in,
                     amount_out=amount_in,  # Amount out of next recursion is current amount_in
                     max_hops=max_hops - 1,
+                    hop_penalty=hop_penalty,
                     max_slippage=max_slippage,
                     current_pairs=[pair, *current_pairs],
                     original_amount_out=original_amount_out,
                     best_trades=best_trades
                 )
-        if len(best_trades) == 0:
-            raise InsufficientLiquidity('No route with suficient liquidity found')
-        return min(best_trades, key=lambda x: x.amount_in)
+        return best_trades

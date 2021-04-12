@@ -1,11 +1,75 @@
 {
     "56": {
+        "ADA": {
+            "address": "0xa767f745331D267c7751297D982b050c93985627",
+            "decimals": 8
+        },
+        "ATOM": {
+            "address": "0xb056B7C804297279A9a673289264c17E6Dc6055d",
+            "decimals": 8
+        },
+        "BCH": {
+            "address": "0x43d80f616DAf0b0B42a928EeD32147dC59027D41",
+            "decimals": 8
+        },
         "BNB": {
             "address": "0x0567F2323251f0Aab15c8dFb1967E4e8A7D42aeE",
             "decimals": 8
         },
+        "BTC": {
+            "address": "0x264990fbd0A4796A3E3d8E37C4d5F87a3aCa5Ebf",
+            "decimals": 8
+        },
         "BUSD": {
             "address": "0xcBb98864Ef56E9042e7d2efef76141f15731B82f",
+            "decimals": 8
+        },
+        "BZRX": {
+            "address": "0xFc362828930519f236ad0c8f126B7996562a695A",
+            "decimals": 8
+        },
+        "DAI": {
+            "address": "0x132d3C0B1D2cEa0BC552588063bdBb210FDeecfA",
+            "decimals": 8
+        },
+        "DF": {
+            "address": "0x1b816F5E122eFa230300126F97C018716c4e47F5",
+            "decimals": 8
+        },
+        "DOT": {
+            "address": "0xC333eb0086309a16aa7c8308DfD32c8BBA0a2592",
+            "decimals": 8
+        },
+        "ETH": {
+            "address": "0x9ef1B8c0E4F7dc8bF5719Ea496883DC6401d5b2e",
+            "decimals": 8
+        },
+        "FIL": {
+            "address": "0xE5dbFD9003bFf9dF5feB2f4F445Ca00fb121fb83",
+            "decimals": 8
+        },
+        "LINA": {
+            "address": "0x38393201952f2764E04B290af9df427217D56B41",
+            "decimals": 8
+        },
+        "LINK": {
+            "address": "0xca236E327F629f9Fc2c30A4E95775EbF0B89fac8",
+            "decimals": 8
+        },
+        "LTC": {
+            "address": "0x74E72F37A8c415c8f1a98Ed42E78Ff997435791D",
+            "decimals": 8
+        },
+        "PAXG": {
+            "address": "0x7F8caD4690A38aC28BDA3D132eF83DB1C17557Df",
+            "decimals": 8
+        },
+        "SXP": {
+            "address": "0xE188A9875af525d25334d75F3327863B2b8cd0F1",
+            "decimals": 8
+        },
+        "TRX": {
+            "address": "0xF4C5e535756D11994fCBB12Ba8adD0192D9b88be",
             "decimals": 8
         },
         "USDC": {
@@ -14,6 +78,34 @@
         },
         "USDT": {
             "address": "0xB97Ad0E74fa7d920791E90258A6E2085088b4320",
+            "decimals": 8
+        },
+        "WOO": {
+            "address": "0x02Bfe714e78E2Ad1bb1C2beE93eC8dc5423B66d4",
+            "decimals": 8
+        },
+        "WTI": {
+            "address": "0xb1BED6C1fC1adE2A975F54F24851c7F410e27718",
+            "decimals": 8
+        },
+        "XAG": {
+            "address": "0x817326922c909b16944817c207562B25C4dF16aD",
+            "decimals": 8
+        },
+        "XAU": {
+            "address": "0x86896fEB19D8A607c3b11f2aF50A0f239Bd71CD0",
+            "decimals": 8
+        },
+        "XRP": {
+            "address": "0x93A67D414896A280bF8FFB3b389fE3686E014fda",
+            "decimals": 8
+        },
+        "XVS": {
+            "address": "0xBF63F430A79D4036A5900C19818aFf1fa710f206",
+            "decimals": 8
+        },
+        "YFI": {
+            "address": "0xD7eAa5Bf3013A96e3d515c055Dbd98DbdC8c620D",
             "decimals": 8
         }
     }
