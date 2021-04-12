@@ -23,7 +23,7 @@ module.exports = {
       confirmations: 1,
       timeoutBlocks: 200,
       gas: 1000000,
-      gasPrice: 10000000000,
+      gasPrice: 5001000000,
       skipDryRun: true
     },
     bsc: {
@@ -35,7 +35,7 @@ module.exports = {
       confirmations: 2,
       timeoutBlocks: 200,
       gas: 10000000,
-      gasPrice: 10000000000
+      gasPrice: 5001000000
     },
   },
 
