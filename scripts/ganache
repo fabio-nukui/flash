@@ -1,0 +1,13 @@
+#/usr/bin/env bash
+
+set -eux
+
+ganache-cli \
+    -a 2 \
+    -p 8546 \
+    -h 0.0.0.0 \
+    -g 5000000000 \
+    -f http://localhost:8545 \
+    -i 57 \
+    -m 'apart capable unveil mansion seed way vital assist goat cannon burden juice' \
+    -v

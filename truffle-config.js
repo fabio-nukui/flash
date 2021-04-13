@@ -6,13 +6,19 @@ const privateKey = process.env.PRIVATE_KEY
 
 module.exports = {
   networks: {
-    development: {
-      host: "127.0.0.1",     // Localhost (default: none)
-      port: 7475,            // Standard BSC port (default: none)
-      network_id: "*",       // Any network (default: none)
+    dev: {
+      provider: () => new HDWalletProvider({
+        privateKeys: [
+          "0x5af4e727cc92b7d8d117cd4466f8566EA806D2Ec",
+          "0x54e9404F318F9b213260080ACe847D2f275eCb0e"
+        ],
+        providerOrUrl: "http://localhost:8546"
+      }),
+      port: 8546,
+      network_id: 57,
       gas: 1000000,
       gasPrice: 10000000000,
-      skipDryRun: false,
+      skipDryRun: true,
     },
     testnet: {
       provider: () => new HDWalletProvider({
