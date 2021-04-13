@@ -57,26 +57,26 @@ contract PcsVdsV1 is IPancakeCallee, Withdrawable, CHIBurner {
     // function _vds_swap(uint[] memory amounts, address[] memory path) internal virtual {
     // }
 
-    // // Pcs first
-    // function swapPcsFirst(
-    //     address tokenFirst,
-    //     address tokenLast,
-    //     uint256 amountLast,
-    //     address[] calldata midPath, // Fist address is Vds pair
-    //     uint8 chiFlag
-    // ) external discountCHI(chiFlag) restricted {
-    //     address pcsPair = PancakeswapLibrary.pairFor(pcsFactory, tokenFirst, tokenLast);
-    //     (address tokenA, ) = PancakeswapLibrary.sortTokens(tokenFirst, tokenLast);
-    //     uint256 amountAOut = tokenA == tokenLast ? amountLast : 0;
-    //     uint256 amountBOut = tokenA == tokenLast ? 0 : amountLast;
+    // Pcs first
+    function swapPcsFirst(
+        address tokenFirst,
+        address tokenLast,
+        uint256 amountLast,
+        address[] calldata midPath, // Fist address is Vds pair
+        uint8 chiFlag
+    ) external discountCHI(chiFlag) restricted {
+        address pcsPair = PancakeswapLibrary.pairFor(pcsFactory, tokenFirst, tokenLast);
+        (address tokenA, ) = PancakeswapLibrary.sortTokens(tokenFirst, tokenLast);
+        uint256 amountAOut = tokenA == tokenLast ? amountLast : 0;
+        uint256 amountBOut = tokenA == tokenLast ? 0 : amountLast;
 
-    //     IUniswapV2Pair(pcsPair).swap(
-    //         amountAOut,
-    //         amountBOut,
-    //         address(this),
-    //         AddressArrayEncoder.encode(midPath)
-    //     );
-    // }
+        IUniswapV2Pair(pcsPair).swap(
+            amountAOut,
+            amountBOut,
+            address(this),
+            AddressArrayEncoder.encode(midPath)
+        );
+    }
 
     function pancakeCall(
         address sender,

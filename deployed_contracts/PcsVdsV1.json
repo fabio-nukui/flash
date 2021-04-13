@@ -1,11 +1,6 @@
 {
-  "contractName": "PancakeswapEllipsis3PoolV1B",
+  "contractName": "PcsVdsV1",
   "abi": [
-    {
-      "inputs": [],
-      "stateMutability": "nonpayable",
-      "type": "constructor"
-    },
     {
       "inputs": [],
       "name": "withdrawEther",
@@ -28,32 +23,38 @@
     },
     {
       "stateMutability": "payable",
-      "type": "receive"
+      "type": "receive",
+      "payable": true
     },
     {
       "inputs": [
         {
           "internalType": "address",
-          "name": "token0",
+          "name": "tokenFirst",
           "type": "address"
         },
         {
           "internalType": "address",
-          "name": "token1",
+          "name": "tokenLast",
           "type": "address"
         },
         {
           "internalType": "uint256",
-          "name": "amount1",
+          "name": "amountLast",
           "type": "uint256"
         },
         {
+          "internalType": "address[]",
+          "name": "midPath",
+          "type": "address[]"
+        },
+        {
           "internalType": "uint8",
-          "name": "flagChi",
+          "name": "chiFlag",
           "type": "uint8"
         }
       ],
-      "name": "triggerFlashSwap",
+      "name": "swapPcsFirst",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -95,8 +96,8 @@
     "56": {
       "events": {},
       "links": {},
-      "address": "0xaEFb9dD58A6c35523ef2242C3b7E410F0ba95526",
-      "transactionHash": "0x6f2c7efa7ffdec671b3420410f877bfec798cbbfb6244166c59fefba766c445b"
+      "address": "0x0382276659217de9A20f9630499BFE516CD34422",
+      "transactionHash": "0x231832aeab20a9b2386f5ed5eafaec92692953abd13007805958ca3fd667d80b"
     }
   },
   "schemaVersion": "3.3.4"

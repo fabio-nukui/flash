@@ -25,7 +25,7 @@ MIN_ESTIMATED_PROFIT = 1
 
 # Gas-related parameters
 HOP_PENALTY = 0.1  # Penaly on trades with extra hops to account for higher gas fees
-GAS_COST = 170_000
+GAS_COST = 200_000
 GAS_SHARE_OF_PROFIT = 0.20
 MAX_GAS_MULTIPLIER = 3
 
