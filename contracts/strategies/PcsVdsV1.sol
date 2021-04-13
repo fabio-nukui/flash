@@ -55,7 +55,6 @@ contract PcsVdsV1 is IPancakeCallee, Withdrawable, CHIBurner {
         address tokenLast = pairPath[1];
         address pcsPair = PancakeswapLibrary.pairFor(pcsFactory, tokenFirst, tokenLast);
         uint256 amountSendPcs = amount0 == 0 ? amount1 : amount0;
-        exchangePcs(pcsPair, tokenLast, tokenFirst, amountSendPcs);
 
         address[] memory path = new address[](pairPath.length - 1);
         for (uint i; i < path.length - 1; i++) {
@@ -64,6 +63,7 @@ contract PcsVdsV1 is IPancakeCallee, Withdrawable, CHIBurner {
         path[path.length - 1] = msg.sender;
 
         uint256[] memory amounts = IValueLiquidFormula(vdsFormula).getAmountsIn(tokenFirst, tokenLast, amountSendPcs, path);
+        exchangePcs(pcsPair, tokenLast, tokenFirst, amountSendPcs, amounts[0]);
 
         TransferHelper.safeTransfer(tokenFirst, path[0], amounts[0]);
         _vds_swap(tokenFirst, amounts, path);
@@ -73,12 +73,14 @@ contract PcsVdsV1 is IPancakeCallee, Withdrawable, CHIBurner {
         address pairAddress,
         address tokenIn,
         address tokenOut,
-        uint256 amountIn
+        uint256 amountIn,
+        uint256 amountOutMax
     ) private {
         IUniswapV2Pair pair = IUniswapV2Pair(pairAddress);
 
         (uint reserveIn, uint reserveOut) = PancakeswapLibrary.getReserves(pcsFactory, tokenIn, tokenOut);
         uint256 amountOut = PancakeswapLibrary.getAmountOut(amountIn, reserveIn, reserveOut);
+        require(amountOut < amountOutMax, 'PCS low return');
         TransferHelper.safeApproveAndTransfer(tokenIn, pairAddress, amountIn);
 
         (uint256 amount0Out, uint256 amount1Out) = tokenIn == pair.token0() ? (uint(0), amountOut) : (amountOut, uint(0));
@@ -146,7 +148,7 @@ contract PcsVdsV1 is IPancakeCallee, Withdrawable, CHIBurner {
         path[path.length - 1] = amount0 == 0 ? token1 : token0;
         amounts = PancakeswapLibrary.getAmountsIn(pcsFactory, amountSendVds, path);
         }
-        exchangeVds(vdsPair, path[path.length - 1], amountSendVds);
+        exchangeVds(vdsPair, path[path.length - 1], amountSendVds, amounts[0]);
 
         address firstPair = PancakeswapLibrary.pairFor(pcsFactory, path[0], path[1]);
         TransferHelper.safeTransfer(path[0], firstPair, amounts[0]);
@@ -156,12 +158,14 @@ contract PcsVdsV1 is IPancakeCallee, Withdrawable, CHIBurner {
     function exchangeVds(
         address pairAddress,
         address tokenIn,
-        uint256 amountIn
+        uint256 amountIn,
+        uint256 amountOutMax
     ) private {
         IValueLiquidPair pair = IValueLiquidPair(pairAddress);
         IValueLiquidFormula formula = IValueLiquidFormula(vdsFormula);
 
         uint256 amountOut = formula.getPairAmountOut(pairAddress, tokenIn, amountIn);
+        require(amountOut < amountOutMax, 'VDS low return');
         TransferHelper.safeApproveAndTransfer(tokenIn, pairAddress, amountIn);
 
         (uint256 amount0Out, uint256 amount1Out) = tokenIn == pair.token0() ? (uint(0), amountOut) : (amountOut, uint(0));
