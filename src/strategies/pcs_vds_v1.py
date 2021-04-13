@@ -152,11 +152,17 @@ class ArbitragePair:
             return self.contract.functions.swapPcsFirst
         return self.contract.functions.swapVdsFirst
 
-    def _get_mid_path_argument(self):
+    def _get_path_argument(self):
         if isinstance(self.first_dex, PancakeswapDex):
-            vdf_pair_address = self.second_trade.route.pairs[0]
-            return [vdf_pair_address] + self.first_trade.route.tokens[1:-1]
-        return self.first_trade.route.tokens[1:-1]
+            return [
+                self.second_trade.route.pairs[0].address,
+                *[t.address for t in self.first_trade.route.tokens]
+            ]
+        return [
+            self.token_first.address,
+            self.token_last.address,
+            *[p.address for p in self.first_trade.route.pairs]
+        ]
 
     def execute(self):
         log.info(f'Estimated profit: {self.estimated_net_result_usd}')
@@ -165,10 +171,8 @@ class ArbitragePair:
 
         transaction_hash = tools.contracts.sign_and_send_transaction(
             func=self._get_contract_function(),
-            tokenFirst=self.token_first.address,
-            tokenLast=self.token_last.address,
+            path=self._get_path_argument(),
             amountLast=self.amount_last.amount,
-            midPath=self._get_mid_path_argument(),
             max_gas_=GAS_COST * MAX_GAS_MULTIPLIER,
             gas_price_=self._gas_price,
         )
