@@ -118,14 +118,17 @@ class ArbitragePair:
             self.amount_last = amount_last_initial
             self.estimated_result = result_initial
             return
-
-        int_amount_last, int_result = tools.optimization.optimizer_second_order(
-            func=self._estimate_result_int,
-            x0=amount_last_initial.amount,
-            dx=int(INCREMENT * 10 ** self.token_last.decimals / usd_price_token_last),
-            tol=int(TOLERANCE_USD * 10 ** self.token_last.decimals / usd_price_token_last),
-            max_iter=MAX_ITERATIONS,
-        )
+        try:
+            int_amount_last, int_result = tools.optimization.optimizer_second_order(
+                func=self._estimate_result_int,
+                x0=amount_last_initial.amount,
+                dx=int(INCREMENT * 10 ** self.token_last.decimals / usd_price_token_last),
+                tol=int(TOLERANCE_USD * 10 ** self.token_last.decimals / usd_price_token_last),
+                max_iter=MAX_ITERATIONS,
+            )
+        except InsufficientLiquidity:
+            logging.info(f'{self}: InsufficientLiquidity on optimization step.')
+            return
         if int_amount_last < 0:  # Fail-safe in case optimizer returns negative inputs
             return
         self.amount_last = TokenAmount(self.token_last, int_amount_last)
@@ -245,8 +248,8 @@ def run():
     web3 = tools.w3.get_web3(verbose=True)
     with open(ADDRESS_FILEPATH) as f:
         addresses = json.load(f)
-        pcs_dex = PancakeswapDex(pairs_addresses=addresses['pcs_dex'])
-        vds_dex = ValueDefiSwapDex(pairs_addresses=addresses['vds_dex'])
+        pcs_dex = PancakeswapDex(pairs_addresses=addresses['pcs_dex'], web3=web3)
+        vds_dex = ValueDefiSwapDex(pairs_addresses=addresses['vds_dex'], web3=web3)
     contract = tools.contracts.load_contract(CONTRACT_DATA_FILEPATH)
     arbitrage_pairs = [
         ArbitragePair(**params, contract=contract, web3=web3)
