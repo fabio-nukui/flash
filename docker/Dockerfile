@@ -27,7 +27,7 @@ RUN conda install --quiet --yes \
         'boto3==1.17.44' \
         'cachetools==4.2.1' \
         'httpx==0.17.1' \
-	'python==3.9.2' \
+        'python==3.9.2' \
         'python-json-logger==2.0.1' \
         'pyyaml==5.4.1' \
         'watchtower==1.0.6' \

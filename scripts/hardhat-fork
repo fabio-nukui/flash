@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+set -eux
+
+npx hardhat node \
+  --fork 'http://localhost:8545' \
+  --hostname 0.0.0.0 \
+  --port 8546 \
+#  --fork-block-number 6516274
+

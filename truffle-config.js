@@ -8,16 +8,13 @@ module.exports = {
   networks: {
     dev: {
       provider: () => new HDWalletProvider({
-        privateKeys: [
-          "0x5af4e727cc92b7d8d117cd4466f8566EA806D2Ec",
-          "0x54e9404F318F9b213260080ACe847D2f275eCb0e"
-        ],
+        privateKeys: [privateKey],
         providerOrUrl: "http://localhost:8546"
       }),
       port: 8546,
-      network_id: 57,
-      gas: 1000000,
-      gasPrice: 10000000000,
+      network_id: 31337,
+      gas: 9000000,
+      gasPrice: 5000000000,
       skipDryRun: true,
     },
     testnet: {
@@ -28,8 +25,8 @@ module.exports = {
       network_id: 97,
       confirmations: 1,
       timeoutBlocks: 200,
-      gas: 1000000,
-      gasPrice: 5001000000,
+      gas: 9000000,
+      gasPrice: 5000000001,
       skipDryRun: true
     },
     bsc: {
@@ -40,8 +37,8 @@ module.exports = {
       network_id: 56,
       confirmations: 2,
       timeoutBlocks: 200,
-      gas: 10000000,
-      gasPrice: 5001000000
+      gas: 9000000,
+      gasPrice: 5000000001
     },
   },
 
