@@ -37,7 +37,7 @@ TOLERANCE_USD = 0.01  # Tolerance to stop optimization
 MAX_ITERATIONS = 100
 
 # Created with notebooks/2021-04-12-pcs_vds_v1.ipynb
-ADDRESS_FILEPATH = 'addresses/strategies/pcs_eps_3pool_v1.json'
+ADDRESS_FILEPATH = 'addresses/strategies/pcs_vds_v1.json'
 CONTRACT_DATA_FILEPATH = 'deployed_contracts/PcsVdsV1.json'
 
 log = logging.getLogger(__name__)
@@ -167,7 +167,7 @@ class ArbitragePair:
 
     def execute(self):
         log.info(f'Estimated profit: {self.estimated_net_result_usd}')
-        log.info(f'Trades: {self.trade_cake}; {self.trade_eps}')
+        log.info(f'Trades: {self.first_trade}; {self.second_trade}')
         log.info(f'Gas price: {self._gas_price / 10 ** 9:,.1f} Gwei')
 
         transaction_hash = tools.contracts.sign_and_send_transaction(
