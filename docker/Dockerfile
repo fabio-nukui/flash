@@ -76,7 +76,7 @@ RUN conda install --quiet --yes \
         'jupyterlab_execute_time' \
         'line_profiler' \
         'matplotlib' \
-	'nodejs' \
+        'nodejs' \
         'numexpr' \
         'pandas' \
         'plotly' \
