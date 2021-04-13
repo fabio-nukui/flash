@@ -20,7 +20,7 @@ from exceptions import InsufficientLiquidity
 # Strategy parameters
 MAX_HOPS_FIRST_DEX = 2
 MAX_HOPS_SECOND_DEX = 1
-MIN_CONFIRMATIONS = 1
+MIN_CONFIRMATIONS = 2
 MIN_ESTIMATED_PROFIT = 1
 
 # Gas-related parameters
