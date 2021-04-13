@@ -24,10 +24,11 @@ MIN_CONFIRMATIONS = 1
 MIN_ESTIMATED_PROFIT = 1
 
 # Gas-related parameters
-HOP_PENALTY = 0.1  # Penaly on trades with extra hops to account for higher gas fees
-GAS_COST = 200_000
-GAS_SHARE_OF_PROFIT = 0.20
-MAX_GAS_MULTIPLIER = 3
+GAS_COST = 204_658
+GAS_INCREASE_WITH_HOP = 0.35402943350964
+GAS_SHARE_OF_PROFIT = 0.25
+HOP_PENALTY = GAS_SHARE_OF_PROFIT * GAS_INCREASE_WITH_HOP
+MAX_GAS_MULTIPLIER = 2
 
 # Optimization parameters
 INITIAL_VALUE = 1  # Initial value in USD to estimate best trade
@@ -37,7 +38,7 @@ MAX_ITERATIONS = 100
 
 # Created with notebooks/2021-04-12-pcs_vds_v1.ipynb
 ADDRESS_FILEPATH = 'addresses/strategies/pcs_eps_3pool_v1.json'
-CONTRACT_DATA_FILEPATH = ''
+CONTRACT_DATA_FILEPATH = 'deployed_contracts/PcsVdsV1.json'
 
 log = logging.getLogger(__name__)
 
@@ -173,7 +174,7 @@ class ArbitragePair:
             func=self._get_contract_function(),
             path=self._get_path_argument(),
             amountLast=self.amount_last.amount,
-            max_gas_=GAS_COST * MAX_GAS_MULTIPLIER,
+            max_gas_=int(GAS_COST * MAX_GAS_MULTIPLIER),
             gas_price_=self._gas_price,
         )
         self._is_running = True

@@ -29,14 +29,9 @@
     {
       "inputs": [
         {
-          "internalType": "address",
-          "name": "tokenFirst",
-          "type": "address"
-        },
-        {
-          "internalType": "address",
-          "name": "tokenLast",
-          "type": "address"
+          "internalType": "address[]",
+          "name": "path",
+          "type": "address[]"
         },
         {
           "internalType": "uint256",
@@ -44,9 +39,55 @@
           "type": "uint256"
         },
         {
+          "internalType": "uint8",
+          "name": "chiFlag",
+          "type": "uint8"
+        }
+      ],
+      "name": "swapVdsFirst",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount0",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount1",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bytes",
+          "name": "data",
+          "type": "bytes"
+        }
+      ],
+      "name": "uniswapV2Call",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
           "internalType": "address[]",
-          "name": "midPath",
+          "name": "path",
           "type": "address[]"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amountLast",
+          "type": "uint256"
         },
         {
           "internalType": "uint8",
@@ -96,8 +137,8 @@
     "56": {
       "events": {},
       "links": {},
-      "address": "0x0382276659217de9A20f9630499BFE516CD34422",
-      "transactionHash": "0x231832aeab20a9b2386f5ed5eafaec92692953abd13007805958ca3fd667d80b"
+      "address": "0x6B86D8856cb0c8d718bc2d5687B8528924524616",
+      "transactionHash": "0xd5eaa5bfe32a808ec5e08d66b0446fad83956cf327ad6fa531e3cbabbd8266c4"
     }
   },
   "schemaVersion": "3.3.4"
