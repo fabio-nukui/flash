@@ -119,7 +119,7 @@ def _get_providers() -> list[BackgroundWeb3]:
         public_endpoints = json.load(open(PUBLIC_ENDPOINTS_FILEPATH))[str(configs.CHAIN_ID)]
         endpoints.extend(public_endpoints)
 
-    return [BackgroundWeb3(uri) for uri in endpoints]
+    return [BackgroundWeb3(uri) for uri in set(endpoints)]
 
 
 LIST_BG_WEB3 = _get_providers()
