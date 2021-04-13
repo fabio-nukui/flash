@@ -11,6 +11,10 @@
 *.log
 /logs
 
+# compiled
+**/*.pyc
+**/__pycache__
+
 # IDEs/editors
 .idea
 *.iml

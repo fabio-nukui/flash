@@ -8,13 +8,13 @@ import configs
 log = logging.getLogger(__name__)
 
 
-def from_uri(endpoint_uri: str, warn_http_provider: bool = True) -> Web3:
+def from_uri(endpoint_uri: str, verbose: bool = True) -> Web3:
     middlewares = []
     if configs.POA_CHAIN:
         middlewares.append(geth_poa_middleware)
 
     if endpoint_uri.startswith('http'):
-        if warn_http_provider:
+        if verbose:
             log.warning('HTTPProvider does not support filters')
         provider = HTTPProvider(endpoint_uri)
     elif endpoint_uri.startswith('wss'):
@@ -28,10 +28,10 @@ def from_uri(endpoint_uri: str, warn_http_provider: bool = True) -> Web3:
 
 def get_web3(verbose: bool = False, force_local: bool = configs.FORCE_LOCAL_RCP_CONNECTION) -> Web3:
     if force_local:
-        web3_remote = from_uri('wss://dummy.com')
+        web3_remote = from_uri('wss://dummy.com', verbose)
     else:
-        web3_remote = from_uri(configs.RCP_REMOTE_URI)
-    web3_local = from_uri(configs.RCP_LOCAL_URI)
+        web3_remote = from_uri(configs.RCP_REMOTE_URI, verbose)
+    web3_local = from_uri(configs.RCP_LOCAL_URI, verbose)
 
     try:
         last_block_remote = web3_remote.eth.block_number

@@ -46,7 +46,15 @@ WORKDIR ${HOME}/work
 ########################################### PROD ###################################################
 FROM base as prod
 
-COPY app.py logging_config.yaml abis addresses deployed_contracts src ${HOME}/work/
+COPY --chown=$USER:$GID app.py logging_config.yaml ${HOME}/work/
+
+COPY --chown=$USER:$GID abis ${HOME}/work/abis
+
+COPY --chown=$USER:$GID addresses ${HOME}/work/addresses
+
+COPY --chown=$USER:$GID deployed_contracts ${HOME}/work/deployed_contracts
+
+COPY --chown=$USER:$GID src ${HOME}/work/src
 
 CMD ["python", "app.py"]
 
