@@ -74,13 +74,13 @@ contract PcsVdsV1 is IPancakeCallee, Withdrawable, CHIBurner {
         address tokenIn,
         address tokenOut,
         uint256 amountIn,
-        uint256 amountOutMax
+        uint256 amountOutMin
     ) private {
         IUniswapV2Pair pair = IUniswapV2Pair(pairAddress);
 
         (uint reserveIn, uint reserveOut) = PancakeswapLibrary.getReserves(pcsFactory, tokenIn, tokenOut);
         uint256 amountOut = PancakeswapLibrary.getAmountOut(amountIn, reserveIn, reserveOut);
-        require(amountOut < amountOutMax, 'PCS low return');
+        require(amountOut > amountOutMin, 'PCS low return');
         TransferHelper.safeApproveAndTransfer(tokenIn, pairAddress, amountIn);
 
         (uint256 amount0Out, uint256 amount1Out) = tokenIn == pair.token0() ? (uint(0), amountOut) : (amountOut, uint(0));
@@ -159,13 +159,13 @@ contract PcsVdsV1 is IPancakeCallee, Withdrawable, CHIBurner {
         address pairAddress,
         address tokenIn,
         uint256 amountIn,
-        uint256 amountOutMax
+        uint256 amountOutMin
     ) private {
         IValueLiquidPair pair = IValueLiquidPair(pairAddress);
         IValueLiquidFormula formula = IValueLiquidFormula(vdsFormula);
 
         uint256 amountOut = formula.getPairAmountOut(pairAddress, tokenIn, amountIn);
-        require(amountOut < amountOutMax, 'VDS low return');
+        require(amountOut > amountOutMin, 'VDS low return');
         TransferHelper.safeApproveAndTransfer(tokenIn, pairAddress, amountIn);
 
         (uint256 amount0Out, uint256 amount1Out) = tokenIn == pair.token0() ? (uint(0), amountOut) : (amountOut, uint(0));
