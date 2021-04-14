@@ -7,7 +7,6 @@ from typing import Iterable
 
 from web3 import Web3
 from web3.contract import Contract
-from web3.exceptions import TransactionNotFound
 
 import configs
 import tools
