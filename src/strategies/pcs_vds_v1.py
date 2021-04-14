@@ -241,8 +241,7 @@ def run():
         for params in get_arbitrage_params(pcs_dex, vds_dex)
     ]
     listener = tools.w3.BlockListener(web3)
-    while True:
-        latest_block = listener.get_block_number()
+    for latest_block in listener.wait_for_new_blocks():
         tools.cache.clear_caches()
         if any([pair.is_running(latest_block) for pair in arbitrage_pairs]):
             continue

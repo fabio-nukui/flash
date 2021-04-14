@@ -185,8 +185,7 @@ def run():
         for token_first, token_last in permutations(eps_dex.tokens, 2)
     ]
     listener = tools.w3.BlockListener(web3)
-    while True:
-        latest_block = listener.get_block_number()
+    for latest_block in listener.wait_for_new_blocks():
         tools.cache.clear_caches()
         if any([pair.is_running(latest_block) for pair in arbitrage_pairs]):
             continue

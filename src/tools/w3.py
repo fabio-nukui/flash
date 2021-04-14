@@ -76,7 +76,7 @@ class BlockListener:
         self.filter = self.web3.eth.filter(block_label)
         self.verbose = verbose
 
-    def get_block_number(self) -> int:
+    def wait_for_new_blocks(self) -> int:
         while True:
             entries = self.filter.get_new_entries()
             if len(entries) > 0:
@@ -85,5 +85,5 @@ class BlockListener:
                 block_number = self.web3.eth.block_number
                 if self.verbose:
                     log.debug(f'New block: {block_number}')
-                return block_number
+                yield block_number
             time.sleep(configs.POLL_INTERVAL)

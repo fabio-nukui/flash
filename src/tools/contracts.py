@@ -130,18 +130,22 @@ def sign_and_send_contract_transaction(
     return sign_and_send_transaction(tx, web3, wait_finish_)
 
 
-def wait_transaction_finish(tx: str, web3: Web3, verbose: bool = False, min_confirmations: int = 2):
-    listener = w3.BlockListener(web3=web3, verbose=verbose)
-    while True:
-        current_block = listener.get_block_number()
+def wait_transaction_finish(
+    tx_hash: str,
+    web3: Web3,
+    verbose: bool = False,
+    min_confirmations: int = 1,
+):
+    listener = w3.BlockListener(web3)
+    for current_block in listener.wait_for_new_blocks():
         try:
-            receipt = web3.eth.getTransactionReceipt(tx)
+            receipt = web3.eth.getTransactionReceipt(tx_hash)
         except TransactionNotFound:
             continue
         if receipt.status == 0:
-            log.info(f'Failed to send transaction: {tx}')
+            log.info(f'Failed to send transaction: {tx_hash}')
             return
-        elif current_block - receipt.blockNumber < (min_confirmations - 1):
+        elif current_block - receipt.blockNumber >= (min_confirmations - 1):
             return
 
 

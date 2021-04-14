@@ -1,3 +1,4 @@
+# Runs housekeeping functions such as withdrawing funds from contracts
 import json
 import logging
 import os
@@ -18,7 +19,7 @@ from strategies import pcs_vds_v1
 log = logging.getLogger(__name__)
 
 ERC20_ABI = json.load(open('abis/IERC20.json'))
-MIN_ETHERS_WITHDRAW_CONVERT = 0.1  # About 100x the transaction fees on transfer + swap
+MIN_ETHERS_WITHDRAW_CONVERT = 0.05  # About 50x the transaction fees on transfer + swap
 MAX_SLIPPAGE = 0.4
 WRAPPED_CURRENCY_TOKEN = tools.price.get_wrapped_currency_token()
 RUN_INTERVAL = 3600
@@ -73,77 +74,52 @@ class Strategy:
         return f'{self.__class__.__name__}({self.name})'
 
     def withdraw_tokens(self):
-        tx_hashes = {}
         balances = get_address_balances_in_native_currency(self.contract.address, self.tokens)
-        for token_amount, native_amount in balances:
-            if native_amount <= MIN_ETHERS_WITHDRAW_CONVERT:
-                continue
-            log.info(f'{self}: Withdrawing {token_amount}')
-            tx = tools.contracts.sign_and_send_contract_transaction(
-                self.contract.functions.withdrawToken,
-                token_amount.token.address
-            )
-            tx_hashes[tx] = 'running'
-        if not tx_hashes:
-            log.info(f"{self}: Contract has no tokens to withdraw (or all balances are too low).")
+        amounts_withdraw = [
+            token_amount
+            for token_amount, native_amount in balances
+            if native_amount >= MIN_ETHERS_WITHDRAW_CONVERT
+        ]
+        if not amounts_withdraw:
+            log.info(f'{self}: No tokens to withdraw')
             return
-        listener = tools.w3.BlockListener(self.web3, verbose=False)
-        while True:
-            current_block = listener.get_block_number()
-            for tx, status in tx_hashes.items():
-                if status != 'running':
-                    continue
-                try:
-                    receipt = self.web3.eth.getTransactionReceipt(tx)
-                except TransactionNotFound:
-                    continue
-                if receipt.status == 0:
-                    log.info(f'Failed to withdraw token: {tx}')
-                    tx_hashes[tx] = 'failed'
-                elif current_block - receipt.blockNumber < (MIN_CONFIRMATIONS - 1):
-                    tx_hashes[tx] = 'success'
-            if all(status != 'running' for status in tx_hashes.values()):
-                log.info(f'{self}: Finished withdrawing tokens from contract')
-                return
+        for token_amount in amounts_withdraw:
+            log.info(f'{self}: Withdrawing {token_amount}')
+            tools.contracts.sign_and_send_contract_transaction(
+                self.contract.functions.withdrawToken,
+                token_amount.token.address,
+                wait_finish_=True
+            )
+        log.info(f'{self}: Finished withdrawing tokens from contract')
 
 
 def convert_amounts(tokens: Iterable[Token], web3: Web3):
-    tx_hashes = {}
     balances = get_address_balances_in_native_currency(configs.ADDRESS, tokens)
-    for token_amount, native_amount in balances:
-        if native_amount < MIN_ETHERS_WITHDRAW_CONVERT:
-            continue
+    amounts_withdraw = [
+        token_amount
+        for token_amount, native_amount in balances
+        if native_amount >= MIN_ETHERS_WITHDRAW_CONVERT
+    ]
+    if not amounts_withdraw:
+        log.info('No tokens to convert')
+        return
+    for token_amount in amounts_withdraw:
         log.info(f'Converting {token_amount}')
         if token_amount.token == WRAPPED_CURRENCY_TOKEN:  # WBNB / WETH
             contract = web3.eth.contract(token_amount.token.address, abi=WETH_ABI)
-            tx = tools.contracts.sign_and_send_contract_transaction(
+            tools.contracts.sign_and_send_contract_transaction(
                 contract.functions.withdraw,
                 token_amount.amount,
+                wait_finish_=True
             )
         else:
-            tx = tools.exchange.exchange_1inch(web3, token_amount, max_slippage=MAX_SLIPPAGE)
-        tx_hashes[tx] == 'running'
-    if not tx_hashes:
-        log.info('Deployer addres has no tokens to convert (or all balances are too low)')
-        return
-    listener = tools.w3.BlockListener(web3, verbose=False)
-    while True:
-        current_block = listener.get_block_number()
-        for tx, status in tx_hashes.items():
-            if status != 'running':
-                continue
-            try:
-                receipt = web3.eth.getTransactionReceipt(tx)
-            except TransactionNotFound:
-                continue
-            if receipt.status == 0:
-                log.info(f'Failed to convert token: {tx}')
-                tx_hashes[tx] = 'failed'
-            elif current_block - receipt.blockNumber < (MIN_CONFIRMATIONS - 1):
-                tx_hashes[tx] = 'success'
-        if all(status != 'running' for status in tx_hashes.values()):
-            log.info('Finished converting tokens from deployer address')
-            return
+            tools.exchange.exchange_1inch(
+                web3,
+                token_amount,
+                max_slippage=MAX_SLIPPAGE,
+                wait_finish=True
+            )
+        log.info('Finished converting tokens from deployer address')
 
 
 def get_strategy(strategy_name: str, web3: Web3):
