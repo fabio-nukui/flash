@@ -119,17 +119,26 @@ class Blocks:
         return self.blocks_remaining / (blocks_per_second - 1 / SECONDS_PER_BLOCK) / 3600
 
 
+def format_hours(hours: float) -> str:
+    if str(hours) in ('nan', 'inf', '-inf'):
+        return str(hours)
+    return (
+        f'{int(hours / 24)}d{int(hours % 24):02d}:'
+        f'{int((hours * 60) % 60):02d}:{int((hours * 3600) % 60):02d}'
+    )
+
+
 def main():
     logs = Logs()
     blocks = Blocks()
     for d in logs.iterdata():
         blocks.load_new_block(d)
-        time_left = blocks.get_hours_remaining()
+        hours_left = blocks.get_hours_remaining()
         log = (
             f'{blocks.last_processed_block["t"].isoformat()}: '
             f'blocks left: {blocks.blocks_remaining}; '
             f'blocks/s: {blocks.get_blocks_per_second():,.2f}; '
-            f'time left: {time_left:,.2f}; '
+            f'time left: {format_hours(hours_left)}; '
         )
         print(log)
 
