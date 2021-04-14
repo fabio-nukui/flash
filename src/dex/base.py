@@ -35,6 +35,8 @@ class DexProtocol:
         self.addresses = self._get_addresses(addresses_filepath, chain_id)
         self.fee = fee
         self.web3 = web3
+        self.tokens: list[Token]
+
         self._connect(**kwargs)
 
     def __repr__(self):

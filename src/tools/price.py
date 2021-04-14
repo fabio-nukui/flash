@@ -8,13 +8,14 @@ import httpx
 from web3 import Web3
 
 import configs
-import tools
 from core import LiquidityPair, Token
+from tools import w3
 from tools.cache import ttl_cache
 
 USD_PRICE_FEED_ADDRESSES = \
     json.load(open('addresses/chainlink_usd_price_feeds.json'))[str(configs.CHAIN_ID)]
 CHAINLINK_PRICE_FEED_ABI = json.load(open('abis/ChainlinkPriceFeed.json'))
+WRAPPED_CURRENCY_TOKENS_DATA = json.load(open('addresses/wrapped_currency_tokens.json'))
 
 # These functions should not be used for too time-critical data, so ttl can be higher
 USD_PRICE_CACHE_TTL = 360
@@ -27,7 +28,7 @@ TOKEN_SYNONYMS = {
     'WETH': 'ETH',
 }
 
-WEB3 = tools.w3.get_web3()
+WEB3 = w3.get_web3()
 log = logging.getLogger(__name__)
 
 
@@ -123,3 +124,11 @@ def get_price_usd(token: Token, pairs: list[LiquidityPair], web3: Web3 = WEB3) -
     if not liquidity_prices:
         raise Exception('Found no token with chainlink price linked to input token.')
     return max(liquidity_prices)[1]
+
+
+def get_wrapped_currency_token(chain_id: int = configs.CHAIN_ID, web3: Web3 = WEB3) -> Token:
+    try:
+        data = WRAPPED_CURRENCY_TOKENS_DATA[str(chain_id)]
+    except KeyError:
+        raise Exception(f'No wrapped reference token for {chain_id=}')
+    return Token(chain_id=chain_id, web3=web3, **data)

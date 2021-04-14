@@ -9,9 +9,10 @@ from threading import Thread
 from eth_account.datastructures import SignedTransaction
 from web3 import Account, Web3
 from web3.contract import Contract, ContractFunction
+from web3.exceptions import TransactionNotFound
 
 import configs
-import tools.w3
+from tools import price, w3
 
 ACCOUNT = Account.from_key(configs.PRIVATE_KEY)
 CONNECTION_KEEP_ALIVE_TIME_INTERVAL = 30
@@ -24,7 +25,7 @@ class BackgroundWeb3:
     def __init__(self, uri: str, verbose: bool = False):
         self.uri = uri
         self.verbose = verbose
-        self._web3 = tools.w3.from_uri(uri, verbose=False)
+        self._web3 = w3.from_uri(uri, verbose=False)
         self._executor = futures.ThreadPoolExecutor(1)
         self._heartbeat_thread: Thread
         if not uri == configs.RCP_LOCAL_URI:
@@ -68,7 +69,7 @@ class BackgroundWeb3:
 
 def load_contract(contract_data_filepath: str, web3: Web3 = None) -> Contract:
     """Load contract and add "sign_and_call" method to its functions"""
-    web3 = tools.w3.get_web3() if web3 is None else web3
+    web3 = w3.get_web3() if web3 is None else web3
     with open(contract_data_filepath) as f:
         data = json.load(f)
     address = data['networks'][str(configs.CHAIN_ID)]['address']
@@ -88,16 +89,36 @@ def _has_chi_flag(func: ContractFunction):
 
 
 def sign_and_send_transaction(
+    tx: dict,
+    web3: Web3,
+    wait_finish: bool = False,
+    verbose: bool = False,
+) -> str:
+    tx['gas'] = tx.get('gas', 1_000_000)
+    tx['nonce'] = tx.get('nonce', web3.eth.get_transaction_count(ACCOUNT.address))
+    tx['gasPrice'] = tx.get('gasPrice', price.get_gas_price())
+
+    signed_tx = ACCOUNT.sign_transaction(tx)
+    broadcast_transaction(signed_tx)
+    tx_hash = web3.sha3(signed_tx.rawTransaction).hex()
+
+    if wait_finish:
+        wait_transaction_finish(tx_hash, web3, verbose)
+    return tx_hash
+
+
+def sign_and_send_contract_transaction(
     func: ContractFunction,
     *args,
     max_gas_: int = 1_000_000,
     gas_price_: int = None,
+    wait_finish_: bool = False,
     **kwargs
 ) -> str:
     web3 = func.web3
-    gas_price_ = tools.price.get_gas_price() if gas_price_ is None else gas_price_
+    gas_price_ = price.get_gas_price() if gas_price_ is None else gas_price_
     if _has_chi_flag(func) and CHI_FLAG not in kwargs:
-        kwargs[CHI_FLAG] = 0 if gas_price_ < 2 * tools.price.get_gas_price() else 1
+        kwargs[CHI_FLAG] = 0 if gas_price_ < 2 * price.get_gas_price() else 1
 
     tx = func(*args, **kwargs).buildTransaction({
         'from': ACCOUNT.address,
@@ -106,10 +127,22 @@ def sign_and_send_transaction(
         'nonce': web3.eth.get_transaction_count(ACCOUNT.address),
         'gasPrice': gas_price_
     })
-    signed_tx = ACCOUNT.sign_transaction(tx)
-    broadcast_transaction(signed_tx)
+    return sign_and_send_transaction(tx, web3, wait_finish_)
 
-    return web3.sha3(signed_tx.rawTransaction).hex()
+
+def wait_transaction_finish(tx: str, web3: Web3, verbose: bool = False, min_confirmations: int = 2):
+    listener = w3.BlockListener(web3=web3, verbose=verbose)
+    while True:
+        current_block = listener.get_block_number()
+        try:
+            receipt = web3.eth.getTransactionReceipt(tx)
+        except TransactionNotFound:
+            continue
+        if receipt.status == 0:
+            log.info(f'Failed to send transaction: {tx}')
+            return
+        elif current_block - receipt.blockNumber < (min_confirmations - 1):
+            return
 
 
 def _get_providers() -> list[BackgroundWeb3]:

@@ -1,15 +1,12 @@
 """Pancakeswap (pcs) x Elipsis 3pool (eps3pool)"""
 import json
 import logging
-import time
 from itertools import permutations
 
 from web3 import Web3
-from web3._utils.filters import Filter
 from web3.contract import Contract
 from web3.exceptions import TransactionNotFound
 
-import configs
 import tools
 from core import Token, TokenAmount, TradePairs
 from dex.curve import CurveTrade, EllipsisDex
@@ -121,7 +118,7 @@ class ArbitragePair:
         log.info(f'Trades: {self.trade_cake}; {self.trade_eps}')
         log.info(f'Gas price: {self._gas_price / 10 ** 9:,.1f} Gwei')
 
-        transaction_hash = tools.contracts.sign_and_send_transaction(
+        transaction_hash = tools.contracts.sign_and_send_contract_transaction(
             func=self.contract.functions.triggerFlashSwap,
             token0=self.token_first.address,
             token1=self.token_last.address,
@@ -129,7 +126,7 @@ class ArbitragePair:
             max_gas_=GAS_COST * 2,
             gas_price_=self._gas_price,
         )
-        # transaction_hash = tools.contracts.sign_and_send_transaction(
+        # transaction_hash = tools.contracts.sign_and_send_contract_transaction(
         #     self.contract.functions.triggerFlashSwap,
         #     path=[t.address for t in self.trade_cake.route.tokens],
         #     amountLast=self.amount_last.amount,
@@ -173,18 +170,6 @@ class ArbitragePair:
         return False
 
 
-def get_latest_block(block_filter: Filter, web3: Web3) -> int:
-    while True:
-        entries = block_filter.get_new_entries()
-        if len(entries) > 0:
-            if len(entries) > 1:
-                log.warning(f'More than one block passed since last iteration ({len(entries)})')
-            block_number = web3.eth.block_number
-            log.debug(f'New block: {block_number}')
-            return block_number
-        time.sleep(configs.POLL_INTERVAL)
-
-
 def run():
     """Search for arbitrage oportunity using flash swap starting from pancakeswap to
     Ellipsis's 3pool and back (USDT / USDC / BUSD)"""
@@ -199,9 +184,9 @@ def run():
         ArbitragePair(token_first, token_last, cake_dex, eps_dex, contract, web3)
         for token_first, token_last in permutations(eps_dex.tokens, 2)
     ]
-    block_filter = web3.eth.filter('latest')
+    listener = tools.w3.BlockListener(web3)
     while True:
-        latest_block = get_latest_block(block_filter, web3)
+        latest_block = listener.get_block_number()
         tools.cache.clear_caches()
         if any([pair.is_running(latest_block) for pair in arbitrage_pairs]):
             continue

@@ -40,9 +40,9 @@ class Token:
         self.decimals = int(decimals) if decimals is not None else None
         self.symbol = symbol
         self.abi = abi
+        self.contract: Contract = None
 
         if web3 is None:
-            self.contract = None
             assert decimals is not None, f'No decimals provided for token id={address}'
         else:
             self.contract = web3.eth.contract(address=self.address, abi=self.abi)
@@ -114,6 +114,10 @@ class TokenAmount:
         if self.amount_in_units > 1:
             return f'{self.__class__.__name__}({self.symbol}: {self.amount_in_units:,.2f})'
         return f'{self.__class__.__name__}({self.symbol}: {self.amount_in_units})'
+
+    def __hash__(self):
+        amount = -MAX_UINT_256 if self.is_empty() else self.amount
+        return int(self.token.address, 16) + self.token.chain_id + amount
 
     @property
     def amount_in_units(self) -> float:

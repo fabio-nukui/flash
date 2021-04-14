@@ -1,4 +1,5 @@
 import logging
+import time
 
 from web3 import HTTPProvider, IPCProvider, Web3, WebsocketProvider
 from web3.middleware import geth_poa_middleware
@@ -67,3 +68,22 @@ def get_web3(verbose: bool = False, force_local: bool = configs.FORCE_LOCAL_RCP_
         log.info(f'Latest block: {web3.eth.block_number}')
 
     return web3
+
+
+class BlockListener:
+    def __init__(self, web3: Web3 = None, block_label='latest', verbose: bool = True):
+        self.web3 = get_web3() if web3 is None else web3
+        self.filter = self.web3.eth.filter(block_label)
+        self.verbose = verbose
+
+    def get_block_number(self) -> int:
+        while True:
+            entries = self.filter.get_new_entries()
+            if len(entries) > 0:
+                if len(entries) > 1:
+                    log.warning(f'More than one block passed since last iteration ({len(entries)})')
+                block_number = self.web3.eth.block_number
+                if self.verbose:
+                    log.debug(f'New block: {block_number}')
+                return block_number
+            time.sleep(configs.POLL_INTERVAL)
