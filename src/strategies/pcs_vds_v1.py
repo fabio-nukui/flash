@@ -157,12 +157,12 @@ class ArbitragePair:
         if isinstance(self.first_dex, PancakeswapDex):
             return [
                 self.second_trade.route.pairs[0].address,
-                *[t.address for t in self.first_trade.route.tokens]
+                *(t.address for t in self.first_trade.route.tokens)
             ]
         return [
             self.token_first.address,
             self.token_last.address,
-            *[p.address for p in self.first_trade.route.pairs]
+            *(p.address for p in self.first_trade.route.pairs)
         ]
 
     def execute(self):
