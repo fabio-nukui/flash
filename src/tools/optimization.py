@@ -86,12 +86,12 @@ def bissection_optimizer(
     Returns:
         tuple[int, int]: Result in x and func(x)
     """
-    def derivative(x: int) -> int:
-        return int((func(x + dx) - func(x - dx)) / (2 * dx))
+    def derivative(x: int) -> float:
+        return (func(x + dx) - func(x - dx)) / (2 * dx)
     x_left = x0
     x_right = x0 * BISSECTION_SEARCH_EXPANSION
 
-    y_left = derivative(x0) > 0
+    y_left = derivative(x0)
     assert y_left > 0, "bissection_optimizer only work for f'(x0) > 0"
 
     x = bissection_search(derivative, x_left, x_right, tol, max_iter, y_left=y_left)
@@ -99,20 +99,20 @@ def bissection_optimizer(
 
 
 def bissection_search(
-    func: Callable[int, int],
+    func: Callable[int, float],
     x_left: int,
     x_right: int,
     tol: int,
     max_iter: int,
     i: int = 0,
-    y_left: int = None,
-    y_right: int = None,
+    y_left: float = None,
+    y_right: float = None,
 ) -> int:
+    i += 1
     if x_right - x_left < tol or i >= max_iter:
         return (x_left + x_right) // 2
     y_left = func(x_left) if y_left is None else y_left
     y_right = func(x_right) if y_right is None else y_right
-    i += 1
     if y_right > 0:
         x_right *= BISSECTION_SEARCH_EXPANSION
         return bissection_search(func, x_left, x_right, tol, max_iter, i, y_left)

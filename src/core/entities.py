@@ -100,11 +100,11 @@ def _same_token(func):
 
 @functools.total_ordering
 class TokenAmount:
-    def __init__(self, token: Token, amount: int = None):
+    def __init__(self, token: Token, amount: Union[int, float] = None):
         if amount is not None:
             assert -MAX_UINT_256 < amount < MAX_UINT_256, f'{amount=} is out of bounds'
         self.token = token
-        self.amount = amount
+        self.amount = int(amount) if amount is not None else amount
 
         self.symbol = self.token.symbol
 
