@@ -167,7 +167,8 @@ class ArbitragePair:
 
     def execute(self):
         log.info(f'Estimated profit: {self.estimated_net_result_usd}')
-        log.info(f'Trades: {self.first_trade}; {self.second_trade}')
+        log.info(
+            f'Trades: {self.first_dex}:{self.first_trade}; {self.second_dex}:{self.second_trade}')
         log.info(f'Gas price: {self._gas_price / 10 ** 9:,.1f} Gwei')
 
         transaction_hash = tools.contracts.sign_and_send_contract_transaction(
