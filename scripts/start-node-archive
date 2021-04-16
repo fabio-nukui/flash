@@ -2,7 +2,7 @@
 
 set -eux
 
-CACHE="$(1:-16384)"
+CACHE="${1:-8192}"
 
 geth \
     --config ./config.toml \

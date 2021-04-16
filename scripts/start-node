@@ -3,7 +3,7 @@
 set -eux
 
 SYNCMODE="${1:-fast}"
-CACHE="$(2:-8192)"
+CACHE="${2:-8192}"
 
 geth \
     --config ./config.toml \
