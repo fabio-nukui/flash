@@ -6,6 +6,7 @@ interface ChiToken {
     function freeUpTo(uint256 value) external;
 }
 
+ // TODO: Make version without chiFlag argument (8586 gas savings)
 contract CHIBurner {
     ChiToken constant private chi = ChiToken(0x0000000000004946c0e9F43F4Dee607b0eF1fA1c);
 
