@@ -111,7 +111,7 @@ class ArbitragePair:
         )
         result_initial = self._estimate_result(amount_last_initial)
         if result_initial < 0:
-            # If gross result is negative even with small amount gross, skip optimization
+            # If gross result is negative even with small amount, skip optimization
             self.amount_last = amount_last_initial
             self.estimated_result = result_initial
             return
@@ -123,8 +123,8 @@ class ArbitragePair:
                 tol=int(TOLERANCE_USD * 10 ** self.token_last.decimals / usd_price_token_last),
                 max_iter=MAX_ITERATIONS,
             )
-        except InsufficientLiquidity:
-            logging.info(f'{self}: InsufficientLiquidity on optimization step.')
+        except Exception as e:
+            logging.info(f'{self}: Error during optimization: {e!r}')
             return
         if int_amount_last < 0:  # Fail-safe in case optimizer returns negative inputs
             return
