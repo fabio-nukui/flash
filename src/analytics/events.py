@@ -3,7 +3,7 @@ from web3 import Web3
 from . import blocks
 
 
-def get_mappings_from_abi(abi: dict) -> list[dict]:
+def get_events_from_abi(abi: dict) -> list[dict]:
     return [
         {
             'name': e['name'],
@@ -12,6 +12,19 @@ def get_mappings_from_abi(abi: dict) -> list[dict]:
         }
         for e in abi
         if e['type'].lower() == 'event'
+    ]
+
+
+def get_functions_from_abi(abi: dict) -> list[dict]:
+    return [
+        {
+            'name': e['name'],
+            'data': [{'name': d['name'], 'type': d['type']} for d in e['inputs']],
+            'hash': (Web3.sha3(
+                text=f"{e['name']}({','.join(i['type'] for i in e['inputs'])})").hex()[:10])
+        }
+        for e in abi
+        if e['type'].lower() == 'function'
     ]
 
 
