@@ -5,6 +5,7 @@ from typing import Union
 from web3.contract import Contract
 from web3 import Web3
 
+import configs
 from core import LiquidityPair, Token, TokenAmount, TradePairs
 
 
@@ -120,9 +121,10 @@ class UniV2PairInitMixin:
         if web3 is None:
             web3 = contract.web3
 
-        token_0_address = contract.functions.token0().call()
-        token_1_address = contract.functions.token1().call()
-        reserve_0, reserve_1, last_timestamp = contract.functions.getReserves().call()
+        token_0_address = contract.functions.token0().call(block_identifier=configs.BLOCK)
+        token_1_address = contract.functions.token1().call(block_identifier=configs.BLOCK)
+        reserve_0, reserve_1, last_timestamp = \
+            contract.functions.getReserves().call(block_identifier=configs.BLOCK)
 
         reserves = (
             TokenAmount(Token(chain_id, token_0_address, web3=web3), reserve_0),
