@@ -6,6 +6,7 @@ from copy import copy
 from enum import Enum
 from typing import Union, overload
 
+import configs
 from web3 import Web3
 from web3.contract import Contract
 
@@ -47,9 +48,10 @@ class Token:
         else:
             self.contract = web3.eth.contract(address=self.address, abi=self.abi)
             if symbol is None:
-                self.symbol = self.contract.functions.symbol().call()
+                self.symbol = self.contract.functions.symbol().call(block_identifier=configs.BLOCK)
             if decimals is None:
-                self.decimals = self.contract.functions.decimals().call()
+                self.decimals = \
+                    self.contract.functions.decimals().call(block_identifier=configs.BLOCK)
 
     def __repr__(self):
         return f'{self.__class__.__name__}(symbol={self.symbol}, address={self.address})'

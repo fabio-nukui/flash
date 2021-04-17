@@ -6,6 +6,7 @@ from web3 import Web3
 from core import LiquidityPair, TokenAmount
 from tools.cache import ttl_cache
 
+import configs
 from ..base import UniV2PairInitMixin
 
 N_PAIRS_CACHE = 50_000  # Must be at least equal to number of pairs in strategy
@@ -55,4 +56,4 @@ class UniV2Pair(LiquidityPair, UniV2PairInitMixin):
 
     @ttl_cache(N_PAIRS_CACHE)
     def _get_reserves(self):
-        return self.contract.functions.getReserves().call()
+        return self.contract.functions.getReserves().call(block_identifier=configs.BLOCK)

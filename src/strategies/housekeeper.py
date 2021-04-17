@@ -44,7 +44,7 @@ with open('addresses/strategies/housekeeper.json') as f:
 def get_address_balances(address: str, tokens: list[Token]) -> list[TokenAmount]:
     amounts = []
     for token in tokens:
-        amount = token.contract.functions.balanceOf(address).call()
+        amount = token.contract.functions.balanceOf(address).call(block_identifier=configs.BLOCK)
         amounts.append(TokenAmount(token, amount))
     return amounts
 
@@ -98,11 +98,18 @@ class Strategy:
         log.info(f'{self}: Finished withdrawing tokens from contract')
 
     def top_up_chi(self, chi_token: Token):
-        chi_balance = chi_token.contract.functions.balanceOf(self.contract.address).call()
-        log.info(f'{self}: CHI balance: {chi_balance}')
-        if chi_balance > CHI_MIN_CONTRACT_RESERVE:
+        contract_balance = (
+            chi_token.contract.functions.balanceOf(self.contract.address)
+            .call(block_identifier=configs.BLOCK)
+        )
+        log.info(f'{self}: CHI balance: {contract_balance}')
+        if contract_balance > CHI_MIN_CONTRACT_RESERVE:
             return
-        if chi_token.contract.functions.balanceOf(configs.ADDRESS).call() < CHI_CONTRACT_TOP_UP:
+        deployer_balance = (
+            chi_token.contract.functions.balanceOf(configs.ADDRESS)
+            .call(block_identifier=configs.BLOCK)
+        )
+        if deployer_balance < CHI_CONTRACT_TOP_UP:
             log.info('Buying CHI')
             amount_chi = TokenAmount(chi_token, CHI_CONTRACT_TOP_UP)
             native_amount = tools.exchange.get_quote_1inch(amount_chi)
@@ -123,8 +130,11 @@ class Strategy:
                     max_slippage=MAX_SLIPPAGE,
                     wait_finish=True
                 )
-        amount_transfer = min(
-            chi_token.contract.functions.balanceOf(configs.ADDRESS).call(), CHI_CONTRACT_TOP_UP)
+        deployer_balance = (
+            chi_token.contract.functions.balanceOf(configs.ADDRESS)
+            .call(block_identifier=configs.BLOCK)
+        )
+        amount_transfer = min(deployer_balance, CHI_CONTRACT_TOP_UP)
         log.info(f'Transfering {amount_transfer} CHI')
         tools.contracts.sign_and_send_contract_transaction(
             chi_token.contract.functions.transfer,
@@ -219,7 +229,10 @@ def run():
         balance_native = web3.eth.get_balance(configs.ADDRESS)
         balance_native_units = balance_native / 10 ** tools.price.get_native_token_decimals()
 
-        balance_stable = stable_reserve_token.contract.functions.balanceOf(configs.ADDRESS).call()
+        balance_stable = (
+            stable_reserve_token.contract.functions.balanceOf(configs.ADDRESS)
+            .call(block_identifier=configs.BLOCK)
+        )
         balance_stable_units = balance_stable / 10 ** stable_reserve_token.decimals
 
         log.info(

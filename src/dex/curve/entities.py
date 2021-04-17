@@ -5,6 +5,7 @@ from typing import Iterable
 from web3 import Web3
 from web3.exceptions import BadFunctionCallOutput
 
+import configs
 from core import Token, TokenAmount, Trade
 from tools.cache import ttl_cache
 
@@ -54,7 +55,8 @@ class CurvePool:
         tokens = []
         while True:
             try:
-                token_address = self.pool_contract.functions.coins(i).call()
+                token_address = \
+                    self.pool_contract.functions.coins(i).call(block_identifier=configs.BLOCK)
             except BadFunctionCallOutput:
                 return tokens
             tokens.append(Token(self.chain_id, token_address, web3=self.web3))
@@ -74,13 +76,13 @@ class CurvePool:
     @ttl_cache(N_POOLS_CACHE)
     def _balance(self) -> list[int]:
         return [
-            self.pool_contract.functions.balances(i).call()
+            self.pool_contract.functions.balances(i).call(block_identifier=configs.BLOCK)
             for i in range(self.n_coins)
         ]
 
     @ttl_cache(ttl=180)  # _A should vary slowly over time, cache can have greater TTL
     def _A(self):
-        return self.pool_contract.functions.A().call()
+        return self.pool_contract.functions.A().call(block_identifier=configs.BLOCK)
 
     def _xp(self) -> tuple[int, ...]:
         return tuple(

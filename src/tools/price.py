@@ -50,7 +50,7 @@ def _get_chainlink_data(asset_name: str, address: str, decimals: int, web3: Web3
     contract = web3.eth.contract(address, abi=CHAINLINK_PRICE_FEED_ABI)
     (
         round_id, answer, started_at, updated_at, answered_in_round
-    ) = contract.functions.latestRoundData().call()
+    ) = contract.functions.latestRoundData().call(block_identifier=configs.BLOCK)
 
     dt_updated_at = datetime.fromtimestamp(updated_at)
     seconds_since_last_update = (dt_updated_at - datetime.utcnow()).total_seconds()

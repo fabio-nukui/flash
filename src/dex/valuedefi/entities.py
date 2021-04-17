@@ -6,6 +6,7 @@ from web3 import Web3
 from core import LiquidityPair, TokenAmount
 from tools.cache import ttl_cache
 
+import configs
 from ..base import UniV2PairInitMixin
 
 
@@ -28,7 +29,9 @@ class ValueDefiPair(LiquidityPair, UniV2PairInitMixin):
                 raise ValueError('`contract` or (`address` + `abi` + `web3`) must be passed')
             contract = web3.eth.contract(address, abi=abi)
         if weights is None:
-            weights = tuple(contract.functions.getTokenWeights().call())
+            weights = tuple(
+                contract.functions.getTokenWeights().call(block_identifier=configs.BLOCK)
+            )
         assert sum(weights) == 100, f'sum(weights) must be 100, received {weights=}'
         self.weights = weights
         super().__init__(reserves, fee, contract=contract)
@@ -43,13 +46,13 @@ class ValueDefiPair(LiquidityPair, UniV2PairInitMixin):
     @classmethod
     def from_address(cls, chain_id: int, address: str, abi: dict, web3: Web3):
         contract = web3.eth.contract(address, abi=abi)
-        fee = contract.functions.getSwapFee().call() * 10
+        fee = contract.functions.getSwapFee().call(block_identifier=configs.BLOCK) * 10
 
         return super().from_address(chain_id, fee, contract=contract)
 
     @ttl_cache(N_PAIRS_CACHE)
     def _get_reserves(self):
-        return self.contract.functions.getReserves().call()
+        return self.contract.functions.getReserves().call(block_identifier=configs.BLOCK)
 
     def _get_in_out_weights(
         self,
