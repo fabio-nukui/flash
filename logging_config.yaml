@@ -36,15 +36,17 @@ loggers:
     level: WARNING
   urllib3:
     level: WARNING
-  s3transfer:
-    level: WARNING
   hpack:
     level: WARNING
   httpx:
     level: WARNING
-  websockets:
+  matplotlib:
+    level: WARNING
+  parso:
+    level: WARNING
+  s3transfer:
     level: WARNING
   web3:
     level: WARNING
-  parso:
+  websockets:
     level: WARNING
