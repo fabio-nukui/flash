@@ -264,6 +264,15 @@ class LiquidityPair:
             self._update_amounts()
         return (self._reserve_0, self._reserve_1)
 
+    def apply_transactions(self, amounts: list[TokenAmount]):
+        for amount in amounts:
+            if amount.token == self._reserve_0.token:
+                self._reserve_0 += amount
+            elif amount.token == self._reserve_1.token:
+                self._reserve_1 += amount
+            else:
+                raise ValueError("'amounts' must have same tokens as reserves")
+
     def _update_amounts(self):
         """Update the reserve amounts of both token pools and the unix timestamp of the latest
         transaction"""
