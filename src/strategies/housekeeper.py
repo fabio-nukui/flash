@@ -26,7 +26,9 @@ RUN_INTERVAL = 300
 # $5.000 reserve allow for arbitrage operation of $10.000 gross profit at 50% share of gas
 NATIVE_CURRENCY_USD_RESERVE = 5_000
 CHI_MIN_CONTRACT_RESERVE = 200
-CHI_CONTRACT_TOP_UP = 1000
+CHI_CONTRACT_TOP_UP = 600
+CHI_MINT_PRICE = 181530991848198  # Based on minting 600 CHI at 5.000000005 Gwei
+CHI_MINT_MAX_GAS = 23_000_000
 
 ERC20_ABI = json.load(open('abis/IERC20.json'))
 WETH_ABI = json.load(open('abis/IWETH9.json'))
@@ -104,13 +106,23 @@ class Strategy:
             log.info('Buying CHI')
             amount_chi = TokenAmount(chi_token, CHI_CONTRACT_TOP_UP)
             native_amount = tools.exchange.get_quote_1inch(amount_chi)
-            tools.exchange.exchange_1inch(
-                self.web3,
-                native_amount,
-                chi_token,
-                max_slippage=MAX_SLIPPAGE,
-                wait_finish=True
-            )
+            price_chi = native_amount / CHI_CONTRACT_TOP_UP
+            if price_chi > CHI_MINT_PRICE:
+                tools.contracts.sign_and_send_contract_transaction(
+                    chi_token.contract.functions.mint,
+                    CHI_CONTRACT_TOP_UP,
+                    max_gas_=CHI_MINT_MAX_GAS,
+                    wait_finish_=True,
+                )
+                chi_token.contract.functions.mint()
+            else:
+                tools.exchange.exchange_1inch(
+                    self.web3,
+                    native_amount,
+                    chi_token,
+                    max_slippage=MAX_SLIPPAGE,
+                    wait_finish=True
+                )
         amount_transfer = min(
             chi_token.contract.functions.balanceOf(configs.ADDRESS).call(), CHI_CONTRACT_TOP_UP)
         log.info(f'Transfering {amount_transfer} CHI')
