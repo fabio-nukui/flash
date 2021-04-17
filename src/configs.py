@@ -31,3 +31,4 @@ BASELINE_GAS_PRICE_PREMIUM = float(os.getenv('BASELINE_GAS_PRICE_PREMIUM', '1.00
 
 # Testing
 BLOCK = 'latest'
+STOP_RESERVE_UPDATE = False

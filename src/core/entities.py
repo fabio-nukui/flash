@@ -260,7 +260,8 @@ class LiquidityPair:
 
     @property
     def reserves(self) -> tuple[TokenAmount, TokenAmount]:
-        self._update_amounts()
+        if not configs.STOP_RESERVE_UPDATE:
+            self._update_amounts()
         return (self._reserve_0, self._reserve_1)
 
     def _update_amounts(self):

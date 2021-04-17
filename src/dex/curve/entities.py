@@ -38,17 +38,21 @@ class CurvePool:
 
         self.tokens = self.get_tokens()
         self.n_coins = len(self.tokens)
+        self._reserves = [TokenAmount(token) for token in self.tokens]
         self._rates = tuple(int(10 ** t.decimals) for t in self.tokens)
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.name})'
 
     @property
+    def balances(self) -> list[int]:
+        return [reserve.amount for reserve in self.reserves]
+
+    @property
     def reserves(self) -> list[TokenAmount]:
-        return [
-            TokenAmount(token, balance)
-            for token, balance in zip(self.tokens, self._balance())
-        ]
+        if not configs.STOP_RESERVE_UPDATE:
+            self._update_balance()
+        return self._reserves
 
     def get_tokens(self) -> list[Token]:
         i = 0
@@ -73,8 +77,12 @@ class CurvePool:
     # Internal functions based from curve's 3pool contract:
     # https://github.com/curvefi/curve-contract/blob/master/contracts/pools/3pool/StableSwap3Pool.vy
 
+    def _update_balance(self) -> list[int]:
+        for reserve, bal in zip(self._reserves, self._get_balance()):
+            reserve.amount = bal
+
     @ttl_cache(N_POOLS_CACHE)
-    def _balance(self) -> list[int]:
+    def _get_balance(self) -> list[int]:
         return [
             self.pool_contract.functions.balances(i).call(block_identifier=configs.BLOCK)
             for i in range(self.n_coins)
@@ -87,7 +95,7 @@ class CurvePool:
     def _xp(self) -> tuple[int, ...]:
         return tuple(
             rate * balance // LENDING_PRECISION
-            for rate, balance in zip(self._rates, self._balance())
+            for rate, balance in zip(self._rates, self.balances)
         )
 
     def _get_D(self, xp: tuple[int, ...], amp: int) -> int:
