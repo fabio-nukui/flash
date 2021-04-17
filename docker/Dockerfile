@@ -109,4 +109,8 @@ RUN jupyter labextension install -y \
 
 COPY docker/jupyter_lab_config.py $HOME/.jupyter/
 
+COPY docker/tracker.jupyterlab-settings $HOME/.jupyter/lab/user-settings/@jupyterlab/notebook-extension/tracker.jupyterlab-settings
+
+COPY docker/shortcuts.jupyterlab-settings $HOME/.jupyter/lab/user-settings/@jupyterlab/shortcuts-extension/shortcuts.jupyterlab-settings
+
 USER $USER

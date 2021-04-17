@@ -151,7 +151,10 @@ def wait_transaction_finish(
 
 def _get_providers() -> list[BackgroundWeb3]:
     log.info(f'{configs.MULTI_BROADCAST_TRANSACTIONS=}')
-    endpoints = [configs.RCP_LOCAL_URI, configs.RCP_REMOTE_URI]
+    if configs.FORCE_LOCAL_RCP_CONNECTION:
+        endpoints = [configs.RCP_LOCAL_URI]
+    else:
+        endpoints = [configs.RCP_LOCAL_URI, configs.RCP_REMOTE_URI]
     if configs.MULTI_BROADCAST_TRANSACTIONS:
         public_endpoints = json.load(open(PUBLIC_ENDPOINTS_FILEPATH))[str(configs.CHAIN_ID)]
         endpoints.extend(public_endpoints)

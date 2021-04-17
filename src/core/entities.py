@@ -2,15 +2,18 @@ from __future__ import annotations
 
 import functools
 import json
+import logging
 from copy import copy
 from enum import Enum
 from typing import Union, overload
 
-import configs
 from web3 import Web3
 from web3.contract import Contract
 
+import configs
 from exceptions import InsufficientLiquidity
+
+log = logging.getLogger(__name__)
 
 MAX_UINT_256 = 2 ** 256 - 1
 

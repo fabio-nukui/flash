@@ -21,7 +21,8 @@ MIN_CONFIRMATIONS = 3
 MIN_ESTIMATED_PROFIT = 1
 
 # Gas-related parameters
-GAS_COST = 204_658
+GAS_COST_PCS_FIRST = 204_776
+GAS_COST_VDS_FIRST = 204_541
 GAS_INCREASE_WITH_HOP = 0.35402943350964
 GAS_SHARE_OF_PROFIT = 0.36
 HOP_PENALTY = GAS_SHARE_OF_PROFIT * GAS_INCREASE_WITH_HOP
@@ -59,6 +60,10 @@ class ArbitragePair:
         self.contract = contract
         self.web3 = web3
         self.pairs = self.first_dex.pairs + self.second_dex.pairs
+        if isinstance(first_dex, PancakeswapDex):
+            self.gas_cost = GAS_COST_PCS_FIRST
+        else:
+            self.gas_cost = GAS_COST_VDS_FIRST
 
         self.amount_last = TokenAmount(token_last)
         self.estimated_result = TokenAmount(token_first)
@@ -70,6 +75,7 @@ class ArbitragePair:
         self._gas_price = 0
         self.estimated_net_result_usd = 0.0
         self._insufficient_liquidity = False
+        self.debugger = False
 
     def __repr__(self):
         return (
@@ -142,7 +148,7 @@ class ArbitragePair:
         )
         gross_result_usd = self.estimated_result.amount_in_units * token_usd_price
 
-        gas_cost_usd = tools.price.get_gas_cost_usd(GAS_COST)
+        gas_cost_usd = tools.price.get_gas_cost_usd(self.gas_cost)
         gas_premium = GAS_SHARE_OF_PROFIT * gross_result_usd / gas_cost_usd
         gas_premium = max(gas_premium, 1)
 
@@ -176,7 +182,7 @@ class ArbitragePair:
             func=self._get_contract_function(),
             path=self._get_path_argument(),
             amountLast=self.amount_last.amount,
-            max_gas_=int(GAS_COST * MAX_GAS_MULTIPLIER),
+            max_gas_=int(self.gas_cost * MAX_GAS_MULTIPLIER),
             gas_price_=self._gas_price,
         )
         self._is_running = True
