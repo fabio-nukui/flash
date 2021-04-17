@@ -1,5 +1,6 @@
 import json
 import urllib.parse
+from typing import Union
 
 import httpx
 from web3 import Web3
@@ -18,16 +19,22 @@ with open('addresses/dex/_1inch_v3/_1inch_v3.json') as f:
 
 
 def get_quote_1inch(
-    amountIn: TokenAmount,
+    amountIn: Union[int, TokenAmount],
     tokenOut: Token = None,
     gas_price: int = None
 ) -> int:
     token_out_address = tokenOut.address if tokenOut is not None else _1INCH_CURRENCY_ADDRESS
     gas_price = price.get_gas_price() if gas_price is None else gas_price
+    if isinstance(amountIn, TokenAmount):
+        from_token_address = amountIn.token.address
+        from_token_amount = amountIn.amount
+    else:
+        from_token_address = _1INCH_CURRENCY_ADDRESS
+        from_token_amount = amountIn
     query_string = urllib.parse.urlencode({
-        'fromTokenAddress': amountIn.token.address,
+        'fromTokenAddress': from_token_address,
         'toTokenAddress': token_out_address,
-        'amount': amountIn.amount,
+        'amount': from_token_amount,
         'gasPrice': gas_price,
     })
     res = httpx.get(f'{_1INCH_API_URL}/quote?{query_string}')
@@ -38,7 +45,7 @@ def get_quote_1inch(
 
 def exchange_1inch(
     web3: Web3,
-    amountIn: TokenAmount,
+    amountIn: Union[int, TokenAmount],
     tokenOut: Token = None,
     max_slippage: float = DEFAULT_MAX_SLIPPAGE,
     gas_price: int = None,
@@ -46,16 +53,22 @@ def exchange_1inch(
 ):
     token_out_address = tokenOut.address if tokenOut is not None else _1INCH_CURRENCY_ADDRESS
     gas_price = price.get_gas_price() if gas_price is None else gas_price
-    contracts.sign_and_send_contract_transaction(
-        amountIn.token.contract.functions.approve,
-        _1INCH_ROUTER_ADDRESS,
-        amountIn.amount,
-        wait_finish_=True
-    )
+    if isinstance(amountIn, TokenAmount):
+        from_token_address = amountIn.token.address
+        from_token_amount = amountIn.amount
+        contracts.sign_and_send_contract_transaction(
+            amountIn.token.contract.functions.approve,
+            _1INCH_ROUTER_ADDRESS,
+            amountIn.amount,
+            wait_finish_=True
+        )
+    else:
+        from_token_address = _1INCH_CURRENCY_ADDRESS
+        from_token_amount = amountIn
     query_string = urllib.parse.urlencode({
-        'fromTokenAddress': amountIn.token.address,
+        'fromTokenAddress': from_token_address,
         'toTokenAddress': token_out_address,
-        'amount': amountIn.amount,
+        'amount': from_token_amount,
         'fromAddress': configs.ADDRESS,
         'slippage': max_slippage,
         'gasPrice': gas_price,

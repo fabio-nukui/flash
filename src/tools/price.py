@@ -18,8 +18,8 @@ CHAINLINK_PRICE_FEED_ABI = json.load(open('abis/ChainlinkPriceFeed.json'))
 WRAPPED_CURRENCY_TOKENS_DATA = json.load(open('addresses/wrapped_currency_tokens.json'))
 
 # These functions should not be used for too time-critical data, so ttl can be higher
-USD_PRICE_CACHE_TTL = 360
-GAS_PRICE_CACHE_TTL = 1800
+USD_PRICE_CACHE_TTL = 60
+GAS_PRICE_CACHE_TTL = 300
 USD_PRICE_DATA_STALE = 3600
 TOKEN_SYNONYMS = {
     'BTCB': 'BTC',
@@ -32,10 +32,17 @@ WEB3 = w3.get_web3()
 log = logging.getLogger(__name__)
 
 
-def _get_native_token_decimals():
+def get_native_token_decimals():
     if configs.CHAIN_ID in (1, 56):
         return 18
     raise NotImplementedError
+
+
+def get_native_token_symbol():
+    if configs.CHAIN_ID == 1:
+        return 'ETH'
+    if configs.CHAIN_ID == 56:
+        return 'BNB'
 
 
 @ttl_cache(maxsize=1000, ttl=USD_PRICE_CACHE_TTL)
@@ -81,7 +88,7 @@ def get_gas_cost_usd(gas: int, web3: Web3 = WEB3) -> float:
     return gas_cost * price_native_token_usd
 
 
-async def get_prices_congecko(addresses: Iterable[str]) -> dict[str, float]:
+async def get_prices_coingecko(addresses: Iterable[str]) -> dict[str, float]:
     """Return Ethereum network token in USD from coingecko.com"""
     url = 'https://api.coingecko.com/api/v3/simple/token_price/ethereum'
     query_string = urllib.parse.urlencode({
@@ -94,6 +101,11 @@ async def get_prices_congecko(addresses: Iterable[str]) -> dict[str, float]:
         key: value['usd']
         for key, value in res.json().items()
     }
+
+
+def get_price_usd_native_token(web3: Web3) -> float:
+    symbol = get_native_token_symbol()
+    return get_chainlink_price_usd(symbol, web3)
 
 
 def get_price_usd(token: Token, pairs: list[LiquidityPair], web3: Web3 = WEB3) -> float:

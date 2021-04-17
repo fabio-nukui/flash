@@ -1,0 +1,14 @@
+{
+    "56": {
+        "stable_reserve_token": {
+            "symbol": "BUSD",
+            "address": "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56",
+            "decimals": 18
+        },
+        "chi_token": {
+            "symbol": "CHI",
+            "address": "0x0000000000004946c0e9F43F4Dee607b0eF1fA1c",
+            "decimals": 0
+        }
+    }
+}
