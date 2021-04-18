@@ -70,6 +70,7 @@ class ArbitragePair:
         self.first_trade: TradePairs = None
         self.second_trade: TradePairs = None
 
+        self._is_set = False
         self._is_running = False
         self._transaction_hash = ''
         self._gas_price = 0
@@ -104,6 +105,8 @@ class ArbitragePair:
         if self._insufficient_liquidity:
             return
         try:
+            if self._is_set:
+                self._reset()
             self._update_estimate()
         except InsufficientLiquidity:
             logging.info(f'Insufficient liquidity for {self}, removing it from next iterations')
@@ -135,18 +138,18 @@ class ArbitragePair:
             return
         if int_amount_last < 0:  # Fail-safe in case optimizer returns negative inputs
             return
-        self.amount_last = TokenAmount(self.token_last, int_amount_last)
-        self.estimated_result = TokenAmount(self.token_first, int_result)
-        self.first_trade, self.second_trade = self._get_arbitrage_trades(self.amount_last)
-        self._set_gas_and_net_result()
+        amount_last = TokenAmount(self.token_last, int_amount_last)
+        estimated_result = TokenAmount(self.token_first, int_result)
+        self._set_arbitrage_params(amount_last, estimated_result)
 
-    def _set_gas_and_net_result(self):
-        token_usd_price = tools.price.get_price_usd(
-            self.estimated_result.token,
-            self.pairs,
-            self.web3,
-        )
-        gross_result_usd = self.estimated_result.amount_in_units * token_usd_price
+    def _set_arbitrage_params(self, amount_last: TokenAmount, estimated_result: TokenAmount):
+        self._is_set = True
+        self.amount_last = amount_last
+        self.estimated_result = estimated_result
+        self.first_trade, self.second_trade = self._get_arbitrage_trades(amount_last)
+
+        token_usd_price = tools.price.get_price_usd(estimated_result.token, self.pairs, self.web3)
+        gross_result_usd = estimated_result.amount_in_units * token_usd_price
 
         gas_cost_usd = tools.price.get_gas_cost_usd(self.gas_cost)
         gas_premium = GAS_SHARE_OF_PROFIT * gross_result_usd / gas_cost_usd
@@ -190,6 +193,7 @@ class ArbitragePair:
         log.info(f'Sent transaction with hash {transaction_hash}')
 
     def _reset(self):
+        self._is_set = False
         self._is_running = False
         self._transaction_hash = ''
         self.amount_last = TokenAmount(self.token_last)
@@ -209,7 +213,6 @@ class ArbitragePair:
             return True
         if receipt.status == 0:
             log.info(f'Transaction {self._transaction_hash} failed')
-            self._reset()
             return False
         elif current_block - receipt.blockNumber < (MIN_CONFIRMATIONS - 1):
             return True
@@ -218,7 +221,6 @@ class ArbitragePair:
             f'Transaction {self._transaction_hash} succeeded. '
             f'(Estimated profit: {self.estimated_net_result_usd})'
         )
-        self._reset()
         return False
 
 
