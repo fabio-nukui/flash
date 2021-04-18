@@ -157,6 +157,11 @@ class ArbitragePair:
 
         self._gas_price = int(tools.price.get_gas_price() * gas_premium)
         self.estimated_net_result_usd = gross_result_usd - gas_cost_usd * gas_premium
+        reserves = {
+            pair: pair.reserves
+            for pair in self.first_trade.route.pairs + self.second_trade.route.pairs
+        }
+        log.debug(f'Reserves: {reserves}')
 
     def _get_contract_function(self):
         if isinstance(self.first_dex, PancakeswapDex):
