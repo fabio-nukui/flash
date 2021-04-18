@@ -56,12 +56,17 @@ def exchange_1inch(
     if isinstance(amountIn, TokenAmount):
         from_token_address = amountIn.token.address
         from_token_amount = amountIn.amount
-        contracts.sign_and_send_contract_transaction(
-            amountIn.token.contract.functions.approve,
-            _1INCH_ROUTER_ADDRESS,
-            amountIn.amount,
-            wait_finish_=True
+        allowance = (
+            amountIn.token.contract.functions.allowance(configs.ADDRESS, _1INCH_ROUTER_ADDRESS)
+            .call(block_identifier=configs.BLOCK)
         )
+        if allowance < from_token_amount:
+            contracts.sign_and_send_contract_transaction(
+                amountIn.token.contract.functions.approve,
+                _1INCH_ROUTER_ADDRESS,
+                amountIn.amount,
+                wait_finish_=True
+            )
     else:
         from_token_address = _1INCH_CURRENCY_ADDRESS
         from_token_amount = amountIn

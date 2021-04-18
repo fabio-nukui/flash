@@ -179,8 +179,8 @@ def get_deployer_balance_usd(web3: Web3) -> float:
     return balance * tools.price.get_price_usd_native_token(web3)
 
 
-def convert_amounts_native(amounts_withdraw: Iterable[TokenAmount], web3: Web3):
-    for token_amount in amounts_withdraw:
+def convert_amounts_native(amounts_convert: Iterable[TokenAmount], web3: Web3):
+    for token_amount in amounts_convert:
         log.info(f'Converting {token_amount}')
         if token_amount.token == WRAPPED_CURRENCY_TOKEN:  # WBNB / WETH
             contract = web3.eth.contract(token_amount.token.address, abi=WETH_ABI)
@@ -199,11 +199,11 @@ def convert_amounts_native(amounts_withdraw: Iterable[TokenAmount], web3: Web3):
 
 
 def convert_amounts_stable(
-    amounts_withdraw: Iterable[TokenAmount],
+    amounts_convert: Iterable[TokenAmount],
     stable_reserve_token: Token,
     web3: Web3
 ):
-    for token_amount in amounts_withdraw:
+    for token_amount in amounts_convert:
         log.info(f'Converting {token_amount}')
         tools.exchange.exchange_1inch(
             web3,
@@ -219,6 +219,7 @@ def convert_amounts(tokens: Iterable[Token], stable_reserve_token: Token, web3: 
     amounts_convert = [
         token_amount
         for token_amount, native_amount in balances
+        if native_amount > 0
     ]
     if not amounts_convert:
         log.info('No tokens to convert')
