@@ -110,6 +110,7 @@ class ArbitragePair:
             self._update_estimate()
         except InsufficientLiquidity:
             logging.info(f'Insufficient liquidity for {self}, removing it from next iterations')
+            self._reset()
             self._insufficient_liquidity = True
 
     def _update_estimate(self):
