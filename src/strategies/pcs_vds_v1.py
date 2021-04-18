@@ -134,7 +134,7 @@ class ArbitragePair:
             )
         except Exception as e:
             log.info(f'{self}: Error during optimization: {e!r}')
-            log.debug(exc_info=True)
+            log.debug('Error: ', exc_info=True)
             return
         if int_amount_last < 0:  # Fail-safe in case optimizer returns negative inputs
             return
