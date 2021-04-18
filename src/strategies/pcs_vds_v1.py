@@ -157,11 +157,6 @@ class ArbitragePair:
 
         self._gas_price = int(tools.price.get_gas_price() * gas_premium)
         self.estimated_net_result_usd = gross_result_usd - gas_cost_usd * gas_premium
-        reserves = {
-            pair: pair.reserves
-            for pair in self.first_trade.route.pairs + self.second_trade.route.pairs
-        }
-        log.debug(f'Reserves: {reserves}')
 
     def _get_contract_function(self):
         if isinstance(self.first_dex, PancakeswapDex):
@@ -185,6 +180,11 @@ class ArbitragePair:
         log.info(
             f'Trades: {self.first_dex}:{self.first_trade}; {self.second_dex}:{self.second_trade}')
         log.info(f'Gas price: {self._gas_price / 10 ** 9:,.1f} Gwei')
+        reserves = {
+            pair: pair.reserves
+            for pair in self.first_trade.route.pairs + self.second_trade.route.pairs
+        }
+        log.debug(f'Reserves: {reserves}')
 
         transaction_hash = tools.contracts.sign_and_send_contract_transaction(
             func=self._get_contract_function(),
