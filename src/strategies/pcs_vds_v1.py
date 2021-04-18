@@ -121,8 +121,6 @@ class ArbitragePair:
         result_initial = self._estimate_result(amount_last_initial)
         if result_initial < 0:
             # If gross result is negative even with small amount, skip optimization
-            self.amount_last = amount_last_initial
-            self.estimated_result = result_initial
             return
         try:
             int_amount_last, int_result = tools.optimization.optimizer_second_order(
