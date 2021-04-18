@@ -10,7 +10,7 @@ from web3.contract import Contract
 
 import configs
 import tools
-from core import Token, TokenAmount
+from core import LiquidityPair, Token, TokenAmount
 from dex import PancakeswapDex, ValueDefiSwapDex
 from dex.base import DexProtocol
 from strategies import pcs_vds_v1
@@ -19,9 +19,11 @@ log = logging.getLogger(__name__)
 
 RUNNING_STRATEGIES = os.environ['RUNNING_STRATEGIES'].split(',')
 MIN_CONFIRMATIONS = 2
-MIN_ETHERS_WITHDRAW_CONVERT = 0.05  # About 50x the transaction fees on transfer + swap
+MIN_ETHERS_WITHDRAW = 0.05  # About 50x the transaction fees on transfer + swap
+MAX_LOSS_DUE_TO_PRICE_CHANGE = 0.005  # About 5x the transaction fees on transfer + swap
 MAX_SLIPPAGE = 0.4
 RUN_INTERVAL = 300
+BLOCKS48H = 57_600 if configs.CHAIN_ID == 56 else 13_040
 
 # $5.000 reserve allow for arbitrage operation of $10.000 gross profit at 50% share of gas
 NATIVE_CURRENCY_USD_RESERVE = 5_000
@@ -66,6 +68,29 @@ def get_address_balances_in_native_currency(
     return balances
 
 
+def get_price_changes_last_48h(
+    tokens: list[Token],
+    pairs: list[LiquidityPair],
+    web3: Web3
+) -> list[float]:
+    tools.cache.clear_caches()
+    prices_now = [
+        tools.price.get_price_usd(token, pairs, web3)
+        for token in tokens
+    ]
+    configs.BLOCK = web3.eth.block_number - BLOCKS48H
+    tools.cache.clear_caches()
+    prices_48h = [
+        tools.price.get_price_usd(token, pairs, web3)
+        for token in tokens
+    ]
+    configs.BLOCK = 'latest'
+    return [
+        price_now / price_48h - 1
+        for price_now, price_48h in zip(prices_now, prices_48h)
+    ]
+
+
 class Strategy:
     def __init__(self, contract: Contract, list_dex: list[DexProtocol], name: str):
         self.web3 = contract.web3
@@ -74,16 +99,21 @@ class Strategy:
         self.name = name
 
         self.tokens = list({token for dex in list_dex for token in dex.tokens})
+        self.pairs = [pair for dex in list_dex for pair in dex.pairs]
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.name})'
 
     def withdraw_tokens(self):
         balances = get_address_balances_in_native_currency(self.contract.address, self.tokens)
+        price_change_48h = get_price_changes_last_48h(self.tokens, self.pairs, self.web3)
         amounts_withdraw = [
             token_amount
-            for token_amount, native_amount in balances
-            if native_amount >= MIN_ETHERS_WITHDRAW_CONVERT
+            for (token_amount, native_amount), price_change in zip(balances, price_change_48h)
+            if (
+                native_amount >= MIN_ETHERS_WITHDRAW
+                or native_amount * price_change < -MAX_LOSS_DUE_TO_PRICE_CHANGE
+            )
         ]
         if not amounts_withdraw:
             log.info(f'{self}: No tokens to withdraw')
@@ -186,20 +216,19 @@ def convert_amounts_stable(
 
 def convert_amounts(tokens: Iterable[Token], stable_reserve_token: Token, web3: Web3):
     balances = get_address_balances_in_native_currency(configs.ADDRESS, tokens)
-    amounts_withdraw = [
+    amounts_convert = [
         token_amount
         for token_amount, native_amount in balances
-        if native_amount >= MIN_ETHERS_WITHDRAW_CONVERT
     ]
-    if not amounts_withdraw:
+    if not amounts_convert:
         log.info('No tokens to convert')
         return
     if get_deployer_balance_usd(web3) < NATIVE_CURRENCY_USD_RESERVE:
         log.info(f'Converting to {NATIVE_CURRENCY_SYMBOL}')
-        convert_amounts_native(amounts_withdraw, web3)
+        convert_amounts_native(amounts_convert, web3)
     else:
         log.info(f'Converting to {stable_reserve_token.symbol}')
-        convert_amounts_stable(amounts_withdraw, stable_reserve_token, web3)
+        convert_amounts_stable(amounts_convert, stable_reserve_token, web3)
     log.info('Finished converting tokens from deployer address')
 
 
