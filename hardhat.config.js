@@ -5,7 +5,7 @@ module.exports = {
   solidity: '0.6.12',
   networks: {
     hardhat: {
-      chainId: 57,
+      chainId: 56,
       gas: 'auto',
       gasPrice: 5000000001,
       blockGasLimit: 40000000

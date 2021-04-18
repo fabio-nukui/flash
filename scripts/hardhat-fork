@@ -1,10 +1,19 @@
 #!/usr/bin/env bash
 
-set -eux
+set -ex
 
-npx hardhat node \
-  --fork 'http://localhost:8545' \
-  --hostname 0.0.0.0 \
-  --port 8546 \
-#  --fork-block-number 6516274
+BLOCK_NUMBER="$1"
 
+if [ -z ${BLOCK_NUMBER:+x} ]
+then
+    npx hardhat node \
+        --fork 'http://localhost:8545' \
+        --hostname 0.0.0.0 \
+        --port 8546
+else
+    npx hardhat node \
+        --fork 'http://localhost:8545' \
+	--hostname 0.0.0.0 \
+	--port 8546 \
+	--fork-block-number "$BLOCK_NUMBER"
+fi
