@@ -10,6 +10,7 @@ from web3.contract import Contract
 from web3.exceptions import TransactionNotFound
 
 import tools
+import configs
 from core import Token, TokenAmount, TradePairs
 from dex import PancakeswapDex, ValueDefiSwapDex
 from exceptions import InsufficientLiquidity
@@ -255,13 +256,19 @@ def run():
         for params in get_arbitrage_params(pcs_dex, vds_dex)
     ]
     listener = tools.w3.BlockListener(web3)
-    for latest_block in listener.wait_for_new_blocks():
+    for block_number in listener.wait_for_new_blocks():
+        configs.BLOCK = block_number
         tools.cache.clear_caches()
-        if any([pair.is_running(latest_block) for pair in arbitrage_pairs]):
+        if any([pair.is_running(block_number) for pair in arbitrage_pairs]):
             continue
         for arb_pair in arbitrage_pairs:
             arb_pair.update_estimate()
         best_arbitrage = max(arbitrage_pairs, key=lambda x: x.estimated_net_result_usd)
         if best_arbitrage.estimated_net_result_usd > MIN_ESTIMATED_PROFIT:
             log.info('Arbitrage opportunity found')
+            if (current_block := web3.eth.block_number) != block_number:
+                raise Exception(
+                    'Latest block advanced since beggining of iteration: '
+                    f'{block_number=} vs {current_block=}'
+                )
             best_arbitrage.execute()
