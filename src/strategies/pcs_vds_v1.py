@@ -26,7 +26,7 @@ GAS_COST_PCS_FIRST = 204_776
 GAS_COST_VDS_FIRST = 204_541
 GAS_INCREASE_WITH_HOP = 0.35402943350964
 GAS_SHARE_OF_PROFIT = 0.36
-HOP_PENALTY = GAS_SHARE_OF_PROFIT * GAS_INCREASE_WITH_HOP
+HOP_PENALTY = GAS_SHARE_OF_PROFIT * GAS_INCREASE_WITH_HOP  # TODO: Simulate more than one hop configuration per arbitrage pair  # noqa: E501
 MAX_GAS_MULTIPLIER = 2
 
 # Optimization parameters
@@ -61,10 +61,6 @@ class ArbitragePair:
         self.contract = contract
         self.web3 = web3
         self.pairs = self.first_dex.pairs + self.second_dex.pairs
-        if isinstance(first_dex, PancakeswapDex):
-            self.gas_cost = GAS_COST_PCS_FIRST
-        else:
-            self.gas_cost = GAS_COST_VDS_FIRST
 
         self.amount_last = TokenAmount(token_last)
         self.estimated_result = TokenAmount(token_first)
@@ -77,7 +73,6 @@ class ArbitragePair:
         self._gas_price = 0
         self.estimated_net_result_usd = 0.0
         self._insufficient_liquidity = False
-        self.debugger = False
 
     def __repr__(self):
         return (
@@ -86,6 +81,13 @@ class ArbitragePair:
             f'first_dex={self.first_dex}, '
             f'est_result=US${self.estimated_net_result_usd:,.2f})'
         )
+
+    def get_gas_cost(self) -> int:
+        num_hops = len(self.first_trade.route.pairs)
+        if isinstance(self.first_dex, PancakeswapDex):
+            return int(GAS_COST_PCS_FIRST * (1 + GAS_INCREASE_WITH_HOP * num_hops))
+        else:
+            return int(GAS_COST_VDS_FIRST * (1 + GAS_INCREASE_WITH_HOP * num_hops))
 
     def _estimate_result_int(self, amount_last_int: int) -> int:
         amount_last = TokenAmount(self.token_last, amount_last_int)
@@ -151,7 +153,7 @@ class ArbitragePair:
         token_usd_price = tools.price.get_price_usd(estimated_result.token, self.pairs, self.web3)
         gross_result_usd = estimated_result.amount_in_units * token_usd_price
 
-        gas_cost_usd = tools.price.get_gas_cost_usd(self.gas_cost)
+        gas_cost_usd = tools.price.get_gas_cost_usd(self.get_gas_cost())
         gas_premium = GAS_SHARE_OF_PROFIT * gross_result_usd / gas_cost_usd
         gas_premium = max(gas_premium, 1)
 
@@ -190,7 +192,7 @@ class ArbitragePair:
             func=self._get_contract_function(),
             path=self._get_path_argument(),
             amountLast=self.amount_last.amount,
-            max_gas_=int(self.gas_cost * MAX_GAS_MULTIPLIER),
+            max_gas_=int(self.get_gas_cost() * MAX_GAS_MULTIPLIER),
             gas_price_=self._gas_price,
         )
         self._is_running = True
