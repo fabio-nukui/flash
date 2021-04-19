@@ -83,11 +83,11 @@ class ArbitragePair:
         )
 
     def get_gas_cost(self) -> int:
-        num_hops = len(self.first_trade.route.pairs)
+        num_hops_extra_hops = len(self.first_trade.route.pairs) - 1
         if isinstance(self.first_dex, PancakeswapDex):
-            return int(GAS_COST_PCS_FIRST * (1 + GAS_INCREASE_WITH_HOP * num_hops))
+            return int(GAS_COST_PCS_FIRST * (1 + GAS_INCREASE_WITH_HOP * num_hops_extra_hops))
         else:
-            return int(GAS_COST_VDS_FIRST * (1 + GAS_INCREASE_WITH_HOP * num_hops))
+            return int(GAS_COST_VDS_FIRST * (1 + GAS_INCREASE_WITH_HOP * num_hops_extra_hops))
 
     def _estimate_result_int(self, amount_last_int: int) -> int:
         amount_last = TokenAmount(self.token_last, amount_last_int)
