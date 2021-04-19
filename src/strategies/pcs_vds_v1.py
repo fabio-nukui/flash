@@ -265,7 +265,7 @@ def run():
             arb_pair.update_estimate()
         best_arbitrage = max(arbitrage_pairs, key=lambda x: x.estimated_net_result_usd)
         if best_arbitrage.estimated_net_result_usd > MIN_ESTIMATED_PROFIT:
-            log.info('Arbitrage opportunity found')
+            log.info(f'Arbitrage opportunity found on block {block_number}')
             if (current_block := web3.eth.block_number) != block_number:
                 raise Exception(
                     'Latest block advanced since beggining of iteration: '
