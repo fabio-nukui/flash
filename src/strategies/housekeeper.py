@@ -22,7 +22,7 @@ MIN_CONFIRMATIONS = 2
 MIN_ETHERS_WITHDRAW = 0.05  # About 50x the transaction fees on transfer + swap
 MAX_LOSS_DUE_TO_PRICE_CHANGE = 0.005  # About 5x the transaction fees on transfer + swap
 MAX_SLIPPAGE = 0.4
-RUN_INTERVAL = 300
+RUN_INTERVAL = 1800
 BLOCKS48H = 57_600 if configs.CHAIN_ID == 56 else 13_040
 
 # $5.000 reserve allow for arbitrage operation of $10.000 gross profit at 50% share of gas
