@@ -223,15 +223,21 @@ def convert_amounts(tokens: Iterable[Token], stable_reserve_token: Token, web3: 
         for token_amount, native_amount in balances
         if native_amount > 0
     ]
+    if (convert_to_stable := get_deployer_balance_usd(web3) > NATIVE_CURRENCY_USD_RESERVE):
+        amounts_convert = [
+            token_amount
+            for token_amount in amounts_convert
+            if token_amount.token != stable_reserve_token
+        ]
     if not amounts_convert:
         log.info('No tokens to convert')
         return
-    if get_deployer_balance_usd(web3) < NATIVE_CURRENCY_USD_RESERVE:
-        log.info(f'Converting to {NATIVE_CURRENCY_SYMBOL}')
-        convert_amounts_native(amounts_convert, web3)
-    else:
+    if convert_to_stable:
         log.info(f'Converting to {stable_reserve_token.symbol}')
         convert_amounts_stable(amounts_convert, stable_reserve_token, web3)
+    else:
+        log.info(f'Converting to {NATIVE_CURRENCY_SYMBOL}')
+        convert_amounts_native(amounts_convert, web3)
     log.info('Finished converting tokens from deployer address')
 
 
