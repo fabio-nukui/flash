@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 RUNNING_STRATEGIES = os.environ['RUNNING_STRATEGIES'].split(',')
 MIN_CONFIRMATIONS = 2
 MIN_ETHERS_WITHDRAW = 0.05  # About 50x the transaction fees on transfer + swap
-MAX_LOSS_DUE_TO_PRICE_CHANGE = 0.005  # About 5x the transaction fees on transfer + swap
+PRICE_CHANGE_WITHDRAW_IMPACT = 4  # At 4x, a 25% price decrease last 24h reduces min_withdraw to 0
 MAX_SLIPPAGE = 0.4
 RUN_INTERVAL = 1800
 BLOCKS24H = 28_800 if configs.CHAIN_ID == 56 else 6_520
@@ -107,14 +107,11 @@ class Strategy:
     def withdraw_tokens(self):
         balances = get_address_balances_in_native_currency(self.contract.address, self.tokens)
         price_change_24h = get_price_changes_last_24h(self.tokens, self.pairs, self.web3)
-        amounts_withdraw = [
-            token_amount
-            for (token_amount, native_amount), price_change in zip(balances, price_change_24h)
-            if (
-                native_amount >= MIN_ETHERS_WITHDRAW
-                or native_amount * price_change < -MAX_LOSS_DUE_TO_PRICE_CHANGE
-            )
-        ]
+        amounts_withdraw = []
+        for (token_amount, native_amount), price_change in zip(balances, price_change_24h):
+            price_impact_on_withdraw = 1 + price_change * PRICE_CHANGE_WITHDRAW_IMPACT
+            if native_amount > MIN_ETHERS_WITHDRAW * price_impact_on_withdraw:
+                amounts_withdraw.append(token_amount)
         if not amounts_withdraw:
             log.info(f'{self}: No tokens to withdraw')
             return
