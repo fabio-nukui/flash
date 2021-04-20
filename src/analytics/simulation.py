@@ -1,3 +1,4 @@
+import atexit
 import os
 import signal
 import subprocess
@@ -17,6 +18,7 @@ class HardhatForkProcess:
             assert block is None or block == 'latest'
         self.proc: subprocess.Popen = None
         self.procgid: int = None
+        atexit.register(self.stop)
 
     def start(self):
         self.proc = subprocess.Popen(self.cmd, preexec_fn=os.setsid)
