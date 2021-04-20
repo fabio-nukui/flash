@@ -8,6 +8,24 @@ import configs
 import tools
 
 
+class HardhatForkProcess:
+    def __init__(self, block: Union[int, str] = None):
+        self.cmd = ['bash', 'scripts/hardhat-fork']
+        if isinstance(block, int):
+            self.cmd.append(str(block))
+        else:
+            assert block is None or block == 'latest'
+        self.proc: subprocess.Popen = None
+        self.procgid: int = None
+
+    def start(self):
+        self.proc = subprocess.Popen(self.cmd, preexec_fn=os.setsid)
+        self.procgid = os.getpgid(self.proc.pid)
+
+    def stop(self):
+        os.killpg(self.procgid, signal.SIGTERM)
+
+
 @contextmanager
 def simulate_block(
     block: Union[int, str] = None,
@@ -20,14 +38,12 @@ def simulate_block(
         try:
             if stop_reserve_update:
                 configs.STOP_RESERVE_UPDATE = True
-            cmd = ['bash', 'scripts/hardhat-fork']
-            if block is not None:
-                cmd.append(str(block))
-            proc = subprocess.Popen(cmd, preexec_fn=os.setsid)
-            yield proc
+            hardhat_fork = HardhatForkProcess(block)
+            hardhat_fork.start()
+            yield
         finally:
-            os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
             configs.STOP_RESERVE_UPDATE = prev_stop_reserve_update
+            hardhat_fork.stop()
     else:
         previous_block = configs.BLOCK
         block = 'latest' if block is None else block
