@@ -23,7 +23,7 @@ MIN_ETHERS_WITHDRAW = 0.05  # About 50x the transaction fees on transfer + swap
 MAX_LOSS_DUE_TO_PRICE_CHANGE = 0.005  # About 5x the transaction fees on transfer + swap
 MAX_SLIPPAGE = 0.4
 RUN_INTERVAL = 1800
-BLOCKS48H = 57_600 if configs.CHAIN_ID == 56 else 13_040
+BLOCKS24H = 28_800 if configs.CHAIN_ID == 56 else 6_520
 
 # $5.000 reserve allow for arbitrage operation of $10.000 gross profit at 50% share of gas
 NATIVE_CURRENCY_USD_RESERVE = 5_000
@@ -68,7 +68,7 @@ def get_address_balances_in_native_currency(
     return balances
 
 
-def get_price_changes_last_48h(
+def get_price_changes_last_24h(
     tokens: list[Token],
     pairs: list[LiquidityPair],
     web3: Web3
@@ -78,16 +78,16 @@ def get_price_changes_last_48h(
         tools.price.get_price_usd(token, pairs, web3)
         for token in tokens
     ]
-    configs.BLOCK = web3.eth.block_number - BLOCKS48H
+    configs.BLOCK = web3.eth.block_number - BLOCKS24H
     tools.cache.clear_caches()
-    prices_48h = [
+    prices_24h = [
         tools.price.get_price_usd(token, pairs, web3)
         for token in tokens
     ]
     configs.BLOCK = 'latest'
     return [
-        price_now / price_48h - 1
-        for price_now, price_48h in zip(prices_now, prices_48h)
+        price_now / price_24h - 1
+        for price_now, price_24h in zip(prices_now, prices_24h)
     ]
 
 
@@ -106,10 +106,10 @@ class Strategy:
 
     def withdraw_tokens(self):
         balances = get_address_balances_in_native_currency(self.contract.address, self.tokens)
-        price_change_48h = get_price_changes_last_48h(self.tokens, self.pairs, self.web3)
+        price_change_24h = get_price_changes_last_24h(self.tokens, self.pairs, self.web3)
         amounts_withdraw = [
             token_amount
-            for (token_amount, native_amount), price_change in zip(balances, price_change_48h)
+            for (token_amount, native_amount), price_change in zip(balances, price_change_24h)
             if (
                 native_amount >= MIN_ETHERS_WITHDRAW
                 or native_amount * price_change < -MAX_LOSS_DUE_TO_PRICE_CHANGE
