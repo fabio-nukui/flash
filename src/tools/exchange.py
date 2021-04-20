@@ -1,4 +1,5 @@
 import json
+import logging
 import urllib.parse
 from typing import Union
 
@@ -8,6 +9,8 @@ from web3 import Web3
 import configs
 from core import Token, TokenAmount
 from tools import contracts, price
+
+log = logging.getLogger(__name__)
 
 _1INCH_API_URL = f'https://api.1inch.exchange/v3.0/{configs.CHAIN_ID}'
 
@@ -61,12 +64,13 @@ def exchange_1inch(
             .call(block_identifier=configs.BLOCK)
         )
         if allowance < from_token_amount:
-            contracts.sign_and_send_contract_transaction(
+            tx_hash = contracts.sign_and_send_contract_transaction(
                 amountIn.token.contract.functions.approve,
                 _1INCH_ROUTER_ADDRESS,
                 amountIn.amount,
                 wait_finish_=True
             )
+            log.debug(f'Added {amountIn} allowance to 1inch ({tx_hash})')
     else:
         from_token_address = _1INCH_CURRENCY_ADDRESS
         from_token_amount = amountIn

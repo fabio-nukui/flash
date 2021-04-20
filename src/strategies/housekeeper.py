@@ -120,11 +120,12 @@ class Strategy:
             return
         for token_amount in amounts_withdraw:
             log.info(f'{self}: Withdrawing {token_amount}')
-            tools.contracts.sign_and_send_contract_transaction(
+            tx_hash = tools.contracts.sign_and_send_contract_transaction(
                 self.contract.functions.withdrawToken,
                 token_amount.token.address,
                 wait_finish_=True
             )
+            log.debug(f'{self}: Withdrew {token_amount} ({tx_hash})')
         log.info(f'{self}: Finished withdrawing tokens from contract')
 
     def top_up_chi(self, chi_token: Token):
@@ -145,33 +146,35 @@ class Strategy:
             native_amount = tools.exchange.get_quote_1inch(amount_chi)
             price_chi = native_amount / CHI_CONTRACT_TOP_UP
             if price_chi > CHI_MINT_PRICE:
-                tools.contracts.sign_and_send_contract_transaction(
+                tx_hash = tools.contracts.sign_and_send_contract_transaction(
                     chi_token.contract.functions.mint,
                     CHI_CONTRACT_TOP_UP,
                     max_gas_=CHI_MINT_MAX_GAS,
                     wait_finish_=True,
                 )
-                chi_token.contract.functions.mint()
+                log.debug(f'{self}: Minted CHI ({tx_hash})')
             else:
-                tools.exchange.exchange_1inch(
+                tx_hash = tools.exchange.exchange_1inch(
                     self.web3,
                     native_amount,
                     chi_token,
                     max_slippage=MAX_SLIPPAGE,
                     wait_finish=True
                 )
+                log.debug(f'{self}: Bought CHI ({tx_hash})')
         deployer_balance = (
             chi_token.contract.functions.balanceOf(configs.ADDRESS)
             .call(block_identifier=configs.BLOCK)
         )
         amount_transfer = min(deployer_balance, CHI_CONTRACT_TOP_UP)
         log.info(f'Transfering {amount_transfer} CHI')
-        tools.contracts.sign_and_send_contract_transaction(
+        tx_hash = tools.contracts.sign_and_send_contract_transaction(
             chi_token.contract.functions.transfer,
             self.contract.address,
             amount_transfer,
             wait_finish_=True,
         )
+        log.debug(f'{self}: Transfered CHI ({tx_hash})')
 
 
 def get_deployer_balance_usd(web3: Web3) -> float:
@@ -184,18 +187,19 @@ def convert_amounts_native(amounts_convert: Iterable[TokenAmount], web3: Web3):
         log.info(f'Converting {token_amount}')
         if token_amount.token == WRAPPED_CURRENCY_TOKEN:  # WBNB / WETH
             contract = web3.eth.contract(token_amount.token.address, abi=WETH_ABI)
-            tools.contracts.sign_and_send_contract_transaction(
+            tx_hash = tools.contracts.sign_and_send_contract_transaction(
                 contract.functions.withdraw,
                 token_amount.amount,
                 wait_finish_=True
             )
         else:
-            tools.exchange.exchange_1inch(
+            tx_hash = tools.exchange.exchange_1inch(
                 web3,
                 token_amount,
                 max_slippage=MAX_SLIPPAGE,
                 wait_finish=True
             )
+        log.debug(f'Converted {token_amount} to native currency ({tx_hash})')
 
 
 def convert_amounts_stable(
@@ -205,13 +209,14 @@ def convert_amounts_stable(
 ):
     for token_amount in amounts_convert:
         log.info(f'Converting {token_amount}')
-        tools.exchange.exchange_1inch(
+        tx_hash = tools.exchange.exchange_1inch(
             web3,
             token_amount,
             stable_reserve_token,
             max_slippage=MAX_SLIPPAGE,
             wait_finish=True
         )
+        log.debug(f'Converted {token_amount} to {stable_reserve_token} ({tx_hash})')
 
 
 def convert_amounts(tokens: Iterable[Token], stable_reserve_token: Token, web3: Web3):
