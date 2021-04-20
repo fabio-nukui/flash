@@ -19,10 +19,10 @@ log = logging.getLogger(__name__)
 
 RUNNING_STRATEGIES = os.environ['RUNNING_STRATEGIES'].split(',')
 MIN_CONFIRMATIONS = 2
-MIN_ETHERS_WITHDRAW = 0.05  # About 50x the transaction fees on transfer + swap
+MIN_ETHERS_WITHDRAW = 0.1  # About 100x the transaction fees on transfer + swap
 PRICE_CHANGE_WITHDRAW_IMPACT = 4  # At 4x, a 25% price decrease last 24h reduces min_withdraw to 0
 MAX_SLIPPAGE = 0.4
-RUN_INTERVAL = 1800
+RUN_INTERVAL = 300
 BLOCKS24H = 28_800 if configs.CHAIN_ID == 56 else 6_520
 
 # $5.000 reserve allow for arbitrage operation of $10.000 gross profit at 50% share of gas

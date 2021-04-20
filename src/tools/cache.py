@@ -65,9 +65,9 @@ def ttl_cache(maxsize: Union[int, Callable] = 100, ttl: Union[int, float] = conf
         return cached(cache)
 
 
-def clear_caches(ttl_treshold: int = configs.CACHE_TTL):
+def clear_caches(ttl_treshold: int = configs.CACHE_TTL, clear_all: bool = False):
     for cache in _caches:
-        if cache._TTLCache__ttl <= ttl_treshold:
+        if cache._TTLCache__ttl <= ttl_treshold or clear_all:
             cache.clear()
 
 
