@@ -13,7 +13,7 @@ then
 else
     npx hardhat node \
         --fork 'http://localhost:8545' \
-	--hostname 0.0.0.0 \
-	--port 8546 \
-	--fork-block-number "$BLOCK_NUMBER"
+        --hostname 0.0.0.0 \
+        --port 8546 \
+        --fork-block-number "$BLOCK_NUMBER"
 fi
