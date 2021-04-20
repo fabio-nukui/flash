@@ -74,6 +74,10 @@ def get_gas_price(web3: Web3 = WEB3) -> int:
     return int(WEB3.eth.gas_price * configs.BASELINE_GAS_PRICE_PREMIUM)
 
 
+def get_gas_cost_native_tokens(gas: int, web3: Web3 = WEB3) -> float:
+    return float(Web3.fromWei(gas, 'ether')) * get_gas_price(web3)
+
+
 def get_gas_cost_usd(gas: int, web3: Web3 = WEB3) -> float:
     if configs.CHAIN_ID == 56:
         asset_name = 'BNB'
@@ -82,7 +86,7 @@ def get_gas_cost_usd(gas: int, web3: Web3 = WEB3) -> float:
     address = USD_PRICE_FEED_ADDRESSES[asset_name]['address']
     decimals = USD_PRICE_FEED_ADDRESSES[asset_name]['decimals']
 
-    gas_cost = float(Web3.fromWei(gas, 'ether')) * get_gas_price(web3)
+    gas_cost = get_gas_cost_native_tokens(gas, web3)
 
     price_native_token_usd = _get_chainlink_data(asset_name, address, decimals, web3)
     return gas_cost * price_native_token_usd

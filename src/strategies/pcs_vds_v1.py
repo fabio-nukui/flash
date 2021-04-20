@@ -21,11 +21,13 @@ MAX_HOPS_SECOND_DEX = 1
 MIN_CONFIRMATIONS = 1
 MIN_ESTIMATED_PROFIT = 1
 
-# Gas-related parameters
-GAS_COST_PCS_FIRST = 204_776
-GAS_COST_VDS_FIRST = 204_541
-GAS_INCREASE_WITH_HOP = 0.35402943350964
-GAS_SHARE_OF_PROFIT = 0.36
+# Gas-related parameters; data from notebooks/pcs_vds_analysis.ipynb (2021-04-20)
+GAS_COST_PCS_FIRST_CHI_OFF = 226_230.2
+GAS_COST_VDS_FIRST_CHI_OFF = 209_520.3
+GAS_COST_PCS_FIRST_CHI_ON = 156_279.7
+GAS_COST_VDS_FIRST_CHI_ON = 139_586.4
+GAS_INCREASE_WITH_HOP = 0.266831606034439
+GAS_SHARE_OF_PROFIT = 0.26
 HOP_PENALTY = GAS_SHARE_OF_PROFIT * GAS_INCREASE_WITH_HOP  # TODO: Simulate more than one hop configuration per arbitrage pair  # noqa: E501
 MAX_GAS_MULTIPLIER = 2
 
@@ -70,7 +72,9 @@ class ArbitragePair:
         self._is_set = False
         self._is_running = False
         self._transaction_hash = ''
-        self._gas_price = 0
+        self.gas_price = 0
+        self.gas_cost = 0
+        self.estimated_gross_result_usd = 0.0
         self.estimated_net_result_usd = 0.0
         self._insufficient_liquidity = False
 
@@ -82,12 +86,25 @@ class ArbitragePair:
             f'est_result=US${self.estimated_net_result_usd:,.2f})'
         )
 
-    def get_gas_cost(self) -> int:
+    def _get_gas_cost(self, estimated_gross_result_usd: float) -> int:
         num_hops_extra_hops = len(self.first_trade.route.pairs) - 1
+        gas_cost_multiplier = 1 + GAS_INCREASE_WITH_HOP * num_hops_extra_hops
         if isinstance(self.first_dex, PancakeswapDex):
-            return int(GAS_COST_PCS_FIRST * (1 + GAS_INCREASE_WITH_HOP * num_hops_extra_hops))
+            gas_cost_chi_off = int(GAS_COST_PCS_FIRST_CHI_OFF * gas_cost_multiplier)
         else:
-            return int(GAS_COST_VDS_FIRST * (1 + GAS_INCREASE_WITH_HOP * num_hops_extra_hops))
+            gas_cost_chi_off = int(GAS_COST_VDS_FIRST_CHI_OFF * gas_cost_multiplier)
+        min_tx_cost = tools.price.get_gas_cost_native_tokens(gas_cost_chi_off)
+
+        price_native_token_usd = tools.price.get_price_usd_native_token(self.web3)
+        gross_result_native_token = estimated_gross_result_usd / price_native_token_usd
+
+        if gross_result_native_token * GAS_SHARE_OF_PROFIT < 2 * min_tx_cost:
+            return gas_cost_chi_off
+
+        if isinstance(self.first_dex, PancakeswapDex):
+            return int(GAS_COST_PCS_FIRST_CHI_ON * gas_cost_multiplier)
+        else:
+            return int(GAS_COST_VDS_FIRST_CHI_ON * gas_cost_multiplier)
 
     def _estimate_result_int(self, amount_last_int: int) -> int:
         amount_last = TokenAmount(self.token_last, amount_last_int)
@@ -151,14 +168,15 @@ class ArbitragePair:
         self.first_trade, self.second_trade = self._get_arbitrage_trades(amount_last)
 
         token_usd_price = tools.price.get_price_usd(estimated_result.token, self.pairs, self.web3)
-        gross_result_usd = estimated_result.amount_in_units * token_usd_price
+        self.estimated_gross_result_usd = estimated_result.amount_in_units * token_usd_price
+        self.gas_cost = self._get_gas_cost(self.estimated_gross_result_usd)
 
-        gas_cost_usd = tools.price.get_gas_cost_usd(self.get_gas_cost())
-        gas_premium = GAS_SHARE_OF_PROFIT * gross_result_usd / gas_cost_usd
+        gas_cost_usd = tools.price.get_gas_cost_usd(self.gas_cost)
+        gas_premium = GAS_SHARE_OF_PROFIT * self.estimated_gross_result_usd / gas_cost_usd
         gas_premium = max(gas_premium, 1)
 
-        self._gas_price = int(tools.price.get_gas_price() * gas_premium)
-        self.estimated_net_result_usd = gross_result_usd - gas_cost_usd * gas_premium
+        self.gas_price = int(tools.price.get_gas_price() * gas_premium)
+        self.estimated_net_result_usd = self.estimated_gross_result_usd - gas_cost_usd * gas_premium
 
     def _get_contract_function(self):
         if isinstance(self.first_dex, PancakeswapDex):
@@ -178,26 +196,35 @@ class ArbitragePair:
         ]
 
     def execute(self):
-        log.info(f'Estimated profit: {self.estimated_net_result_usd}')
-        log.info(
-            f'Trades: {self.first_dex}:{self.first_trade}; {self.second_dex}:{self.second_trade}')
-        log.info(f'Gas price: {self._gas_price / 10 ** 9:,.1f} Gwei')
-        reserves = {
-            pair: pair.reserves
-            for pair in self.first_trade.route.pairs + self.second_trade.route.pairs
-        }
-        log.debug(f'Reserves: {reserves}')
-
         transaction_hash = tools.contracts.sign_and_send_contract_transaction(
             func=self._get_contract_function(),
             path=self._get_path_argument(),
             amountLast=self.amount_last.amount,
-            max_gas_=int(self.get_gas_cost() * MAX_GAS_MULTIPLIER),
+            max_gas_=int(self.gas_cost * MAX_GAS_MULTIPLIER),
             gas_price_=self._gas_price,
         )
         self._is_running = True
         self._transaction_hash = transaction_hash
         log.info(f'Sent transaction with hash {transaction_hash}')
+        log.info(
+            f'Trades: {self.first_dex}:{self.first_trade}; {self.second_dex}:{self.second_trade}')
+        est_tx_cost = self.gas_price * self.gas_cost / 10 ** tools.price.get_native_token_decimals()
+        log.info(json.dumps({
+            'tx_hash': transaction_hash,
+            'estimated_net_result_usd': self.estimated_net_result_usd,
+            'estimated_gross_result_usd': self.estimated_gross_result_usd,
+            'gas_price': self.gas_price,
+            'est_tx_cost': est_tx_cost,
+            'token_first_symbol': self.token_first.symbol,
+            'token_last_symbol': self.token_last.symbol,
+            'token_last_amount': self.amount_last.amount,
+            'n_hops': len(self.first_trade.route.pairs),
+        }))
+        reserves = {
+            pair: pair.reserves
+            for pair in self.first_trade.route.pairs + self.second_trade.route.pairs
+        }
+        log.debug(f'Reserves: {reserves}')
 
     def _reset(self):
         self._is_set = False
@@ -207,7 +234,9 @@ class ArbitragePair:
         self.estimated_result = TokenAmount(self.token_first)
         self.first_trade = None
         self.second_trade = None
-        self._gas_price = 0
+        self.gas_price = 0
+        self.gas_cost = 0
+        self.estimated_gross_result_usd = 0.0
         self.estimated_net_result_usd = 0.0
 
     def is_running(self, current_block: int) -> bool:
@@ -219,13 +248,13 @@ class ArbitragePair:
             log.info(f'Transaction {self._transaction_hash} not found in node')
             return True
         if receipt.status == 0:
-            log.info(f'Transaction {self._transaction_hash} failed')
+            log.info(f'Transaction {self._transaction_hash} failed (gas_used={receipt.gasUsed})')
             return False
         elif current_block - receipt.blockNumber < (MIN_CONFIRMATIONS - 1):
             return True
         # Minimum amount of confimations passed
         log.info(
-            f'Transaction {self._transaction_hash} succeeded. '
+            f'Transaction {self._transaction_hash} succeeded (gas_used={receipt.gasUsed}). '
             f'(Estimated profit: {self.estimated_net_result_usd})'
         )
         return False
