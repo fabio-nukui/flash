@@ -39,22 +39,27 @@ class HardhatForkProcess:
 
 
 @contextmanager
+def stop_reserve_update():
+    prev_stop_reserve_update = configs.STOP_RESERVE_UPDATE
+    try:
+        configs.STOP_RESERVE_UPDATE = True
+        yield
+    finally:
+        configs.STOP_RESERVE_UPDATE = prev_stop_reserve_update
+
+
+@contextmanager
 def simulate_block(
     block: Union[int, str] = None,
-    stop_reserve_update: bool = False,
     clear_all_caches: bool = True,
     fork_network: bool = False,
 ):
-    prev_stop_reserve_update = configs.STOP_RESERVE_UPDATE
     if fork_network:
         try:
-            if stop_reserve_update:
-                configs.STOP_RESERVE_UPDATE = True
             hardhat_fork = HardhatForkProcess(block)
             hardhat_fork.start()
             yield
         finally:
-            configs.STOP_RESERVE_UPDATE = prev_stop_reserve_update
             hardhat_fork.stop()
     else:
         previous_block = configs.BLOCK
@@ -64,9 +69,6 @@ def simulate_block(
         configs.BLOCK = block_number
         tools.cache.clear_caches(clear_all=clear_all_caches)
         try:
-            if stop_reserve_update:
-                configs.STOP_RESERVE_UPDATE = True
             yield
         finally:
             configs.BLOCK = previous_block
-            configs.STOP_RESERVE_UPDATE = prev_stop_reserve_update
