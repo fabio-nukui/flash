@@ -22,8 +22,6 @@ MIN_CONFIRMATIONS = 1
 MIN_ESTIMATED_PROFIT = 1
 
 # Gas-related parameters; data from notebooks/pcs_vds_analysis.ipynb (2021-04-20)
-GAS_COST_PCS_FIRST_CHI_OFF = 226_230.2
-GAS_COST_VDS_FIRST_CHI_OFF = 209_520.3
 GAS_COST_PCS_FIRST_CHI_ON = 156_279.7
 GAS_COST_VDS_FIRST_CHI_ON = 139_586.4
 GAS_INCREASE_WITH_HOP = 0.266831606034439
@@ -39,7 +37,7 @@ MAX_ITERATIONS = 100
 
 # Created with notebooks/2021-04-12-pcs_vds_v1.ipynb
 ADDRESS_FILEPATH = 'addresses/strategies/pcs_vds_v1.json'
-CONTRACT_DATA_FILEPATH = 'deployed_contracts/PcsVdsV1.json'
+CONTRACT_DATA_FILEPATH = 'deployed_contracts/PcsVdsV1B.json'
 
 log = logging.getLogger(__name__)
 
@@ -89,17 +87,6 @@ class ArbitragePair:
     def _get_gas_cost(self, estimated_gross_result_usd: float) -> int:
         num_hops_extra_hops = len(self.first_trade.route.pairs) - 1
         gas_cost_multiplier = 1 + GAS_INCREASE_WITH_HOP * num_hops_extra_hops
-        if isinstance(self.first_dex, PancakeswapDex):
-            gas_cost_chi_off = int(GAS_COST_PCS_FIRST_CHI_OFF * gas_cost_multiplier)
-        else:
-            gas_cost_chi_off = int(GAS_COST_VDS_FIRST_CHI_OFF * gas_cost_multiplier)
-        min_tx_cost = tools.price.get_gas_cost_native_tokens(gas_cost_chi_off)
-
-        price_native_token_usd = tools.price.get_price_usd_native_token(self.web3)
-        gross_result_native_token = estimated_gross_result_usd / price_native_token_usd
-
-        if gross_result_native_token * GAS_SHARE_OF_PROFIT < 2 * min_tx_cost:
-            return gas_cost_chi_off
 
         if isinstance(self.first_dex, PancakeswapDex):
             return int(GAS_COST_PCS_FIRST_CHI_ON * gas_cost_multiplier)

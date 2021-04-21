@@ -35,4 +35,26 @@ contract CHIBurner {
             chi.freeUpTo(freeUpValue);
         }
     }
+
+    modifier discountCHIFromOn {
+        uint256 gasStart = gasleft();
+
+        _;
+
+        uint256 gasSpent = 21000 + 16 * msg.data.length + gasStart - gasleft();
+        uint256 freeUpValue = (gasSpent + 14154) / 41947;
+
+        chi.freeFromUpTo(msg.sender, freeUpValue);
+    }
+
+    modifier discountCHIOn {
+        uint256 gasStart = gasleft();
+
+        _;
+
+        uint256 gasSpent = 21000 + 16 * msg.data.length + gasStart - gasleft();
+        uint256 freeUpValue = (gasSpent + 9529) / 41947;
+
+        chi.freeUpTo(freeUpValue);
+    }
 }

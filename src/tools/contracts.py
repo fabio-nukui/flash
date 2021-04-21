@@ -120,7 +120,7 @@ def sign_and_send_contract_transaction(
 ) -> str:
     web3 = func.web3
     gas_price_ = price.get_gas_price() if gas_price_ is None else gas_price_
-    if _has_chi_flag(func) and CHI_FLAG not in kwargs:
+    if _has_chi_flag(func) and kwargs.get(CHI_FLAG) is not None:
         kwargs[CHI_FLAG] = 0 if gas_price_ < 2 * price.get_gas_price() else 1
 
     tx = func(*args, **kwargs).buildTransaction({
