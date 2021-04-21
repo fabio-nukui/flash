@@ -28,7 +28,7 @@ GAS_COST_PCS_FIRST_CHI_ON = 156_279.7
 GAS_COST_VDS_FIRST_CHI_ON = 139_586.4
 GAS_INCREASE_WITH_HOP = 0.266831606034439
 GAS_SHARE_OF_PROFIT = 0.26
-HOP_PENALTY = GAS_SHARE_OF_PROFIT * GAS_INCREASE_WITH_HOP  # TODO: Simulate more than one hop configuration per arbitrage pair  # noqa: E501
+HOP_PENALTY = 0.01  # TODO: Simulate more than one hop configuration per arbitrage pair  # noqa: E501
 MAX_GAS_MULTIPLIER = 2
 
 # Optimization parameters
