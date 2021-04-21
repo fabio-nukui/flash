@@ -10,19 +10,24 @@ import tools
 
 
 class HardhatForkProcess:
+    DEFAULT_CMD = ['bash', 'scripts/hardhat-fork']
+
     def __init__(self, block: Union[int, str] = None):
-        self.cmd = ['bash', 'scripts/hardhat-fork']
-        if isinstance(block, int):
-            self.cmd.append(str(block))
-        else:
-            assert block is None or block == 'latest'
+        assert isinstance(block, int) or block in (None, 'latest')
+        self.block = block
+
         self.proc: subprocess.Popen = None
         self.procgid: int = None
         atexit.register(self.stop)
 
+    def _get_cmd(self) -> list[str]:
+        if isinstance(self.block, int):
+            return self.DEFAULT_CMD + [str(self.block)]
+        return self.DEFAULT_CMD
+
     def start(self):
         self.proc = subprocess.Popen(
-            self.cmd,
+            self._get_cmd(),
             preexec_fn=os.setsid,
             text=True,
             stderr=subprocess.PIPE,
@@ -36,6 +41,11 @@ class HardhatForkProcess:
 
     def stop(self):
         os.killpg(self.procgid, signal.SIGTERM)
+
+    def restart_at_block(self, block: Union[int, str]):
+        self.block = block
+        self.stop()
+        self.start()
 
 
 @contextmanager
@@ -53,22 +63,29 @@ def simulate_block(
     block: Union[int, str] = None,
     clear_all_caches: bool = True,
     fork_network: bool = False,
+    hardhat_fork_process: HardhatForkProcess = None,
 ):
-    if fork_network:
-        try:
-            hardhat_fork = HardhatForkProcess(block)
-            hardhat_fork.start()
-            yield
-        finally:
-            hardhat_fork.stop()
-    else:
+    if not fork_network:
         previous_block = configs.BLOCK
         block = 'latest' if block is None else block
-        if not isinstance(block, str):
-            block_number = int(block)
-        configs.BLOCK = block_number
+        block = int(block) if not isinstance(block, str) else block  # Avoid errors with numpy.int
         tools.cache.clear_caches(clear_all=clear_all_caches)
         try:
+            configs.BLOCK = block
             yield
         finally:
             configs.BLOCK = previous_block
+    elif hardhat_fork_process is None:
+        try:
+            hardhat_fork_process = HardhatForkProcess(block)
+            hardhat_fork_process.start()
+            yield
+        finally:
+            hardhat_fork_process.stop()
+    else:
+        previous_block = hardhat_fork_process.block
+        try:
+            hardhat_fork_process.restart_at_block(block)
+            yield
+        finally:
+            hardhat_fork_process.restart_at_block(previous_block)
