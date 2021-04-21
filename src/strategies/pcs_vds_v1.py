@@ -201,7 +201,7 @@ class ArbitragePair:
             path=self._get_path_argument(),
             amountLast=self.amount_last.amount,
             max_gas_=int(self.gas_cost * MAX_GAS_MULTIPLIER),
-            gas_price_=self._gas_price,
+            gas_price_=self.gas_price,
         )
         self._is_running = True
         self._transaction_hash = transaction_hash
