@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import logging
 import random
@@ -19,6 +21,7 @@ CONNECTION_KEEP_ALIVE_TIME_INTERVAL = 30
 PUBLIC_ENDPOINTS_FILEPATH = 'addresses/public_rcp_endpoints.json'
 log = logging.getLogger(__name__)
 CHI_FLAG = 'chiFlag'
+LIST_BG_WEB3: list[BackgroundWeb3] = []
 
 
 class BackgroundWeb3:
@@ -162,4 +165,6 @@ def _get_providers() -> list[BackgroundWeb3]:
     return [BackgroundWeb3(uri) for uri in set(endpoints)]
 
 
-LIST_BG_WEB3 = _get_providers()
+def setup():
+    global LIST_BG_WEB3
+    LIST_BG_WEB3 = _get_providers()
