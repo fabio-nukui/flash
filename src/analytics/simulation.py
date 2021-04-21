@@ -21,8 +21,18 @@ class HardhatForkProcess:
         atexit.register(self.stop)
 
     def start(self):
-        self.proc = subprocess.Popen(self.cmd, preexec_fn=os.setsid)
+        self.proc = subprocess.Popen(
+            self.cmd,
+            preexec_fn=os.setsid,
+            text=True,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+        )
         self.procgid = os.getpgid(self.proc.pid)
+        while True:  # Wait for process to be ready
+            line = self.proc.stdout.readline()
+            if 'Account #19' in line:
+                break
 
     def stop(self):
         os.killpg(self.procgid, signal.SIGTERM)
