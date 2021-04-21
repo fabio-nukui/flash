@@ -209,7 +209,7 @@ class ArbitragePair:
         log.info(
             f'Trades: {self.first_dex}:{self.first_trade}; {self.second_dex}:{self.second_trade}')
         est_tx_cost = self.gas_price * self.gas_cost / 10 ** tools.price.get_native_token_decimals()
-        log.info(json.dumps({
+        log.info({
             'tx_hash': transaction_hash,
             'estimated_net_result_usd': self.estimated_net_result_usd,
             'estimated_gross_result_usd': self.estimated_gross_result_usd,
@@ -219,7 +219,7 @@ class ArbitragePair:
             'token_last_symbol': self.token_last.symbol,
             'token_last_amount': self.amount_last.amount,
             'n_hops': len(self.first_trade.route.pairs),
-        }))
+        })
         reserves = {
             pair: pair.reserves
             for pair in self.first_trade.route.pairs + self.second_trade.route.pairs
