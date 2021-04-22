@@ -7,6 +7,7 @@ from typing import Iterable
 
 from web3 import Web3
 from web3.contract import Contract
+from web3.exceptions import BadFunctionCallOutput
 
 import configs
 import tools
@@ -24,6 +25,7 @@ PRICE_CHANGE_WITHDRAW_IMPACT = 4  # At 4x, a 25% price decrease last 24h reduces
 MAX_SLIPPAGE = 0.4
 RUN_INTERVAL = 300
 BLOCKS24H = 28_800 if configs.CHAIN_ID == 56 else 6_520
+DEFAULT_PRICE_CHANGE = -0.5  # By default, penalize tokens that we cannot extract prices
 
 # $5.000 reserve allow for arbitrage operation of $10.000 gross profit at 50% share of gas
 NATIVE_CURRENCY_USD_RESERVE = 5_000
@@ -73,20 +75,25 @@ def get_price_changes_last_24h(
     pairs: list[LiquidityPair],
     web3: Web3
 ) -> list[float]:
-    tools.cache.clear_caches()
-    prices_now = [
-        tools.price.get_price_usd(token, pairs, web3)
-        for token in tokens
-    ]
     configs.BLOCK = web3.eth.block_number - BLOCKS24H
-    tools.cache.clear_caches()
-    prices_24h = [
-        tools.price.get_price_usd(token, pairs, web3)
-        for token in tokens
-    ]
+    tools.cache.clear_caches(clear_all=True)
+    prices_24h = []
+    for token in tokens:
+        try:
+            prices_24h.append(tools.price.get_price_usd(token, pairs, web3))
+        except BadFunctionCallOutput:  # In case token/pair didn't exist 24h ago
+            prices_24h.append(0)
     configs.BLOCK = 'latest'
+    tools.cache.clear_caches(clear_all=True)
+
+    prices_now = []
+    for price_24h, token in zip(prices_24h, tokens):
+        if price_24h == 0:
+            prices_now.append(0)
+        else:
+            prices_now.append(tools.price.get_price_usd(token, pairs, web3))
     return [
-        price_now / price_24h - 1
+        (price_now / price_24h - 1) if price_24h != 0 else DEFAULT_PRICE_CHANGE
         for price_now, price_24h in zip(prices_now, prices_24h)
     ]
 
