@@ -2,7 +2,7 @@ import json
 import logging
 import urllib.parse
 from datetime import datetime
-from typing import Iterable
+from typing import Iterable, Union
 
 import httpx
 from web3 import Web3
@@ -12,21 +12,29 @@ from core import LiquidityPair, Token
 from tools import w3
 from tools.cache import ttl_cache
 
-USD_PRICE_FEED_ADDRESSES = \
-    json.load(open('addresses/chainlink_usd_price_feeds.json'))[str(configs.CHAIN_ID)]
 CHAINLINK_PRICE_FEED_ABI = json.load(open('abis/ChainlinkPriceFeed.json'))
-WRAPPED_CURRENCY_TOKENS_DATA = json.load(open('addresses/wrapped_currency_tokens.json'))
+WRAPPED_CURRENCY_TOKEN = Token(
+    chain_id=configs.CHAIN_ID,
+    **json.load(open('addresses/wrapped_currency_tokens.json'))[str(configs.CHAIN_ID)]
+)
+
+_USD_PRICE_FEED_ADDRESSES = \
+    json.load(open('addresses/chainlink_usd_price_feeds.json'))[str(configs.CHAIN_ID)]
+PRICE_FEEDS = {
+    Token(chain_id=configs.CHAIN_ID, **data.pop('token')): data
+    for data in _USD_PRICE_FEED_ADDRESSES['tokens']
+}
+PRICE_FEEDS.update({
+    _USD_PRICE_FEED_ADDRESSES['native_currency'].pop('symbol'):
+    _USD_PRICE_FEED_ADDRESSES['native_currency']
+})
+PRICE_FEEDS.update({WRAPPED_CURRENCY_TOKEN: _USD_PRICE_FEED_ADDRESSES['native_currency']})
+
 
 # These functions should not be used for too time-critical data, so ttl can be higher
 USD_PRICE_CACHE_TTL = 60
 GAS_PRICE_CACHE_TTL = 300
 USD_PRICE_DATA_STALE = 3600
-TOKEN_SYNONYMS = {
-    'BTCB': 'BTC',
-    'WTCB': 'BTC',
-    'WBNB': 'BNB',
-    'WETH': 'ETH',
-}
 
 WEB3 = w3.get_web3()
 log = logging.getLogger(__name__)
@@ -46,7 +54,7 @@ def get_native_token_symbol():
 
 
 @ttl_cache(maxsize=1000, ttl=USD_PRICE_CACHE_TTL)
-def _get_chainlink_data(asset_name: str, address: str, decimals: int, web3: Web3) -> float:
+def _get_chainlink_data(asset: Union[str, Token], address: str, decimals: int, web3: Web3) -> float:
     contract = web3.eth.contract(address, abi=CHAINLINK_PRICE_FEED_ABI)
     (
         round_id, answer, started_at, updated_at, answered_in_round
@@ -55,18 +63,16 @@ def _get_chainlink_data(asset_name: str, address: str, decimals: int, web3: Web3
     dt_updated_at = datetime.fromtimestamp(updated_at)
     seconds_since_last_update = (dt_updated_at - datetime.utcnow()).total_seconds()
     if seconds_since_last_update > USD_PRICE_DATA_STALE:
-        log.warning(f'Price data for {asset_name} {seconds_since_last_update} seconds old')
+        log.warning(f'Price data for {asset} {seconds_since_last_update} seconds old')
 
     return answer / 10 ** decimals
 
 
-def get_chainlink_price_usd(token_symbol: str, web3: Web3 = WEB3) -> float:
-    token_symbol = TOKEN_SYNONYMS.get(token_symbol, token_symbol)
+def get_chainlink_price_usd(asset: Union[str, Token], web3: Web3 = WEB3) -> float:
+    address = PRICE_FEEDS[asset]['address']
+    decimals = PRICE_FEEDS[asset]['decimals']
 
-    address = USD_PRICE_FEED_ADDRESSES[token_symbol]['address']
-    decimals = USD_PRICE_FEED_ADDRESSES[token_symbol]['decimals']
-
-    return _get_chainlink_data(token_symbol, address, decimals, web3)
+    return _get_chainlink_data(asset, address, decimals, web3)
 
 
 @ttl_cache(maxsize=100, ttl=GAS_PRICE_CACHE_TTL)
@@ -79,12 +85,9 @@ def get_gas_cost_native_tokens(gas: int, web3: Web3 = WEB3) -> float:
 
 
 def get_gas_cost_usd(gas: int, web3: Web3 = WEB3) -> float:
-    if configs.CHAIN_ID == 56:
-        asset_name = 'BNB'
-    else:
-        raise NotImplementedError
-    address = USD_PRICE_FEED_ADDRESSES[asset_name]['address']
-    decimals = USD_PRICE_FEED_ADDRESSES[asset_name]['decimals']
+    asset_name = get_native_token_symbol()
+    address = PRICE_FEEDS[asset_name]['address']
+    decimals = PRICE_FEEDS[asset_name]['decimals']
 
     gas_cost = get_gas_cost_native_tokens(gas, web3)
 
@@ -117,7 +120,7 @@ def get_price_usd(token: Token, pairs: list[LiquidityPair], web3: Web3 = WEB3) -
     vs liquidity pair with largest liquidity and with chainlink usd price
     """
     try:
-        return get_chainlink_price_usd(token.symbol, web3)
+        return get_chainlink_price_usd(token, web3)
     except KeyError:
         pass
     liquidity_prices = []
@@ -131,7 +134,7 @@ def get_price_usd(token: Token, pairs: list[LiquidityPair], web3: Web3 = WEB3) -
             paired_token = pair.tokens[0]
             paired_reserve, same_reserve = pair.reserves
         try:
-            price_paired_token = get_chainlink_price_usd(paired_token.symbol, web3)
+            price_paired_token = get_chainlink_price_usd(paired_token, web3)
         except KeyError:
             continue
         liquidity = price_paired_token * paired_reserve.amount_in_units * 2
@@ -142,9 +145,5 @@ def get_price_usd(token: Token, pairs: list[LiquidityPair], web3: Web3 = WEB3) -
     return max(liquidity_prices)[1]
 
 
-def get_wrapped_currency_token(chain_id: int = configs.CHAIN_ID, web3: Web3 = WEB3) -> Token:
-    try:
-        data = WRAPPED_CURRENCY_TOKENS_DATA[str(chain_id)]
-    except KeyError:
-        raise Exception(f'No wrapped reference token for {chain_id=}')
-    return Token(chain_id=chain_id, web3=web3, **data)
+def get_wrapped_currency_token() -> Token:
+    return WRAPPED_CURRENCY_TOKEN

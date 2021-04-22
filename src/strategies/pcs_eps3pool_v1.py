@@ -110,7 +110,7 @@ class ArbitragePair:
         self.estimated_result = estimated_result
         self.trade_cake, self.trade_eps = self._get_arbitrage_trades(amount_last)
 
-        token_usd_price = tools.price.get_chainlink_price_usd(estimated_result.token.symbol)
+        token_usd_price = tools.price.get_chainlink_price_usd(estimated_result.token)
         gross_result_usd = estimated_result.amount_in_units * token_usd_price
 
         gas_cost_usd = tools.price.get_gas_cost_usd(GAS_COST)
