@@ -3,12 +3,11 @@ import logging
 import urllib.parse
 from typing import Union
 
-import httpx
 from web3 import Web3
 
 import configs
 from core import Token, TokenAmount
-from tools import contracts, price
+from tools import contracts, http, price
 
 log = logging.getLogger(__name__)
 
@@ -40,7 +39,7 @@ def get_quote_1inch(
         'amount': from_token_amount,
         'gasPrice': gas_price,
     })
-    res = httpx.get(f'{_1INCH_API_URL}/quote?{query_string}')
+    res = http.get(f'{_1INCH_API_URL}/quote?{query_string}')
     res.raise_for_status()
     amount = int(res.json()['toTokenAmount'])
     return amount
@@ -83,7 +82,7 @@ def exchange_1inch(
         'gasPrice': gas_price,
         'allowPartialFill': True,
     })
-    res = httpx.get(f'{_1INCH_API_URL}/swap?{query_string}')
+    res = http.get(f'{_1INCH_API_URL}/swap?{query_string}')
     res.raise_for_status()
 
     tx = res.json()['tx']

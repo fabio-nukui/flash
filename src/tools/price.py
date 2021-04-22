@@ -4,12 +4,11 @@ import urllib.parse
 from datetime import datetime
 from typing import Iterable, Union
 
-import httpx
 from web3 import Web3
 
 import configs
 from core import LiquidityPair, Token
-from tools import w3
+from tools import http, w3
 from tools.cache import ttl_cache
 
 CHAINLINK_PRICE_FEED_ABI = json.load(open('abis/ChainlinkPriceFeed.json'))
@@ -102,7 +101,7 @@ async def get_prices_coingecko(addresses: Iterable[str]) -> dict[str, float]:
         'contract_addresses': ','.join(addresses),
         'vs_currencies': 'USD',
     })
-    res = httpx.get(f'{url}?{query_string}')
+    res = http.get(f'{url}?{query_string}')
     res.raise_for_status()
     return {
         key: value['usd']
