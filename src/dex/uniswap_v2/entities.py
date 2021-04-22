@@ -34,7 +34,7 @@ class UniV2Pair(LiquidityPair, UniV2PairInitMixin):
                 factory_address,
                 init_code_hash
             )
-            fee = fee(address) if callable(fee) else fee
+            fee: int = fee(address) if callable(fee) else fee
             contract = web3.eth.contract(address=address, abi=abi)
         super().__init__(reserves, fee, contract=contract)
 

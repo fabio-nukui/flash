@@ -12,7 +12,7 @@ from ..base import DexProtocol, TradePairsMixin
 from .entities import UniV2Pair
 
 ABI_DIRECTORY = pathlib.Path('abis/dex/uniswap_v2')
-FACTORY_ABI = ABI_DIRECTORY / 'IUniswapV2Factory.json'
+FACTORY_ABI = ABI_DIRECTORY / 'IUniswapV2FactoryMod.json'  # ABI modified to accept mdex fork
 ROUTER_ABI = ABI_DIRECTORY / 'IUniswapV2Router.json'
 PAIR_ABI = ABI_DIRECTORY / 'IUniswapV2Pair.json'
 
