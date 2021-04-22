@@ -131,5 +131,6 @@ class UniV2PairInitMixin:
             TokenAmount(Token(chain_id, token_0_address, web3=web3), reserve_0),
             TokenAmount(Token(chain_id, token_1_address, web3=web3), reserve_1)
         )
+        fee: int = fee(contract.address) if callable(fee) else fee
 
         return cls(reserves, fee, contract=contract)
