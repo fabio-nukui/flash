@@ -16,7 +16,7 @@ class DexProtocol:
         chain_id: int,
         addresses_filepath: str,
         web3: Web3,
-        fee: Union[int, Callable],
+        fee: Union[int, Callable] = None,
         **kwargs
     ):
         """Decentralized exchange protocol
