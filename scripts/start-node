@@ -10,7 +10,7 @@ geth \
     --datadir ./node \
     --pprof \
     --pprofaddr 0.0.0.0 \
-    --rcp \
+    --rpc \
     --metrics \
     --cache "$CACHE" \
     --syncmode "$SYNCMODE"
