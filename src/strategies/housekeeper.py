@@ -117,7 +117,7 @@ class Strategy:
         amounts_withdraw = []
         for (token_amount, native_amount), price_change in zip(balances, price_change_24h):
             price_impact_on_withdraw = 1 + price_change * PRICE_CHANGE_WITHDRAW_IMPACT
-            if 0 > native_amount > MIN_ETHERS_WITHDRAW * price_impact_on_withdraw:
+            if native_amount > max(MIN_ETHERS_WITHDRAW * price_impact_on_withdraw, 0):
                 amounts_withdraw.append(token_amount)
         if not amounts_withdraw:
             log.info(f'{self}: No tokens to withdraw')
