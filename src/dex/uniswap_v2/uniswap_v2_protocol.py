@@ -1,9 +1,10 @@
 import itertools
 import logging
 import pathlib
+from typing import Callable, Union
 
-from web3.contract import Contract
 from web3 import Web3
+from web3.contract import Contract
 
 from core import Token, TokenAmount
 
@@ -23,7 +24,7 @@ class UniswapV2Protocol(DexProtocol, TradePairsMixin):
         self,
         chain_id: int,
         addresses_filepath: str,
-        fee: int,
+        fee: Union[int, Callable],
         web3: Web3,
         pairs_addresses: list[str] = None,
         tokens: list[Token] = None,

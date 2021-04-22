@@ -1,6 +1,6 @@
 import json
 import pathlib
-from typing import Union
+from typing import Callable, Union
 
 from web3.contract import Contract
 from web3 import Web3
@@ -16,7 +16,7 @@ class DexProtocol:
         chain_id: int,
         addresses_filepath: str,
         web3: Web3,
-        fee: int = None,
+        fee: Union[int, Callable],
         **kwargs
     ):
         """Decentralized exchange protocol
@@ -26,7 +26,8 @@ class DexProtocol:
             chain_id (int): Chain ID of protocol implementation (e.g.: 56 for Binance Smart Chain)
             addresses_filepath (str): pathlib.Path to relevant addresses .json file
             web3 (Web3): Web3 provider to interact with blockchain
-            fee (int): Swap fee in basis points (e.g.: 20 for pancakeswap's 0.2% fee)
+            fee (Union[int, Callable]): Swap fee in basis points (e.g.: 20 for pancakeswap's
+                0.2% fee). If a callable is given, it must return the fee when given the address
         """
         self.abis = {
             filepath: self._get_abi(filepath)
@@ -106,7 +107,7 @@ class UniV2PairInitMixin:
     def from_address(
         cls,
         chain_id: int,
-        fee: int,
+        fee: Union[int, Callable],
         address: str = None,
         abi: dict = None,
         web3: Web3 = None,

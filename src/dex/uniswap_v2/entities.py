@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from web3.contract import Contract
-from web3 import Web3
+from typing import Callable, Union
 
+from web3 import Web3
+from web3.contract import Contract
+
+import configs
 from core import LiquidityPair, TokenAmount
 from tools.cache import ttl_cache
 
-import configs
 from ..base import UniV2PairInitMixin
 
 N_PAIRS_CACHE = 50_000  # Must be at least equal to number of pairs in strategy
@@ -16,7 +18,7 @@ class UniV2Pair(LiquidityPair, UniV2PairInitMixin):
     def __init__(
         self,
         reserves: tuple[TokenAmount, TokenAmount],
-        fee: int,
+        fee: Union[int, Callable],
         abi: dict = None,
         web3: Web3 = None,
         factory_address: str = None,
@@ -32,6 +34,7 @@ class UniV2Pair(LiquidityPair, UniV2PairInitMixin):
                 factory_address,
                 init_code_hash
             )
+            fee = fee(address) if callable(fee) else fee
             contract = web3.eth.contract(address=address, abi=abi)
         super().__init__(reserves, fee, contract=contract)
 

@@ -3,6 +3,7 @@ from typing import Union
 
 from web3 import Web3
 
+import configs
 import tools
 from core import Token
 
@@ -41,7 +42,43 @@ class PancakeswapDex(UniswapV2Protocol):
         )
 
 
+class MDex(UniswapV2Protocol):
+    def __init__(
+        self,
+        tokens: list[Union[dict, Token]] = None,
+        pairs_addresses: list[str] = None,
+        web3: Web3 = None,
+        verbose_init: bool = False,
+    ):
+        web3 = tools.w3.get_web3() if web3 is None else web3
+        addresses_filepath = 'addresses/dex/uniswap_v2/mdex.json'
+        if pairs_addresses is None:
+            if tokens is None:
+                with open('addresses/dex/uniswap_v2/mdex_default_tokens.json') as f:
+                    tokens_data = json.load(f)
+                tokens = [Token(**data) for data in tokens_data]
+            elif isinstance(tokens[0], dict):
+                tokens = [Token(**data, web3=web3) for data in tokens]
+            elif not isinstance(tokens[0], Token):
+                raise ValueError(f"'tokens' must be a list of dict or Token, received {tokens}")
+
+        super().__init__(
+            chain_id=56,
+            addresses_filepath=addresses_filepath,
+            web3=web3,
+            fee=self._get_fee,
+            tokens=tokens,
+            pairs_addresses=pairs_addresses,
+            verbose_init=verbose_init,
+        )
+
+    def _get_fee(self, pair_address: str) -> int:
+        func = self.factory_contract.functions.getPairFees
+        return func(pair_address).call(block_identifier=configs.BLOCK)
+
+
 __all__ = [
+    'MDex',
     'PancakeswapDex',
     'UniV2Pair',
 ]
