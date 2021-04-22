@@ -46,7 +46,7 @@ class UniV2Pair(LiquidityPair, UniV2PairInitMixin):
         init_code_hash: str,
     ) -> str:
         """Return address of liquidity pool using uniswap_v2's implementation of CREATE2"""
-        address_0, address_1 = sorted([token_0_address, token_1_address])
+        address_0, address_1 = sorted([token_0_address, token_1_address], key=str.lower)
         encoded_tokens = Web3.solidityKeccak(
             ['address', 'address'], (address_0, address_1))
 
