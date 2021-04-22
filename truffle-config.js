@@ -12,7 +12,7 @@ module.exports = {
         providerOrUrl: "http://localhost:8546"
       }),
       port: 8546,
-      network_id: 57,
+      network_id: '*',
       gas: 9000000,
       gasPrice: 5000000000,
       skipDryRun: true,
