@@ -18,6 +18,7 @@ from tools import price, w3
 
 ACCOUNT = Account.from_key(configs.PRIVATE_KEY)
 CONNECTION_KEEP_ALIVE_TIME_INTERVAL = 30
+MAX_BLOCKS_WAIT_RECEIPT = 20
 PUBLIC_ENDPOINTS_FILEPATH = 'addresses/public_rcp_endpoints.json'
 log = logging.getLogger(__name__)
 CHI_FLAG = 'chiFlag'
@@ -147,7 +148,7 @@ def wait_tx_finish(
     min_confirmations: int = 1,
 ):
     listener = w3.BlockListener(web3)
-    max_blocks_wait = max_blocks_wait or 20
+    max_blocks_wait = max_blocks_wait or MAX_BLOCKS_WAIT_RECEIPT
     n = 0
     for current_block in listener.wait_for_new_blocks():
         try:
