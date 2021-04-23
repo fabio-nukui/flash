@@ -12,9 +12,8 @@ from web3.exceptions import BadFunctionCallOutput
 import configs
 import tools
 from core import LiquidityPair, Token, TokenAmount
-from dex import PancakeswapDex, ValueDefiSwapDex
-from dex.base import DexProtocol
-from strategies import pcs_vds_v1
+from dex import DexProtocol, MDex, PancakeswapDex, ValueDefiSwapDex
+from strategies import pcs_mdx_v1, pcs_vds_v1
 
 log = logging.getLogger(__name__)
 
@@ -256,6 +255,13 @@ def get_strategy(strategy_name: str, web3: Web3):
             vds_dex = ValueDefiSwapDex(pairs_addresses=addresses['vds_dex'], web3=web3)
         contract = tools.contracts.load_contract(pcs_vds_v1.CONTRACT_DATA_FILEPATH)
         return Strategy(contract, [pcs_dex, vds_dex], strategy_name)
+    if strategy_name == 'pcs_mdx_v1':
+        with open(pcs_mdx_v1.ADDRESS_FILEPATH) as f:
+            addresses = json.load(f)
+            pcs_dex = PancakeswapDex(pairs_addresses=addresses['pcs_dex'], web3=web3)
+            mdx_dex = MDex(pairs_addresses=addresses['mdx_dex'], web3=web3)
+        contract = tools.contracts.load_contract(pcs_mdx_v1.CONTRACT_DATA_FILEPATH)
+        return Strategy(contract, [pcs_dex, mdx_dex], strategy_name)
 
 
 def run():

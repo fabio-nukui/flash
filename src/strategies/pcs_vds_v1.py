@@ -3,7 +3,7 @@
 import json
 import logging
 from itertools import permutations
-from typing import Iterable, Union
+from typing import Iterable
 
 import tools
 import configs
