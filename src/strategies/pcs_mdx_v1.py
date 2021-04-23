@@ -77,7 +77,7 @@ def run():
         tools.cache.clear_caches()
         running_tokens = set()
         for pair in arbitrage_pairs:
-            if pair.is_running():
+            if pair.is_running(block_number):
                 for token in pair.first_trade.route.tokens + pair.second_trade.route.tokens:
                     running_tokens.add(token)
         next_round_pairs = [

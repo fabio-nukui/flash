@@ -77,6 +77,7 @@ class ArbitragePairV1:
         self.estimated_net_result_usd = 0.0
         self._insufficient_liquidity = False
         self._n_transaction_checks = 0
+        self.block_number: int = None
 
     def __repr__(self):
         return (
@@ -110,19 +111,19 @@ class ArbitragePairV1:
             amount_last, self.token_first, MAX_HOPS_SECOND_DEX, HOP_PENALTY)
         return first_trade, second_trade
 
-    def update_estimate(self):
+    def update_estimate(self, block_number: int):
         if self._insufficient_liquidity:
             return
         try:
             if self._is_set:
                 self._reset()
-            self._update_estimate()
+            self._update_estimate(block_number)
         except InsufficientLiquidity:
             logging.info(f'Insufficient liquidity for {self}, removing it from next iterations')
             self._reset()
             self._insufficient_liquidity = True
 
-    def _update_estimate(self):
+    def _update_estimate(self, block_number: int):
         usd_price_token_last = tools.price.get_price_usd(self.token_last, self.pairs)
         amount_last_initial = TokenAmount(
             self.token_last,
@@ -148,12 +149,18 @@ class ArbitragePairV1:
             return
         amount_last = TokenAmount(self.token_last, int_amount_last)
         estimated_result = TokenAmount(self.token_first, int_result)
-        self._set_arbitrage_params(amount_last, estimated_result)
+        self._set_arbitrage_params(amount_last, estimated_result, block_number)
 
-    def _set_arbitrage_params(self, amount_last: TokenAmount, estimated_result: TokenAmount):
+    def _set_arbitrage_params(
+        self,
+        amount_last: TokenAmount,
+        estimated_result: TokenAmount,
+        block_number: int
+    ):
         self._is_set = True
         self.amount_last = amount_last
         self.estimated_result = estimated_result
+        self.block_number = block_number
         self.first_trade, self.second_trade = self._get_arbitrage_trades(amount_last)
 
         token_usd_price = tools.price.get_price_usd(estimated_result.token, self.pairs, self.web3)
@@ -183,6 +190,7 @@ class ArbitragePairV1:
         est_tx_cost = self.gas_price * self.gas_cost / 10 ** tools.price.get_native_token_decimals()
         log.info({
             'tx_hash': transaction_hash,
+            'block_number': self.block_number,
             'estimated_net_result_usd': self.estimated_net_result_usd,
             'estimated_gross_result_usd': self.estimated_gross_result_usd,
             'gas_price': self.gas_price,
@@ -211,6 +219,7 @@ class ArbitragePairV1:
         self.estimated_gross_result_usd = 0.0
         self.estimated_net_result_usd = 0.0
         self._n_transaction_checks = 0
+        self.block_number: int = None
 
     def is_running(self, current_block: int) -> bool:
         if not self._is_running:
