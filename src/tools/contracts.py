@@ -94,15 +94,17 @@ def _has_chi_flag(func: ContractFunction):
 def sign_and_send_transaction(
     tx: dict,
     web3: Web3,
+    account: Account = None,
     wait_finish: bool = False,
     max_blocks_wait: int = None,
     verbose: bool = False,
 ) -> str:
+    account = ACCOUNT if account is None else account
     tx['gas'] = tx.get('gas', 1_000_000)
-    tx['nonce'] = tx.get('nonce', web3.eth.get_transaction_count(ACCOUNT.address))
+    tx['nonce'] = tx.get('nonce', web3.eth.get_transaction_count(account.address))
     tx['gasPrice'] = tx.get('gasPrice', price.get_gas_price())
 
-    signed_tx = ACCOUNT.sign_transaction(tx)
+    signed_tx = account.sign_transaction(tx)
     broadcast_transaction(signed_tx)
     tx_hash = web3.sha3(signed_tx.rawTransaction).hex()
 
@@ -118,21 +120,23 @@ def sign_and_send_contract_transaction(
     gas_price_: int = None,
     wait_finish_: bool = False,
     max_blocks_wait_: int = None,
+    account_: Account = None,
     **kwargs
 ) -> str:
     web3 = func.web3
+    account = ACCOUNT if account_ is None else account_
     gas_price_ = price.get_gas_price() if gas_price_ is None else gas_price_
     if _has_chi_flag(func) and kwargs.get(CHI_FLAG) is not None:
         kwargs[CHI_FLAG] = 0 if gas_price_ < 2 * price.get_gas_price() else 1
 
     tx = func(*args, **kwargs).buildTransaction({
-        'from': ACCOUNT.address,
+        'from': account.address,
         'chainId': configs.CHAIN_ID,
         'gas': max_gas_,
-        'nonce': web3.eth.get_transaction_count(ACCOUNT.address),
+        'nonce': web3.eth.get_transaction_count(account.address),
         'gasPrice': gas_price_
     })
-    return sign_and_send_transaction(tx, web3, wait_finish_, max_blocks_wait_)
+    return sign_and_send_transaction(tx, web3, account, wait_finish_, max_blocks_wait_)
 
 
 def wait_transaction_finish(
