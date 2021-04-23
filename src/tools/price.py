@@ -102,7 +102,6 @@ async def get_prices_coingecko(addresses: Iterable[str]) -> dict[str, float]:
         'vs_currencies': 'USD',
     })
     res = http.get(f'{url}?{query_string}')
-    res.raise_for_status()
     return {
         key: value['usd']
         for key, value in res.json().items()

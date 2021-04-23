@@ -40,7 +40,6 @@ def get_quote_1inch(
         'gasPrice': gas_price,
     })
     res = http.get(f'{_1INCH_API_URL}/quote?{query_string}')
-    res.raise_for_status()
     amount = int(res.json()['toTokenAmount'])
     return amount
 
@@ -83,8 +82,6 @@ def exchange_1inch(
         'allowPartialFill': True,
     })
     res = http.get(f'{_1INCH_API_URL}/swap?{query_string}')
-    res.raise_for_status()
-
     tx = res.json()['tx']
     tx['gas'] = int(tx['gas'] * 1.25)
     tx['value'] = int(tx['value'])
