@@ -1,5 +1,5 @@
 {
-  "contractName": "PcsVdsV1",
+  "contractName": "PcsMdxV1",
   "abi": [
     {
       "inputs": [],
@@ -23,7 +23,8 @@
     },
     {
       "stateMutability": "payable",
-      "type": "receive"
+      "type": "receive",
+      "payable": true
     },
     {
       "inputs": [
@@ -36,14 +37,9 @@
           "internalType": "uint256",
           "name": "amountLast",
           "type": "uint256"
-        },
-        {
-          "internalType": "uint8",
-          "name": "chiFlag",
-          "type": "uint8"
         }
       ],
-      "name": "swapVdsFirst",
+      "name": "swapMdxFirst",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -71,7 +67,7 @@
           "type": "bytes"
         }
       ],
-      "name": "uniswapV2Call",
+      "name": "swapV2Call",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -87,11 +83,6 @@
           "internalType": "uint256",
           "name": "amountLast",
           "type": "uint256"
-        },
-        {
-          "internalType": "uint8",
-          "name": "chiFlag",
-          "type": "uint8"
         }
       ],
       "name": "swapPcsFirst",
@@ -136,8 +127,8 @@
     "56": {
       "events": {},
       "links": {},
-      "address": "0xC24Db8bb79410935faB705Fe2E30B01cB0C2B11e",
-      "transactionHash": "0x7ff8704e464e6341b523c00787f6e18b51c6f5f5b2014f0bdc7110ba2c3ee0b9"
+      "address": "0x2D8EfcB6af3fd884ea10De8be6765825bb43c6ee",
+      "transactionHash": "0xc8b2d40b36981e601c2d5d9f14871800121f0f0866d517a198c3bdaab380927e"
     }
   },
   "schemaVersion": "3.3.4"
