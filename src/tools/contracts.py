@@ -95,6 +95,7 @@ def sign_and_send_transaction(
     tx: dict,
     web3: Web3,
     wait_finish: bool = False,
+    max_blocks_wait: int = None,
     verbose: bool = False,
 ) -> str:
     tx['gas'] = tx.get('gas', 1_000_000)
@@ -106,7 +107,7 @@ def sign_and_send_transaction(
     tx_hash = web3.sha3(signed_tx.rawTransaction).hex()
 
     if wait_finish:
-        wait_transaction_finish(tx_hash, web3, verbose)
+        wait_transaction_finish(tx_hash, web3, max_blocks_wait, verbose)
     return tx_hash
 
 
@@ -116,6 +117,7 @@ def sign_and_send_contract_transaction(
     max_gas_: int = 1_000_000,
     gas_price_: int = None,
     wait_finish_: bool = False,
+    max_blocks_wait_: int = None,
     **kwargs
 ) -> str:
     web3 = func.web3
@@ -130,20 +132,26 @@ def sign_and_send_contract_transaction(
         'nonce': web3.eth.get_transaction_count(ACCOUNT.address),
         'gasPrice': gas_price_
     })
-    return sign_and_send_transaction(tx, web3, wait_finish_)
+    return sign_and_send_transaction(tx, web3, wait_finish_, max_blocks_wait_)
 
 
 def wait_transaction_finish(
     tx_hash: str,
     web3: Web3,
+    max_blocks_wait: int = None,
     verbose: bool = False,
     min_confirmations: int = 1,
 ):
     listener = w3.BlockListener(web3)
+    max_blocks_wait = max_blocks_wait or 20
+    n = 0
     for current_block in listener.wait_for_new_blocks():
         try:
             receipt = web3.eth.getTransactionReceipt(tx_hash)
         except TransactionNotFound:
+            n += 1
+            if n >= max_blocks_wait:
+                raise Exception(f'Transactio {tx_hash} not found after {n} blocks')
             continue
         if receipt.status == 0:
             log.info(f'Failed to send transaction: {tx_hash}')

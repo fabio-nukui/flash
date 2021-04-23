@@ -51,6 +51,7 @@ def exchange_1inch(
     max_slippage: float = DEFAULT_MAX_SLIPPAGE,
     gas_price: int = None,
     wait_finish: bool = False,
+    max_blocks_wait_: int = None,
 ):
     token_out_address = tokenOut.address if tokenOut is not None else _1INCH_CURRENCY_ADDRESS
     gas_price = price.get_gas_price() if gas_price is None else gas_price
@@ -88,4 +89,4 @@ def exchange_1inch(
     tx['gasPrice'] = int(tx['gasPrice'])
     tx['to'] = web3.toChecksumAddress(tx['to'])
 
-    return contracts.sign_and_send_transaction(tx, web3, wait_finish)
+    return contracts.sign_and_send_transaction(tx, web3, wait_finish, max_blocks_wait_)
