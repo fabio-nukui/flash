@@ -11,9 +11,6 @@ import "../libraries/AddressArrayEncoder.sol";
 import "../interfaces/common/IERC20.sol";
 import {PancakeswapLibrary} from "../libraries/uniswap_v2/PancakeswapLibrary.sol";
 import {MdexLibrary} from "../libraries/uniswap_v2/MdexLibrary.sol";
-import "../interfaces/valuedefiswap/IValueLiquidFormula.sol";
-import "../interfaces/valuedefiswap/IValueLiquidPair.sol";
-import "../interfaces/valuedefiswap/IValueLiquidFactory.sol";
 
 
 contract PcsMdxV1 is Withdrawable, CHIBurner {
@@ -50,7 +47,7 @@ contract PcsMdxV1 is Withdrawable, CHIBurner {
         uint256[] memory amounts = MdexLibrary.getAmountsIn(amountSendPcs, path);
         exchangePcs(path[path.length - 1], path[0], amountSendPcs, amounts[0]);
 
-        address firstPair = PancakeswapLibrary.pairFor(pcsFactory, path[0], path[1]);
+        address firstPair = MdexLibrary.pairFor(path[0], path[1]);
         TransferHelper.safeTransfer(path[0], firstPair, amounts[0]);
         _mdx_swap(amounts, path);
     }
