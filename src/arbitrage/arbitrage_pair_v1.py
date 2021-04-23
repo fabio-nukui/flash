@@ -193,6 +193,7 @@ class ArbitragePairV1:
             'block_number': self.block_number,
             'estimated_net_result_usd': self.estimated_net_result_usd,
             'estimated_gross_result_usd': self.estimated_gross_result_usd,
+            'gas_share_of_profit': self.gas_share_of_profit,
             'gas_price': self.gas_price,
             'est_tx_cost': est_tx_cost,
             'token_first_symbol': self.token_first.symbol,
