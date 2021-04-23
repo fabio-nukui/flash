@@ -37,7 +37,7 @@ MAX_ITERATIONS = 100
 
 # Created with notebooks/pcs_mdx_v1.ipynb (2021-04-22)
 ADDRESS_FILEPATH = 'addresses/strategies/pcs_mdx_v1.json'
-CONTRACT_DATA_FILEPATH = 'deployed_contracts/PcsVdsV1B.json'
+CONTRACT_DATA_FILEPATH = 'deployed_contracts/PcsMdxV1.json'
 
 log = logging.getLogger(__name__)
 
