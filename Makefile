@@ -103,7 +103,7 @@ check-all: isort lint test ## Run tests and code style
 upload-notebooks: ## Upload jupyter notebooks
 	aws s3 sync \
 		--exclude='.gitkeep' \
-		--exclude='.ipynb_checkpoints/*' \
+		--exclude='*.ipynb_checkpoints*' \
 		notebooks $(DATA_SOURCE)/notebooks
 
 download-notebooks: ## Download jupyter notebooks
