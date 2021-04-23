@@ -111,7 +111,7 @@ class ArbitragePairV1:
             amount_last, self.token_first, MAX_HOPS_SECOND_DEX, HOP_PENALTY)
         return first_trade, second_trade
 
-    def update_estimate(self, block_number: int):
+    def update_estimate(self, block_number: int = None):
         if self._insufficient_liquidity:
             return
         try:
