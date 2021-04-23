@@ -14,10 +14,10 @@ from dex import PancakeswapDex, MDex
 # Strategy parameters
 MIN_ESTIMATED_PROFIT = 1
 
-# Initial gas estimates
-GAS_COST_PCS_FIRST_CHI_ON = 160_000
-GAS_COST_MDX_FIRST_CHI_ON = 160_000
-GAS_INCREASE_WITH_HOP = 0.266831606034439
+# Based on notebooks/analysis/pcs_mdx_analysis_v1.ipynb (2021-04-23)
+GAS_COST_PCS_FIRST_CHI_ON = 140_575.7
+GAS_COST_MDX_FIRST_CHI_ON = 138_368.1
+GAS_INCREASE_WITH_HOP = 0.2908916690437962
 
 # Created with notebooks/pcs_mdx_v1.ipynb (2021-04-22)
 ADDRESS_FILEPATH = 'addresses/strategies/pcs_mdx_v1.json'
