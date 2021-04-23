@@ -27,7 +27,7 @@ log = logging.getLogger(__name__)
 
 
 class PcsVdsPair(ArbitragePairV1):
-    def _get_gas_cost(self, estimated_gross_result_usd: float) -> int:
+    def _get_gas_cost(self) -> int:
         num_hops_extra_hops = len(self.first_trade.route.pairs) - 1
         gas_cost_multiplier = 1 + GAS_INCREASE_WITH_HOP * num_hops_extra_hops
 
