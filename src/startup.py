@@ -5,7 +5,7 @@ import warnings
 import yaml
 
 import configs
-from tools import contracts
+from tools import transaction
 
 
 def setup_warnings():
@@ -30,4 +30,4 @@ def setup_logger():
 def setup():
     setup_warnings()
     setup_logger()
-    contracts.setup()
+    transaction.setup()

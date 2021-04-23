@@ -125,7 +125,7 @@ class ArbitragePair:
         log.info(f'Trades: {self.trade_cake}; {self.trade_eps}')
         log.info(f'Gas price: {self._gas_price / 10 ** 9:,.1f} Gwei')
 
-        transaction_hash = tools.contracts.sign_and_send_contract_transaction(
+        transaction_hash = tools.transaction.sign_and_send_contract_tx(
             func=self.contract.functions.triggerFlashSwap,
             token0=self.token_first.address,
             token1=self.token_last.address,
@@ -133,7 +133,7 @@ class ArbitragePair:
             max_gas_=GAS_COST * 2,
             gas_price_=self._gas_price,
         )
-        # transaction_hash = tools.contracts.sign_and_send_contract_transaction(
+        # transaction_hash = tools.transaction.sign_and_send_contract_tx(
         #     self.contract.functions.triggerFlashSwap,
         #     path=[t.address for t in self.trade_cake.route.tokens],
         #     amountLast=self.amount_last.amount,
@@ -185,7 +185,7 @@ def run():
     cake_dex = PancakeswapDex(tokens=addresses['cake_dex'])
     eps_dex = EllipsisDex(pool_names=addresses['eps_dex'])
 
-    contract = tools.contracts.load_contract(CONTRACT_DATA_FILEPATH)
+    contract = tools.transaction.load_contract(CONTRACT_DATA_FILEPATH)
     arbitrage_pairs = [
         ArbitragePair(token_first, token_last, cake_dex, eps_dex, contract, web3)
         for token_first, token_last in permutations(eps_dex.tokens, 2)

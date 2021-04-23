@@ -175,7 +175,7 @@ class ArbitragePairV1:
         self.estimated_net_result_usd = self.estimated_gross_result_usd - gas_cost_usd * gas_premium
 
     def execute(self):
-        transaction_hash = tools.contracts.sign_and_send_contract_transaction(
+        transaction_hash = tools.transaction.sign_and_send_contract_tx(
             func=self._get_contract_function(),
             path=self._get_path_argument(),
             amountLast=self.amount_last.amount,

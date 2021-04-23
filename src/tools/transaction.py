@@ -81,7 +81,7 @@ def load_contract(contract_data_filepath: str, web3: Web3 = None) -> Contract:
     return web3.eth.contract(address, abi=abi)
 
 
-def broadcast_transaction(tx: SignedTransaction):
+def broadcast_tx(tx: SignedTransaction):
     for bg_web3 in LIST_BG_WEB3:
         bg_web3.send_transaction(tx)
 
@@ -91,7 +91,7 @@ def _has_chi_flag(func: ContractFunction):
     return any(fn_input.get('name') == CHI_FLAG for fn_input in function_inputs)
 
 
-def sign_and_send_transaction(
+def sign_and_send_tx(
     tx: dict,
     web3: Web3,
     account: Account = None,
@@ -105,15 +105,15 @@ def sign_and_send_transaction(
     tx['gasPrice'] = tx.get('gasPrice', price.get_gas_price())
 
     signed_tx = account.sign_transaction(tx)
-    broadcast_transaction(signed_tx)
+    broadcast_tx(signed_tx)
     tx_hash = web3.sha3(signed_tx.rawTransaction).hex()
 
     if wait_finish:
-        wait_transaction_finish(tx_hash, web3, max_blocks_wait, verbose)
+        wait_tx_finish(tx_hash, web3, max_blocks_wait, verbose)
     return tx_hash
 
 
-def sign_and_send_contract_transaction(
+def sign_and_send_contract_tx(
     func: ContractFunction,
     *args,
     max_gas_: int = 1_000_000,
@@ -136,10 +136,10 @@ def sign_and_send_contract_transaction(
         'nonce': web3.eth.get_transaction_count(account.address),
         'gasPrice': gas_price_
     })
-    return sign_and_send_transaction(tx, web3, account, wait_finish_, max_blocks_wait_)
+    return sign_and_send_tx(tx, web3, account, wait_finish_, max_blocks_wait_)
 
 
-def wait_transaction_finish(
+def wait_tx_finish(
     tx_hash: str,
     web3: Web3,
     max_blocks_wait: int = None,

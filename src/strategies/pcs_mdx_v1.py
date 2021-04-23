@@ -66,7 +66,7 @@ def run():
         addresses = json.load(f)
         pcs_dex = PancakeswapDex(pairs_addresses=addresses['pcs_dex'], web3=web3)
         mdx_dex = MDex(pairs_addresses=addresses['mdx_dex'], web3=web3)
-    contract = tools.contracts.load_contract(CONTRACT_DATA_FILEPATH)
+    contract = tools.transaction.load_contract(CONTRACT_DATA_FILEPATH)
     arbitrage_pairs = [
         PcsMdxPair(**params, contract=contract, web3=web3)
         for params in get_arbitrage_params(pcs_dex, mdx_dex)

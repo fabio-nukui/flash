@@ -123,7 +123,7 @@ class Strategy:
             return
         for token_amount in amounts_withdraw:
             log.info(f'{self}: Withdrawing {token_amount}')
-            tx_hash = tools.contracts.sign_and_send_contract_transaction(
+            tx_hash = tools.transaction.sign_and_send_contract_tx(
                 self.contract.functions.withdrawToken,
                 token_amount.token.address,
                 wait_finish_=True
@@ -149,7 +149,7 @@ class Strategy:
             native_amount = tools.exchange.get_quote_1inch(amount_chi)
             price_chi = native_amount / CHI_CONTRACT_TOP_UP
             if price_chi > CHI_MINT_PRICE:
-                tx_hash = tools.contracts.sign_and_send_contract_transaction(
+                tx_hash = tools.transaction.sign_and_send_contract_tx(
                     chi_token.contract.functions.mint,
                     CHI_CONTRACT_TOP_UP,
                     max_gas_=CHI_MINT_MAX_GAS,
@@ -171,7 +171,7 @@ class Strategy:
         )
         amount_transfer = min(deployer_balance, CHI_CONTRACT_TOP_UP)
         log.info(f'Transfering {amount_transfer} CHI')
-        tx_hash = tools.contracts.sign_and_send_contract_transaction(
+        tx_hash = tools.transaction.sign_and_send_contract_tx(
             chi_token.contract.functions.transfer,
             self.contract.address,
             amount_transfer,
@@ -190,7 +190,7 @@ def convert_amounts_native(amounts_convert: Iterable[TokenAmount], web3: Web3):
         log.info(f'Converting {token_amount}')
         if token_amount.token == WRAPPED_CURRENCY_TOKEN:  # WBNB / WETH
             contract = web3.eth.contract(token_amount.token.address, abi=WETH_ABI)
-            tx_hash = tools.contracts.sign_and_send_contract_transaction(
+            tx_hash = tools.transaction.sign_and_send_contract_tx(
                 contract.functions.withdraw,
                 token_amount.amount,
                 wait_finish_=True
@@ -253,14 +253,14 @@ def get_strategy(strategy_name: str, web3: Web3):
             addresses = json.load(f)
             pcs_dex = PancakeswapDex(pairs_addresses=addresses['pcs_dex'], web3=web3)
             vds_dex = ValueDefiSwapDex(pairs_addresses=addresses['vds_dex'], web3=web3)
-        contract = tools.contracts.load_contract(pcs_vds_v1.CONTRACT_DATA_FILEPATH)
+        contract = tools.transaction.load_contract(pcs_vds_v1.CONTRACT_DATA_FILEPATH)
         return Strategy(contract, [pcs_dex, vds_dex], strategy_name)
     if strategy_name == 'pcs_mdx_v1':
         with open(pcs_mdx_v1.ADDRESS_FILEPATH) as f:
             addresses = json.load(f)
             pcs_dex = PancakeswapDex(pairs_addresses=addresses['pcs_dex'], web3=web3)
             mdx_dex = MDex(pairs_addresses=addresses['mdx_dex'], web3=web3)
-        contract = tools.contracts.load_contract(pcs_mdx_v1.CONTRACT_DATA_FILEPATH)
+        contract = tools.transaction.load_contract(pcs_mdx_v1.CONTRACT_DATA_FILEPATH)
         return Strategy(contract, [pcs_dex, mdx_dex], strategy_name)
 
 

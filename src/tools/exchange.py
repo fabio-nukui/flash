@@ -7,7 +7,7 @@ from web3 import Web3
 
 import configs
 from core import Token, TokenAmount
-from tools import contracts, http, price
+from tools import transaction, http, price
 
 log = logging.getLogger(__name__)
 
@@ -63,7 +63,7 @@ def exchange_1inch(
             .call(block_identifier=configs.BLOCK)
         )
         if allowance < from_token_amount:
-            tx_hash = contracts.sign_and_send_contract_transaction(
+            tx_hash = transaction.sign_and_send_contract_tx(
                 amountIn.token.contract.functions.approve,
                 _1INCH_ROUTER_ADDRESS,
                 amountIn.amount,
@@ -89,4 +89,4 @@ def exchange_1inch(
     tx['gasPrice'] = int(tx['gasPrice'])
     tx['to'] = web3.toChecksumAddress(tx['to'])
 
-    return contracts.sign_and_send_transaction(tx, web3, wait_finish, max_blocks_wait_)
+    return transaction.sign_and_send_tx(tx, web3, wait_finish, max_blocks_wait_)
