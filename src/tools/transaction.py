@@ -16,13 +16,15 @@ from web3.exceptions import TransactionNotFound
 import configs
 from tools import price, w3
 
+log = logging.getLogger(__name__)
+
+PUBLIC_ENDPOINTS_FILEPATH = 'addresses/public_rcp_endpoints.json'
+LIST_BG_WEB3: list[BackgroundWeb3] = []
 ACCOUNT = Account.from_key(configs.PRIVATE_KEY)
+
 CONNECTION_KEEP_ALIVE_TIME_INTERVAL = 30
 MAX_BLOCKS_WAIT_RECEIPT = 20
-PUBLIC_ENDPOINTS_FILEPATH = 'addresses/public_rcp_endpoints.json'
-log = logging.getLogger(__name__)
 CHI_FLAG = 'chiFlag'
-LIST_BG_WEB3: list[BackgroundWeb3] = []
 
 
 class BackgroundWeb3:
@@ -105,9 +107,10 @@ def sign_and_send_tx(
     tx['nonce'] = tx.get('nonce', web3.eth.get_transaction_count(account.address))
     tx['gasPrice'] = tx.get('gasPrice', price.get_gas_price())
 
+    log.debug(f'Sending transaction: {tx}')
     signed_tx = account.sign_transaction(tx)
     broadcast_tx(signed_tx)
-    tx_hash = web3.sha3(signed_tx.rawTransaction).hex()
+    tx_hash = signed_tx.hash.hex()
 
     if wait_finish:
         wait_tx_finish(tx_hash, web3, max_blocks_wait, verbose)
