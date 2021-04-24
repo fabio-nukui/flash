@@ -10,7 +10,7 @@ import configs
 from ..base import UniV2PairInitMixin
 
 
-N_PAIRS_CACHE = 1_000  # Must be at least equal to number of pairs in strategy
+N_POOLS_CACHE = 1_000  # Must be at least equal to number of pools in strategy
 
 
 class ValueDefiPair(LiquidityPair, UniV2PairInitMixin):
@@ -50,7 +50,7 @@ class ValueDefiPair(LiquidityPair, UniV2PairInitMixin):
 
         return super().from_address(chain_id, fee, contract=contract)
 
-    @ttl_cache(N_PAIRS_CACHE)
+    @ttl_cache(N_POOLS_CACHE)
     def _get_reserves(self):
         return self.contract.functions.getReserves().call(block_identifier=configs.BLOCK)
 

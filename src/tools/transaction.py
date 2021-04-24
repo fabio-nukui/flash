@@ -117,6 +117,27 @@ def sign_and_send_tx(
     return tx_hash
 
 
+def dry_run_contract_tx(
+    func: ContractFunction,
+    *args,
+    max_gas_: int = 1_000_000,
+    gas_price_: int = None,
+    account_: Account = None,
+    **kwargs,
+):
+    web3 = func.web3
+    account = ACCOUNT if account_ is None else account_
+    gas_price_ = price.get_gas_price() if gas_price_ is None else gas_price_
+
+    tx = func(*args, **kwargs).buildTransaction({
+        'from': account.address,
+        'chainId': configs.CHAIN_ID,
+        'gas': max_gas_,
+        'gasPrice': gas_price_,
+    })
+    web3.eth.call(tx)
+
+
 def sign_and_send_contract_tx(
     func: ContractFunction,
     *args,

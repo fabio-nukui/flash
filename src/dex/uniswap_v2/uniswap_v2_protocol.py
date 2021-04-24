@@ -30,8 +30,7 @@ class UniswapV2Protocol(DexProtocol, TradePairsMixin):
         tokens: list[Token] = None,
         verbose_init: bool = False,
     ):
-        self.tokens: list[Token]
-        self.pairs: list[UniV2Pair] = []
+        self.pools: list[UniV2Pair] = []
         self.factory_contract: Contract
         self.router_contract: Contract
 
@@ -70,22 +69,22 @@ class UniswapV2Protocol(DexProtocol, TradePairsMixin):
                 pools_addresses = tqdm(pools_addresses)
             for address in pools_addresses:
                 try:
-                    pair = UniV2Pair.from_address(
+                    pool = UniV2Pair.from_address(
                         self.chain_id,
                         self.fee,
                         address,
                         self.abis[PAIR_ABI],
                         self.web3,
                     )
-                    if pair.reserves[0] > 0:
-                        self.pairs.append(pair)
+                    if pool.reserves[0] > 0:
+                        self.pools.append(pool)
                 except Exception as e:
                     log.info(f'Failed to load pair {address=} ({e})')
         else:
             for token_0, token_1 in itertools.combinations(tokens, 2):
                 reserves = (TokenAmount(token_0), TokenAmount(token_1))
                 try:
-                    pair = UniV2Pair(
+                    pool = UniV2Pair(
                         reserves,
                         self.fee,
                         self.abis[PAIR_ABI],
@@ -93,8 +92,7 @@ class UniswapV2Protocol(DexProtocol, TradePairsMixin):
                         self.addresses['factory'],
                         self.addresses['init_code_hash'],
                     )
-                    if pair.reserves[0] > 0:
-                        self.pairs.append(pair)
+                    if pool.reserves[0] > 0:
+                        self.pools.append(pool)
                 except Exception as e:
-                    log.info(f'Failed to get data for UniswapV2 pair {token_0}/{token_1} ({e})')
-        self.tokens = list({token for pair in self.pairs for token in pair.tokens})
+                    log.info(f'Failed to get data for UniswapV2 pool {token_0}/{token_1} ({e})')

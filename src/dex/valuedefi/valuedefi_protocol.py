@@ -24,23 +24,22 @@ class ValueDefiProtocol(DexProtocol, TradePairsMixin):
         addresses_filepath: str,
         web3: Web3,
         pools_addresses: list[str] = None,
-        pairs_data: list[dict] = None,
+        pools_data: list[dict] = None,
         verbose_init: bool = False,
     ):
-        self.tokens: list[Token]
-        self.pairs: list[ValueDefiPair] = []
+        self.pools: list[ValueDefiPair] = []
         self.factory_contract: Contract
 
         abi_filepaths = [FACTORY_ABI, PAIR_ABI]
 
-        if pools_addresses is None and pairs_data is None:
-            raise ValueError("None one of 'pools_addresses' or 'pairs_data' were passed")
+        if pools_addresses is None and pools_data is None:
+            raise ValueError("None one of 'pools_addresses' or 'pools_data' were passed")
         super().__init__(
             abi_filepaths,
             chain_id,
             addresses_filepath,
             web3,
-            pairs_data=pairs_data,
+            pools_data=pools_data,
             pools_addresses=pools_addresses,
             verbose_init=verbose_init,
         )
@@ -48,7 +47,7 @@ class ValueDefiProtocol(DexProtocol, TradePairsMixin):
     def _connect(
         self,
         pools_addresses: list[str],
-        pairs_data: list[dict],
+        pools_data: list[dict],
         verbose_init: bool = False,
     ):
         self.factory_contract = self.web3.eth.contract(
@@ -68,11 +67,11 @@ class ValueDefiProtocol(DexProtocol, TradePairsMixin):
                         self.web3,
                     )
                     if pair.reserves[0] > 0:
-                        self.pairs.append(pair)
+                        self.pools.append(pair)
                 except Exception as e:
                     log.info(f'Failed to load pair {address=} ({e})')
         else:
-            for data in pairs_data:
+            for data in pools_data:
                 token_0 = Token(self.chain_id, data['token_0'], web3=self.web3)
                 token_1 = Token(self.chain_id, data['token_1'], web3=self.web3)
                 reserves = (TokenAmount(token_0), TokenAmount(token_1))
@@ -86,7 +85,6 @@ class ValueDefiProtocol(DexProtocol, TradePairsMixin):
                         self.web3,
                     )
                     if pair.reserves[0] > 0:
-                        self.pairs.append(pair)
+                        self.pools.append(pair)
                 except Exception as e:
                     log.info(f'Failed to get data for ValueDefi pair {token_0}/{token_1} ({e})')
-        self.tokens = list({token for pair in self.pairs for token in pair.tokens})

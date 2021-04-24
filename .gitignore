@@ -20,6 +20,9 @@ env/
 .local
 .python_history
 
+# Application files
+/strategy_files
+
 # jupyter notebooks
 *.ipynb
 

@@ -75,17 +75,22 @@ def simulate_block(
             yield
         finally:
             configs.BLOCK = previous_block
+            tools.cache.clear_caches(clear_all=clear_all_caches)
     elif hardhat_fork_process is None:
         try:
             hardhat_fork_process = HardhatForkProcess(block)
             hardhat_fork_process.start()
+            tools.cache.clear_caches(clear_all=clear_all_caches)
             yield
         finally:
             hardhat_fork_process.stop()
+            tools.cache.clear_caches(clear_all=clear_all_caches)
     else:
         previous_block = hardhat_fork_process.block
         try:
             hardhat_fork_process.restart_at_block(block)
+            tools.cache.clear_caches(clear_all=clear_all_caches)
             yield
         finally:
             hardhat_fork_process.restart_at_block(previous_block)
+            tools.cache.clear_caches(clear_all=clear_all_caches)

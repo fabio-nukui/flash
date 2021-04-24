@@ -8,6 +8,7 @@ from web3 import Web3
 
 import configs
 from core import LiquidityPair, Token
+from exceptions import InsufficientLiquidity
 from tools import http, w3
 from tools.cache import ttl_cache
 
@@ -113,7 +114,7 @@ def get_price_usd_native_token(web3: Web3) -> float:
     return get_chainlink_price_usd(symbol, web3)
 
 
-def get_price_usd(token: Token, pairs: list[LiquidityPair], web3: Web3 = WEB3) -> float:
+def get_price_usd(token: Token, pools: list[LiquidityPair], web3: Web3 = WEB3) -> float:
     """Return token price in USD using chainlink and, if token not in chainlink, by comparing
     vs liquidity pair with largest liquidity and with chainlink usd price
     """
@@ -122,15 +123,15 @@ def get_price_usd(token: Token, pairs: list[LiquidityPair], web3: Web3 = WEB3) -
     except KeyError:
         pass
     liquidity_prices = []
-    for pair in pairs:
-        if token not in pair.tokens:
+    for pool in pools:
+        if token not in pool.tokens:
             continue
-        if pair.tokens[0] == token:
-            paired_token = pair.tokens[1]
-            same_reserve, paired_reserve = pair.reserves
+        if pool.tokens[0] == token:
+            paired_token = pool.tokens[1]
+            same_reserve, paired_reserve = pool.reserves
         else:
-            paired_token = pair.tokens[0]
-            paired_reserve, same_reserve = pair.reserves
+            paired_token = pool.tokens[0]
+            paired_reserve, same_reserve = pool.reserves
         try:
             price_paired_token = get_chainlink_price_usd(paired_token, web3)
         except KeyError:
@@ -139,7 +140,7 @@ def get_price_usd(token: Token, pairs: list[LiquidityPair], web3: Web3 = WEB3) -
         price_token = price_paired_token * paired_reserve.amount / same_reserve.amount
         liquidity_prices.append((liquidity, price_token))
     if not liquidity_prices:
-        raise Exception('Found no token with chainlink price linked to input token.')
+        raise InsufficientLiquidity('Found no token with chainlink price linked to input token.')
     return max(liquidity_prices)[1]
 
 

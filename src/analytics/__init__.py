@@ -1,7 +1,6 @@
-from . import blocks, events, simulation
+from . import blocks, events
 
 __all__ = [
     'blocks',
     'events',
-    'simulation',
 ]

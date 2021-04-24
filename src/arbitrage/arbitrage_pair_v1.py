@@ -5,7 +5,7 @@ from web3.contract import Contract, ContractFunction
 from web3.exceptions import TransactionNotFound
 
 import tools
-from core import Token, TokenAmount, TradePairs
+from core import LiquidityPool, Token, TokenAmount, TradePairs
 from dex import DexProtocol
 from exceptions import InsufficientLiquidity
 
@@ -61,13 +61,12 @@ class ArbitragePairV1:
         self.opt_tolerance = optimization_params.get('tolerance', TOLERANCE_USD)
         self.opt_max_iter = optimization_params.get('max_iter', MAX_ITERATIONS)
 
-        self.pairs = list(set(self.first_dex.pairs) | set(self.second_dex.pairs))
-
         self.amount_last = TokenAmount(token_last)
         self.estimated_result = TokenAmount(token_first)
         self.first_trade: TradePairs = None
         self.second_trade: TradePairs = None
 
+        self.is_disabled = False
         self._is_set = False
         self._is_running = False
         self._transaction_hash = ''
@@ -75,9 +74,9 @@ class ArbitragePairV1:
         self.gas_cost = 0
         self.estimated_gross_result_usd = 0.0
         self.estimated_net_result_usd = 0.0
-        self._insufficient_liquidity = False
         self._n_transaction_checks = 0
         self.block_number: int = None
+        self.tx_succeeded: bool = None
 
     def __repr__(self):
         return (
@@ -96,6 +95,16 @@ class ArbitragePairV1:
     def _get_path_argument(self) -> list[str]:
         raise NotImplementedError
 
+    @property
+    def pools(self) -> list[LiquidityPool]:
+        return list(set(self.first_dex.pools) | set(self.second_dex.pools))
+
+    @property
+    def execution_pools(self) -> list[LiquidityPool]:
+        if self.first_trade is None or self.second_trade is None:
+            return []
+        return self.first_trade.route.pools + self.second_trade.route.pools
+
     def _estimate_result_int(self, amount_last_int: int) -> int:
         amount_last = TokenAmount(self.token_last, amount_last_int)
         return self._estimate_result(amount_last).amount
@@ -112,8 +121,6 @@ class ArbitragePairV1:
         return first_trade, second_trade
 
     def update_estimate(self, block_number: int = None):
-        if self._insufficient_liquidity:
-            return
         try:
             if self._is_set:
                 self._reset()
@@ -121,10 +128,10 @@ class ArbitragePairV1:
         except InsufficientLiquidity:
             logging.info(f'Insufficient liquidity for {self}, removing it from next iterations')
             self._reset()
-            self._insufficient_liquidity = True
+            self.is_disabled = True
 
     def _update_estimate(self, block_number: int):
-        usd_price_token_last = tools.price.get_price_usd(self.token_last, self.pairs)
+        usd_price_token_last = tools.price.get_price_usd(self.token_last, self.pools)
         amount_last_initial = TokenAmount(
             self.token_last,
             int(self.opt_initial_value / usd_price_token_last * 10 ** self.token_last.decimals)
@@ -163,7 +170,7 @@ class ArbitragePairV1:
         self.block_number = block_number
         self.first_trade, self.second_trade = self._get_arbitrage_trades(amount_last)
 
-        token_usd_price = tools.price.get_price_usd(estimated_result.token, self.pairs, self.web3)
+        token_usd_price = tools.price.get_price_usd(estimated_result.token, self.pools, self.web3)
         self.estimated_gross_result_usd = estimated_result.amount_in_units * token_usd_price
         self.gas_cost = self._get_gas_cost()
 
@@ -174,14 +181,20 @@ class ArbitragePairV1:
         self.gas_price = int(tools.price.get_gas_price() * gas_premium)
         self.estimated_net_result_usd = self.estimated_gross_result_usd - gas_cost_usd * gas_premium
 
+    def _get_tx_params(self):
+        return {
+            'func': self._get_contract_function(),
+            'path': self._get_path_argument(),
+            'amountLast': self.amount_last.amount,
+            'max_gas_': int(self.gas_cost * MAX_GAS_MULTIPLIER),
+            'gas_price_': self.gas_price,
+        }
+
+    def dry_run(self):
+        tools.transaction.dry_run_contract_tx(**self._get_tx_params())
+
     def execute(self):
-        transaction_hash = tools.transaction.sign_and_send_contract_tx(
-            func=self._get_contract_function(),
-            path=self._get_path_argument(),
-            amountLast=self.amount_last.amount,
-            max_gas_=int(self.gas_cost * MAX_GAS_MULTIPLIER),
-            gas_price_=self.gas_price,
-        )
+        transaction_hash = tools.transaction.sign_and_send_contract_tx(**self._get_tx_params())
         self._is_running = True
         self._transaction_hash = transaction_hash
         log.info(f'Sent transaction with hash {transaction_hash}')
@@ -199,12 +212,9 @@ class ArbitragePairV1:
             'token_first_symbol': self.token_first.symbol,
             'token_last_symbol': self.token_last.symbol,
             'token_last_amount': self.amount_last.amount,
-            'n_hops': len(self.first_trade.route.pairs),
+            'n_hops': len(self.first_trade.route.pools),
         })
-        reserves = {
-            pair: pair.reserves
-            for pair in self.first_trade.route.pairs + self.second_trade.route.pairs
-        }
+        reserves = {pool: pool.reserves for pool in self.execution_pools}
         log.debug(f'Reserves: {reserves}')
 
     def _reset(self):
@@ -220,7 +230,8 @@ class ArbitragePairV1:
         self.estimated_gross_result_usd = 0.0
         self.estimated_net_result_usd = 0.0
         self._n_transaction_checks = 0
-        self.block_number: int = None
+        self.block_number = None
+        self.tx_succeeded = None
 
     def is_running(self, current_block: int) -> bool:
         if not self._is_running:
@@ -233,12 +244,13 @@ class ArbitragePairV1:
             if self._n_transaction_checks >= self.max_transaction_checks:
                 log.warning(
                     f'Transaction {self._transaction_hash} not found after '
-                    f'{self.max_transaction_checks} checks. Assuming it has failed.'
+                    f'{self.max_transaction_checks} checks.'
                 )
                 return False
             return True
         if receipt.status == 0:
             log.info(f'Transaction {self._transaction_hash} failed (gas_used={receipt.gasUsed})')
+            self.tx_succeeded = False
             return False
         elif current_block - receipt.blockNumber < (self.min_confirmations - 1):
             return True
@@ -247,4 +259,5 @@ class ArbitragePairV1:
             f'Transaction {self._transaction_hash} succeeded (gas_used={receipt.gasUsed}). '
             f'(Estimated profit: {self.estimated_net_result_usd})'
         )
+        self.tx_succeeded = True
         return False

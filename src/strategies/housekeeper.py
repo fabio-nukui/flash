@@ -71,26 +71,23 @@ def get_address_balances_in_native_currency(
 
 def get_price_changes_last_24h(
     tokens: list[Token],
-    pairs: list[LiquidityPair],
+    pools: list[LiquidityPair],
     web3: Web3
 ) -> list[float]:
-    configs.BLOCK = web3.eth.block_number - BLOCKS24H
-    tools.cache.clear_caches(clear_all=True)
-    prices_24h = []
-    for token in tokens:
-        try:
-            prices_24h.append(tools.price.get_price_usd(token, pairs, web3))
-        except BadFunctionCallOutput:  # In case token/pair didn't exist 24h ago
-            prices_24h.append(0)
-    configs.BLOCK = 'latest'
-    tools.cache.clear_caches(clear_all=True)
+    with tools.simulation.simulate_block(web3.eth.block_number - BLOCKS24H):
+        prices_24h = []
+        for token in tokens:
+            try:
+                prices_24h.append(tools.price.get_price_usd(token, pools, web3))
+            except BadFunctionCallOutput:  # In case token/pair didn't exist 24h ago
+                prices_24h.append(0)
 
     prices_now = []
     for price_24h, token in zip(prices_24h, tokens):
         if price_24h == 0:
             prices_now.append(0)
         else:
-            prices_now.append(tools.price.get_price_usd(token, pairs, web3))
+            prices_now.append(tools.price.get_price_usd(token, pools, web3))
     return [
         (price_now / price_24h - 1) if price_24h != 0 else DEFAULT_PRICE_CHANGE
         for price_now, price_24h in zip(prices_now, prices_24h)
@@ -105,14 +102,14 @@ class Strategy:
         self.name = name
 
         self.tokens = list({token for dex in list_dex for token in dex.tokens})
-        self.pairs = [pair for dex in list_dex for pair in dex.pairs]
+        self.pools = [pool for dex in list_dex for pool in dex.pools]
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.name})'
 
     def withdraw_tokens(self):
         balances = get_address_balances_in_native_currency(self.contract.address, self.tokens)
-        price_change_24h = get_price_changes_last_24h(self.tokens, self.pairs, self.web3)
+        price_change_24h = get_price_changes_last_24h(self.tokens, self.pools, self.web3)
         amounts_withdraw = []
         for (token_amount, native_amount), price_change in zip(balances, price_change_24h):
             price_impact_on_withdraw = 1 + price_change * PRICE_CHANGE_WITHDRAW_IMPACT

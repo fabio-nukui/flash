@@ -6,7 +6,7 @@ from web3 import Web3
 from web3.exceptions import BadFunctionCallOutput
 
 import configs
-from core import Token, TokenAmount, Trade
+from core import LiquidityPool, Token, TokenAmount, Trade
 from tools.cache import ttl_cache
 
 LENDING_PRECISION = int(10 ** 18)
@@ -17,7 +17,7 @@ N_ITERATIONS = 255  # Number of iterations for numeric calculations
 N_POOLS_CACHE = 100  # Must be at least equal to number of pools in strategy
 
 
-class CurvePool:
+class CurvePool(LiquidityPool):
     def __init__(
         self,
         name: str,
@@ -32,11 +32,13 @@ class CurvePool:
         self.name = name
         self.chain_id = chain_id
         self.web3 = web3
-        self.pool_contract = web3.eth.contract(pool_address, abi=pool_abi)
         self.pool_token_contract = web3.eth.contract(pool_token_address, abi=pool_token_abi)
-        self.fee = fee
+        super().__init__(
+            fee,
+            tokens=self.get_tokens(),
+            contract=web3.eth.contract(pool_address, abi=pool_abi)
+        )
 
-        self.tokens = self.get_tokens()
         self.n_coins = len(self.tokens)
         self._reserves = [TokenAmount(token) for token in self.tokens]
         self._rates = tuple(int(10 ** t.decimals) for t in self.tokens)
@@ -60,7 +62,7 @@ class CurvePool:
         while True:
             try:
                 token_address = \
-                    self.pool_contract.functions.coins(i).call(block_identifier=configs.BLOCK)
+                    self.contract.functions.coins(i).call(block_identifier=configs.BLOCK)
             except BadFunctionCallOutput:
                 return tokens
             tokens.append(Token(self.chain_id, token_address, web3=self.web3))
@@ -84,13 +86,13 @@ class CurvePool:
     @ttl_cache(N_POOLS_CACHE)
     def _get_balance(self) -> list[int]:
         return [
-            self.pool_contract.functions.balances(i).call(block_identifier=configs.BLOCK)
+            self.contract.functions.balances(i).call(block_identifier=configs.BLOCK)
             for i in range(self.n_coins)
         ]
 
     @ttl_cache(ttl=180)  # _A should vary slowly over time, cache can have greater TTL
     def _A(self):
-        return self.pool_contract.functions.A().call(block_identifier=configs.BLOCK)
+        return self.contract.functions.A().call(block_identifier=configs.BLOCK)
 
     def _xp(self) -> tuple[int, ...]:
         return tuple(

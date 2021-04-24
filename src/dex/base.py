@@ -2,11 +2,11 @@ import json
 import pathlib
 from typing import Callable, Union
 
-from web3.contract import Contract
 from web3 import Web3
+from web3.contract import Contract
 
 import configs
-from core import LiquidityPair, Token, TokenAmount, TradePairs
+from core import LiquidityPair, LiquidityPool, Token, TokenAmount, TradePairs
 
 
 class DexProtocol:
@@ -37,12 +37,16 @@ class DexProtocol:
         self.addresses = self._get_addresses(addresses_filepath, chain_id)
         self.fee = fee
         self.web3 = web3
-        self.tokens: list[Token]
+        self.pools: list[LiquidityPool]
 
         self._connect(**kwargs)
 
     def __repr__(self):
         return f'{self.__class__.__name__}'
+
+    @property
+    def tokens(self) -> list[Token]:
+        return list({token for pool in self.pools for token in pool.tokens})
 
     @staticmethod
     def _get_abi(filepath: Union[str, pathlib.Path]) -> dict[str, dict]:
@@ -70,7 +74,7 @@ class TradePairsMixin:
         max_slippage: int = None,
     ) -> TradePairs:
         return TradePairs.best_trade_exact_out(
-            self.pairs,
+            self.pools,
             token_in,
             amount_out,
             max_hops,
@@ -87,7 +91,7 @@ class TradePairsMixin:
         max_slippage: int = None,
     ) -> TradePairs:
         return TradePairs.best_trade_exact_in(
-            self.pairs,
+            self.pools,
             amount_in,
             token_out,
             max_hops,

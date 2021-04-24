@@ -11,7 +11,7 @@ from tools.cache import ttl_cache
 
 from ..base import UniV2PairInitMixin
 
-N_PAIRS_CACHE = 50_000  # Must be at least equal to number of pairs in strategy
+N_POOLS_CACHE = 50_000  # Must be at least equal to number of pools in strategy
 
 
 class UniV2Pair(LiquidityPair, UniV2PairInitMixin):
@@ -57,6 +57,6 @@ class UniV2Pair(LiquidityPair, UniV2PairInitMixin):
         )
         return Web3.toChecksumAddress(raw.hex()[-40:])
 
-    @ttl_cache(N_PAIRS_CACHE)
+    @ttl_cache(N_POOLS_CACHE)
     def _get_reserves(self):
         return self.contract.functions.getReserves().call(block_identifier=configs.BLOCK)
