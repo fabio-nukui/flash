@@ -259,7 +259,7 @@ def get_strategy(strategy_name: str, web3: Web3):
             'pcs_dex': PancakeswapDex,
             'mdx_dex': MDex,
         }
-        dexes = PairManager.load_dex_protocols(pcs_vds_v1.ADDRESS_DIRECTORY, protocols, web3)
+        dexes = PairManager.load_dex_protocols(pcs_mdx_v1.ADDRESS_DIRECTORY, protocols, web3)
         contract = tools.transaction.load_contract(pcs_mdx_v1.CONTRACT_DATA_FILEPATH)
         return Strategy(contract, dexes, strategy_name)
 
