@@ -105,7 +105,7 @@ class PairManager:
                         self._check_remove_pool(pool.address)
                 arb.tx_succeeded = None
 
-    def update_and_execute(self, block_number: int):
+    def _update_and_execute(self, block_number: int):
         running_arbitrages = [
             pair
             for pair in self.arbitrage_pairs
@@ -132,6 +132,9 @@ class PairManager:
             valid_execution = self._test_arbitrage(best_arbitrage)
         if valid_execution:
             best_arbitrage.execute()
+
+    def update_and_execute(self, block_number: int):
+        self._update_and_execute(block_number)
         self._update_arb_pairs()
         self._update_files()
 
