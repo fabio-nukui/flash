@@ -251,15 +251,15 @@ def get_strategy(strategy_name: str, web3: Web3):
     if strategy_name == 'pcs_vds_v1':
         with open(pcs_vds_v1.ADDRESS_FILEPATH) as f:
             addresses = json.load(f)
-            pcs_dex = PancakeswapDex(pairs_addresses=addresses['pcs_dex'], web3=web3)
-            vds_dex = ValueDefiSwapDex(pairs_addresses=addresses['vds_dex'], web3=web3)
+            pcs_dex = PancakeswapDex(pools_addresses=addresses['pcs_dex'], web3=web3)
+            vds_dex = ValueDefiSwapDex(pools_addresses=addresses['vds_dex'], web3=web3)
         contract = tools.transaction.load_contract(pcs_vds_v1.CONTRACT_DATA_FILEPATH)
         return Strategy(contract, [pcs_dex, vds_dex], strategy_name)
     if strategy_name == 'pcs_mdx_v1':
         with open(pcs_mdx_v1.ADDRESS_FILEPATH) as f:
             addresses = json.load(f)
-            pcs_dex = PancakeswapDex(pairs_addresses=addresses['pcs_dex'], web3=web3)
-            mdx_dex = MDex(pairs_addresses=addresses['mdx_dex'], web3=web3)
+            pcs_dex = PancakeswapDex(pools_addresses=addresses['pcs_dex'], web3=web3)
+            mdx_dex = MDex(pools_addresses=addresses['mdx_dex'], web3=web3)
         contract = tools.transaction.load_contract(pcs_mdx_v1.CONTRACT_DATA_FILEPATH)
         return Strategy(contract, [pcs_dex, mdx_dex], strategy_name)
 

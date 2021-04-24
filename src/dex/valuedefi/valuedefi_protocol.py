@@ -23,7 +23,7 @@ class ValueDefiProtocol(DexProtocol, TradePairsMixin):
         chain_id: int,
         addresses_filepath: str,
         web3: Web3,
-        pairs_addresses: list[str] = None,
+        pools_addresses: list[str] = None,
         pairs_data: list[dict] = None,
         verbose_init: bool = False,
     ):
@@ -33,21 +33,21 @@ class ValueDefiProtocol(DexProtocol, TradePairsMixin):
 
         abi_filepaths = [FACTORY_ABI, PAIR_ABI]
 
-        if pairs_addresses is None and pairs_data is None:
-            raise ValueError("None one of 'pairs_addresses' or 'pairs_data' were passed")
+        if pools_addresses is None and pairs_data is None:
+            raise ValueError("None one of 'pools_addresses' or 'pairs_data' were passed")
         super().__init__(
             abi_filepaths,
             chain_id,
             addresses_filepath,
             web3,
             pairs_data=pairs_data,
-            pairs_addresses=pairs_addresses,
+            pools_addresses=pools_addresses,
             verbose_init=verbose_init,
         )
 
     def _connect(
         self,
-        pairs_addresses: list[str],
+        pools_addresses: list[str],
         pairs_data: list[dict],
         verbose_init: bool = False,
     ):
@@ -55,11 +55,11 @@ class ValueDefiProtocol(DexProtocol, TradePairsMixin):
             address=Web3.toChecksumAddress(self.addresses['factory']),
             abi=self.abis[FACTORY_ABI]
         )
-        if pairs_addresses is not None:
+        if pools_addresses is not None:
             if verbose_init:
                 from tqdm import tqdm
-                pairs_addresses = tqdm(pairs_addresses)
-            for address in pairs_addresses:
+                pools_addresses = tqdm(pools_addresses)
+            for address in pools_addresses:
                 try:
                     pair = ValueDefiPair.from_address(
                         self.chain_id,

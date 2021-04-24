@@ -73,8 +73,8 @@ def run():
     web3 = tools.w3.get_web3(verbose=True)
     with open(ADDRESS_FILEPATH) as f:
         addresses = json.load(f)
-        pcs_dex = PancakeswapDex(pairs_addresses=addresses['pcs_dex'], web3=web3)
-        vds_dex = ValueDefiSwapDex(pairs_addresses=addresses['vds_dex'], web3=web3)
+        pcs_dex = PancakeswapDex(pools_addresses=addresses['pcs_dex'], web3=web3)
+        vds_dex = ValueDefiSwapDex(pools_addresses=addresses['vds_dex'], web3=web3)
     contract = tools.transaction.load_contract(CONTRACT_DATA_FILEPATH)
     arbitrage_pairs = [
         PcsVdsPair(**params, contract=contract, web3=web3)
