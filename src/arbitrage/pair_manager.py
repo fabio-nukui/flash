@@ -97,7 +97,7 @@ class PairManager:
         for arb in self.arbitrage_pairs:
             if arb.tx_succeeded is not None:
                 self._new_transaction_count = True
-                for pool in arb.pools:
+                for pool in arb.execution_pools:
                     if arb.tx_succeeded:
                         self.transaction_counts[pool.address]['succeded'] += 1
                     else:
