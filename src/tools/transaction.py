@@ -97,9 +97,9 @@ def _has_chi_flag(func: ContractFunction):
 def sign_and_send_tx(
     tx: dict,
     web3: Web3,
-    account: Account = None,
     wait_finish: bool = False,
     max_blocks_wait: int = None,
+    account: Account = None,
     verbose: bool = False,
 ) -> str:
     account = ACCOUNT if account is None else account
@@ -161,7 +161,7 @@ def sign_and_send_contract_tx(
         'nonce': web3.eth.get_transaction_count(account.address),
         'gasPrice': gas_price_
     })
-    return sign_and_send_tx(tx, web3, account, wait_finish_, max_blocks_wait_)
+    return sign_and_send_tx(tx, web3, wait_finish_, max_blocks_wait_, account)
 
 
 def wait_tx_finish(
