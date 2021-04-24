@@ -1,6 +1,5 @@
 import json
 import logging
-import urllib.parse
 from typing import Union
 
 from web3 import Web3
@@ -34,13 +33,13 @@ def get_quote_1inch(
     else:
         from_token_address = _1INCH_CURRENCY_ADDRESS
         from_token_amount = amountIn
-    query_string = urllib.parse.urlencode({
+    query_params = {
         'fromTokenAddress': from_token_address,
         'toTokenAddress': token_out_address,
         'amount': from_token_amount,
         'gasPrice': gas_price,
-    })
-    res = http.get(f'{_1INCH_API_URL}/quote?{query_string}', timeout=TIMEOUT_REQUESTS)
+    }
+    res = http.get(f'{_1INCH_API_URL}/quote', params=query_params, timeout=TIMEOUT_REQUESTS)
     amount = int(res.json()['toTokenAmount'])
     return amount
 
@@ -74,7 +73,7 @@ def exchange_1inch(
     else:
         from_token_address = _1INCH_CURRENCY_ADDRESS
         from_token_amount = amountIn
-    query_string = urllib.parse.urlencode({
+    query_params = {
         'fromTokenAddress': from_token_address,
         'toTokenAddress': token_out_address,
         'amount': from_token_amount,
@@ -82,8 +81,8 @@ def exchange_1inch(
         'slippage': max_slippage,
         'gasPrice': gas_price,
         'allowPartialFill': True,
-    })
-    res = http.get(f'{_1INCH_API_URL}/swap?{query_string}', timeout=TIMEOUT_REQUESTS)
+    }
+    res = http.get(f'{_1INCH_API_URL}/swap', params=query_params, timeout=TIMEOUT_REQUESTS)
     tx = res.json()['tx']
     tx['gas'] = int(tx['gas'] * 1.25)
     tx['value'] = int(tx['value'])
