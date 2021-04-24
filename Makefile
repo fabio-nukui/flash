@@ -88,6 +88,7 @@ start: ## Start docker container running arbitrage strategy "$STRAT" (e.g.: make
 	docker run --rm -d \
 		--net=host \
 		-v $(PWD)/logs:/home/flash/work/logs \
+		-v $(PWD)/strategy_files:/home/flash/work/strategy_files \
 		-v $(GETH_IPC_PATH):/home/flash/work/geth.ipc \
 		--name $(ARBITRAGE_CONTAINER_NAME) \
 		--env-file $(ENV_FILE) \
