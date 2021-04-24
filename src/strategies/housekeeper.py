@@ -11,6 +11,7 @@ from web3.exceptions import BadFunctionCallOutput
 
 import configs
 import tools
+from arbitrage import PairManager
 from core import LiquidityPair, Token, TokenAmount
 from dex import DexProtocol, MDex, PancakeswapDex, ValueDefiSwapDex
 from strategies import pcs_mdx_v1, pcs_vds_v1
@@ -95,14 +96,14 @@ def get_price_changes_last_24h(
 
 
 class Strategy:
-    def __init__(self, contract: Contract, list_dex: list[DexProtocol], name: str):
+    def __init__(self, contract: Contract, dexes: dict[str, DexProtocol], name: str):
         self.web3 = contract.web3
         self.contract = contract
-        self.list_dex = list_dex
+        self.dexes = dexes
         self.name = name
 
-        self.tokens = list({token for dex in list_dex for token in dex.tokens})
-        self.pools = [pool for dex in list_dex for pool in dex.pools]
+        self.tokens = list({token for dex in dexes.values() for token in dex.tokens})
+        self.pools = [pool for dex in dexes.values() for pool in dex.pools]
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.name})'
@@ -246,19 +247,21 @@ def convert_amounts(tokens: Iterable[Token], stable_reserve_token: Token, web3: 
 
 def get_strategy(strategy_name: str, web3: Web3):
     if strategy_name == 'pcs_vds_v1':
-        with open(pcs_vds_v1.ADDRESS_FILEPATH) as f:
-            addresses = json.load(f)
-            pcs_dex = PancakeswapDex(pools_addresses=addresses['pcs_dex'], web3=web3)
-            vds_dex = ValueDefiSwapDex(pools_addresses=addresses['vds_dex'], web3=web3)
+        protocols = {
+            'pcs_dex': PancakeswapDex,
+            'vds_dex': ValueDefiSwapDex,
+        }
+        dexes = PairManager.load_dex_protocols(pcs_vds_v1.ADDRESS_DIRECTORY, protocols, web3)
         contract = tools.transaction.load_contract(pcs_vds_v1.CONTRACT_DATA_FILEPATH)
-        return Strategy(contract, [pcs_dex, vds_dex], strategy_name)
+        return Strategy(contract, dexes, strategy_name)
     if strategy_name == 'pcs_mdx_v1':
-        with open(pcs_mdx_v1.ADDRESS_FILEPATH) as f:
-            addresses = json.load(f)
-            pcs_dex = PancakeswapDex(pools_addresses=addresses['pcs_dex'], web3=web3)
-            mdx_dex = MDex(pools_addresses=addresses['mdx_dex'], web3=web3)
+        protocols = {
+            'pcs_dex': PancakeswapDex,
+            'mdx_dex': MDex,
+        }
+        dexes = PairManager.load_dex_protocols(pcs_vds_v1.ADDRESS_DIRECTORY, protocols, web3)
         contract = tools.transaction.load_contract(pcs_mdx_v1.CONTRACT_DATA_FILEPATH)
-        return Strategy(contract, [pcs_dex, mdx_dex], strategy_name)
+        return Strategy(contract, dexes, strategy_name)
 
 
 def run():
