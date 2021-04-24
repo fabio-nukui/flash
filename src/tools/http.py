@@ -15,7 +15,7 @@ def get(url, *args, n_tries_: int = 3, **kwargs):
         except Exception as e:
             if i == n_tries_ - 1:
                 raise e
-            log.debug(f'Error on http GET:{e:!r}', exc_info=True)
+            log.debug(f'Error on http GET:({e.__class__.__name__}){e}', exc_info=True)
 
 
 def post(url, *args, n_tries_: int = 3, **kwargs):
@@ -28,4 +28,4 @@ def post(url, *args, n_tries_: int = 3, **kwargs):
         except Exception as e:
             if i == n_tries_ - 1:
                 raise e
-            log.debug(f'Error on http POST:{e:!r}', exc_info=True)
+            log.debug(f'Error on http POST:({e.__class__.__name__}){e}', exc_info=True)

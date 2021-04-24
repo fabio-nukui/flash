@@ -12,6 +12,7 @@ from tools import transaction, http, price
 log = logging.getLogger(__name__)
 
 _1INCH_API_URL = f'https://api.1inch.exchange/v3.0/{configs.CHAIN_ID}'
+TIMEOUT_REQUESTS = 10
 
 # Stand-in for ETH or BNB swaps in 1inch
 _1INCH_CURRENCY_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
@@ -39,7 +40,7 @@ def get_quote_1inch(
         'amount': from_token_amount,
         'gasPrice': gas_price,
     })
-    res = http.get(f'{_1INCH_API_URL}/quote?{query_string}')
+    res = http.get(f'{_1INCH_API_URL}/quote?{query_string}', timeout=TIMEOUT_REQUESTS)
     amount = int(res.json()['toTokenAmount'])
     return amount
 
@@ -82,7 +83,7 @@ def exchange_1inch(
         'gasPrice': gas_price,
         'allowPartialFill': True,
     })
-    res = http.get(f'{_1INCH_API_URL}/swap?{query_string}')
+    res = http.get(f'{_1INCH_API_URL}/swap?{query_string}', timeout=TIMEOUT_REQUESTS)
     tx = res.json()['tx']
     tx['gas'] = int(tx['gas'] * 1.25)
     tx['value'] = int(tx['value'])
