@@ -14,6 +14,7 @@ DEFAULT_MAX_HOPS_FIRST_DEX = 2
 MAX_HOPS_SECOND_DEX = 1  # Fixed for this class
 DEFAULT_MIN_CONFIRMATIONS = 1
 DEFAULT_MAX_TRANSACTION_CHECKS = 20
+MAX_GAS_PRICE = 21428571428571  # Equal to 3 BNB/ETH tx cost at 140_000 gas
 
 # Initial gas estimates
 DEFAULT_GAS_SHARE_OF_PROFIT = 0.26
@@ -42,6 +43,8 @@ class ArbitragePairV1:
         min_confirmations: int = DEFAULT_MIN_CONFIRMATIONS,
         max_transaction_checks: int = DEFAULT_MAX_TRANSACTION_CHECKS,
         gas_share_of_profit: float = DEFAULT_GAS_SHARE_OF_PROFIT,
+        max_gas_price: int = MAX_GAS_PRICE,
+        raise_at_excessive_gas_price: bool = True,
         optimization_params: dict = None,
     ):
         self.token_first = token_first
@@ -54,6 +57,8 @@ class ArbitragePairV1:
         self.min_confirmations = min_confirmations
         self.max_transaction_checks = max_transaction_checks
         self.gas_share_of_profit = gas_share_of_profit
+        self.max_gas_price = max_gas_price
+        self.raise_at_excessive_gas_price = raise_at_excessive_gas_price
 
         optimization_params = optimization_params or {}
         self.opt_initial_value = optimization_params.get('initial_value', INITIAL_VALUE)
@@ -178,7 +183,16 @@ class ArbitragePairV1:
         gas_premium = self.gas_share_of_profit * self.estimated_gross_result_usd / gas_cost_usd
         gas_premium = max(gas_premium, 1)
 
-        self.gas_price = int(tools.price.get_gas_price() * gas_premium)
+        baseline_gas_price = tools.price.get_gas_price()
+        self.gas_price = int(baseline_gas_price * gas_premium)
+        if self.max_gas_price > self.gas_price:
+            if self.raise_at_excessive_gas_price:
+                raise Exception(
+                    f'{self}: Excessive gas price (estimated_gross_result_usd='
+                    f'{self.estimated_gross_result_usd:.2f})'
+                )
+            self.gas_price = self.max_gas_price
+            gas_premium = self.gas_price / baseline_gas_price
         self.estimated_net_result_usd = self.estimated_gross_result_usd - gas_cost_usd * gas_premium
 
     def _get_tx_params(self):

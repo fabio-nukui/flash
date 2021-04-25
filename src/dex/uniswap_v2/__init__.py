@@ -19,6 +19,7 @@ class PancakeswapDex(UniswapV2Protocol):
         web3: Web3 = None,
         verbose_init: bool = False,
         addresses_filepath: str = 'addresses/dex/uniswap_v2/pancakeswap.json',
+        fee: int = 20,
     ):
         web3 = tools.w3.get_web3() if web3 is None else web3
         if pools_addresses is None:
@@ -34,7 +35,7 @@ class PancakeswapDex(UniswapV2Protocol):
         super().__init__(
             chain_id=56,
             addresses_filepath=addresses_filepath,
-            fee=20,
+            fee=fee,
             web3=web3,
             tokens=tokens,
             pools_addresses=pools_addresses,
@@ -50,8 +51,9 @@ class PancakeswapDexV2(PancakeswapDex):
         web3: Web3 = None,
         verbose_init: bool = False,
         addresses_filepath: str = 'addresses/dex/uniswap_v2/pancakeswap_v2.json',
+        fee: int = 25,
     ):
-        super().__init__(tokens, pools_addresses, web3, verbose_init, addresses_filepath)
+        super().__init__(tokens, pools_addresses, web3, verbose_init, addresses_filepath, fee)
 
 
 class MDex(UniswapV2Protocol):
