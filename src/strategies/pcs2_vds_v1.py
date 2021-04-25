@@ -25,7 +25,7 @@ CONTRACT_DATA_FILEPATH = 'deployed_contracts/Pcs2VdsV1.json'
 
 log = logging.getLogger(__name__)
 
-6
+
 class PcsVdsPair(ArbitragePairV1):
     def _get_gas_cost(self) -> int:
         num_hops_extra_hops = len(self.first_trade.route.pools) - 1
