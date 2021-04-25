@@ -14,7 +14,7 @@ import tools
 from arbitrage import PairManager
 from core import LiquidityPair, Token, TokenAmount
 from dex import DexProtocol, MDex, PancakeswapDex, PancakeswapDexV2, ValueDefiSwapDex
-from strategies import pcs_mdx_v1, pcs_pcs2_v1, pcs_vds_v1
+from strategies import pcs2_vds_v1, pcs_mdx_v1, pcs_pcs2_v1, pcs_vds_v1
 
 log = logging.getLogger(__name__)
 
@@ -268,7 +268,15 @@ def get_strategy(strategy_name: str, web3: Web3):
             'pcs2_dex': PancakeswapDexV2,
         }
         dexes = PairManager.load_dex_protocols(pcs_pcs2_v1.ADDRESS_DIRECTORY, protocols, web3)
-        contract = tools.transaction.load_contract(pcs_mdx_v1.CONTRACT_DATA_FILEPATH)
+        contract = tools.transaction.load_contract(pcs_pcs2_v1.CONTRACT_DATA_FILEPATH)
+        return Strategy(contract, dexes, strategy_name)
+    if strategy_name == 'pcs2_vds_v1':
+        protocols = {
+            'pcs2_dex': PancakeswapDexV2,
+            'vds_dex': ValueDefiSwapDex,
+        }
+        dexes = PairManager.load_dex_protocols(pcs2_vds_v1.ADDRESS_DIRECTORY, protocols, web3)
+        contract = tools.transaction.load_contract(pcs2_vds_v1.CONTRACT_DATA_FILEPATH)
         return Strategy(contract, dexes, strategy_name)
 
 
