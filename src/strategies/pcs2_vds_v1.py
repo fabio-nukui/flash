@@ -18,8 +18,6 @@ DISABLE_SAMPLE_SIZE = 50
 GAS_COST_PCS_FIRST_CHI_ON = 156_279.7
 GAS_COST_VDS_FIRST_CHI_ON = 139_586.4
 GAS_INCREASE_WITH_HOP = 0.266831606034439
-MAX_GAS_PRICE = 11 * 10 ** 9
-RAISE_AT_EXCESSIVE_GAS_PRICE = False
 GAS_SHARE_OF_PROFIT = 0.24
 
 # Created with notebooks/strategies/pcs2_vds_v1.ipynb (2021-04-25)
@@ -85,8 +83,6 @@ def run():
             contract=contract,
             web3=web3,
             gas_share_of_profit=GAS_SHARE_OF_PROFIT,
-            max_gas_price=MAX_GAS_PRICE,
-            raise_at_excessive_gas_price=RAISE_AT_EXCESSIVE_GAS_PRICE,
             **params,
         )
         for params in get_arbitrage_params(dexes['pcs2_dex'], dexes['vds_dex'])
