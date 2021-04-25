@@ -1,4 +1,5 @@
 import logging
+from enum import Enum
 
 from web3 import Web3
 from web3.contract import Contract, ContractFunction
@@ -9,17 +10,14 @@ from core import LiquidityPool, Token, TokenAmount, TradePairs
 from dex import DexProtocol
 from exceptions import InsufficientLiquidity
 
+log = logging.getLogger(__name__)
+
 # Strategy parameters
 DEFAULT_MAX_HOPS_FIRST_DEX = 2
 MAX_HOPS_SECOND_DEX = 1  # Fixed for this class
 DEFAULT_MIN_CONFIRMATIONS = 1
 DEFAULT_MAX_TRANSACTION_CHECKS = 20
 MAX_GAS_PRICE = 21428571428571  # Equal to 3 BNB/ETH tx cost at 140_000 gas
-
-# Initial gas estimates
-DEFAULT_GAS_SHARE_OF_PROFIT = 0.26
-HOP_PENALTY = 0.01  # TODO: Simulate more than one hop configuration per arbitrage pair  # noqa: E501
-MAX_GAS_MULTIPLIER = 3.5
 
 # Default optimization parameters
 INITIAL_VALUE = 1.0  # Initial value in USD to estimate best trade
@@ -28,7 +26,16 @@ TOLERANCE_USD = 0.01  # Tolerance to stop optimization
 MAX_ITERATIONS = 100
 USE_FALLBACK = True
 
-log = logging.getLogger(__name__)
+# Gas parameters
+DEFAULT_GAS_SHARE_OF_PROFIT = 0.26
+HOP_PENALTY = 0.01  # TODO: Simulate more than one hop configuration per arbitrage pair  # noqa: E501
+MAX_GAS_MULTIPLIER = 3.5
+
+
+class HighGasPriceStrategy(Enum):
+    baseline_3x = 'baseline_3x'
+    recalculate_at_max = 'recalculate_at_max'
+    raise_ = 'raise_'
 
 
 class ArbitragePairV1:
@@ -45,7 +52,7 @@ class ArbitragePairV1:
         max_transaction_checks: int = DEFAULT_MAX_TRANSACTION_CHECKS,
         gas_share_of_profit: float = DEFAULT_GAS_SHARE_OF_PROFIT,
         max_gas_price: int = MAX_GAS_PRICE,
-        raise_at_excessive_gas_price: bool = True,
+        high_gas_price_strategy: HighGasPriceStrategy = HighGasPriceStrategy.baseline_3x,
         optimization_params: dict = None,
     ):
         self.token_first = token_first
@@ -59,7 +66,7 @@ class ArbitragePairV1:
         self.max_transaction_checks = max_transaction_checks
         self.gas_share_of_profit = gas_share_of_profit
         self.max_gas_price = max_gas_price
-        self.raise_at_excessive_gas_price = raise_at_excessive_gas_price
+        self.high_gas_price_strategy = high_gas_price_strategy
 
         optimization_params = optimization_params or {}
         self.opt_initial_value = optimization_params.get('initial_value', INITIAL_VALUE)
@@ -184,19 +191,24 @@ class ArbitragePairV1:
 
         gas_cost_usd = tools.price.get_gas_cost_usd(self.gas_cost)
         gas_premium = self.gas_share_of_profit * self.estimated_gross_result_usd / gas_cost_usd
-        gas_premium = max(gas_premium, 1)
+        gas_premium = max(gas_premium, 1.0)
 
         baseline_gas_price = tools.price.get_gas_price()
-        self.gas_price = int(baseline_gas_price * gas_premium)
-        if self.gas_price > self.max_gas_price:
-            if self.raise_at_excessive_gas_price:
-                raise Exception(
-                    f'{self}: Excessive gas price (estimated_gross_result_usd='
-                    f'{self.estimated_gross_result_usd:.2f})'
-                )
-            self.gas_price = self.max_gas_price
-            gas_premium = self.gas_price / baseline_gas_price
+        gas_price = int(baseline_gas_price * gas_premium)
+        if gas_price > self.max_gas_price:
+            gas_price, gas_premium = self._process_high_gas_price(baseline_gas_price, gas_price)
+        self.gas_price = gas_price
         self.estimated_net_result_usd = self.estimated_gross_result_usd - gas_cost_usd * gas_premium
+
+    def _process_high_gas_price(self, baseline_gas_price: int, gas_price: int) -> tuple[int, float]:
+        if self.high_gas_price_strategy == HighGasPriceStrategy.baseline_3x:
+            return 3 * baseline_gas_price, 3.0
+        if self.high_gas_price_strategy == HighGasPriceStrategy.recalculate_at_max:
+            return self.max_gas_price, self.max_gas_price / baseline_gas_price
+        raise Exception(
+            f'{self}: Excessive gas price (estimated_gross_result_usd='
+            f'{self.estimated_gross_result_usd:.2f})'
+        )
 
     def _get_tx_params(self):
         return {
