@@ -26,9 +26,8 @@ contract Pcs2VdsV1 is IPancakeCallee, Withdrawable, CHIBurner {
     // VDS first
     function swapVdsFirst(  // gas cost w/o CHI: 1 hop: 204_541; 2 hops: 286_760
         address[] calldata path, // First address is tokenFirst, second address is tokenLast
-        uint256 amountLast,
-        uint8 chiFlag
-    ) external discountCHI(chiFlag) restricted {
+        uint256 amountLast
+    ) external discountCHIOn restricted {
         IValueLiquidPair lastPair = IValueLiquidPair(path[path.length - 1]);
         uint256 amount0Out;
         uint256 amount1Out;
@@ -109,9 +108,8 @@ contract Pcs2VdsV1 is IPancakeCallee, Withdrawable, CHIBurner {
     // Pcs first
     function swapPcsFirst(  // gas cost w/o CHI: 1 hop: 204_776; 2 hops: 267_456; 3 hops: 338_507
         address[] calldata path, // Fist address is Vds pair
-        uint256 amountLast,
-        uint8 chiFlag
-    ) external discountCHI(chiFlag) restricted {
+        uint256 amountLast
+    ) external discountCHIOn restricted {
         address pcsPair = PancakeswapLibrary.pairFor(pcsFactory, cakeInitCodeHash, path[path.length - 2], path[path.length - 1]);
         (address token0, ) = PancakeswapLibrary.sortTokens(path[path.length - 2], path[path.length - 1]);
         uint256 amount0Out = token0 == path[path.length - 1] ? amountLast : 0;
