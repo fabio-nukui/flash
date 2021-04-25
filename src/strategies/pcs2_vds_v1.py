@@ -29,7 +29,7 @@ CONTRACT_DATA_FILEPATH = 'deployed_contracts/Pcs2VdsV1.json'
 log = logging.getLogger(__name__)
 
 
-class PcsVdsPair(ArbitragePairV1):
+class Pcs2VdsPair(ArbitragePairV1):
     def _get_gas_cost(self) -> int:
         num_hops_extra_hops = len(self.first_trade.route.pools) - 1
         gas_cost_multiplier = 1 + GAS_INCREASE_WITH_HOP * num_hops_extra_hops
@@ -81,7 +81,7 @@ def run():
     dexes = PairManager.load_dex_protocols(ADDRESS_DIRECTORY, dex_protocols, web3)
     contract = tools.transaction.load_contract(CONTRACT_DATA_FILEPATH)
     arbitrage_pairs = [
-        PcsVdsPair(
+        Pcs2VdsPair(
             contract=contract,
             web3=web3,
             gas_share_of_profit=GAS_SHARE_OF_PROFIT,
