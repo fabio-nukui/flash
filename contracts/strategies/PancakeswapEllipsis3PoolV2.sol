@@ -14,6 +14,8 @@ import "../libraries/AddressArrayEncoder.sol";
 
 contract PancakeswapEllipsis3PoolV2 is IPancakeCallee, Withdrawable {
     address immutable cake_factory = 0xBCfCcbde45cE874adCB698cC183deBcF17952812;
+    bytes32 constant cakeInitCodeHash = hex'd0d4c4cd0848c93cb4fd1f498d7013ee6bfb25783ea21593d5834f5d250ece66';
+    uint32 constant pcsFee = 20;
 
     address immutable eps_3pool = 0x160CAed03795365F3A589f10C379FfA7d75d4E76;
     address constant BUSD = 0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56;
@@ -32,7 +34,7 @@ contract PancakeswapEllipsis3PoolV2 is IPancakeCallee, Withdrawable {
         address[] calldata path,
         uint256 amountLast
     ) external restricted {
-        address lastCakePair = PancakeswapLibrary.pairFor(cake_factory, path[path.length - 1], path[path.length - 2]);
+        address lastCakePair = PancakeswapLibrary.pairFor(cake_factory, cakeInitCodeHash, path[path.length - 1], path[path.length - 2]);
         (address tokenA, ) = PancakeswapLibrary.sortTokens(path[path.length - 1], path[path.length - 2]);
         uint256 amountAOut = tokenA == path[path.length - 1] ? amountLast : 0;
         uint256 amountBOut = tokenA == path[path.length - 1] ? 0 : amountLast;
@@ -68,14 +70,14 @@ contract PancakeswapEllipsis3PoolV2 is IPancakeCallee, Withdrawable {
         { // scope for token{0,1}, avoids stack too deep errors
         address token0 = IUniswapV2Pair(msg.sender).token0();
         address token1 = IUniswapV2Pair(msg.sender).token1();
-        require(msg.sender == PancakeswapLibrary.pairFor(cake_factory, token0, token1)); // ensure that msg.sender is actually a V2 pair
+        require(msg.sender == PancakeswapLibrary.pairFor(cake_factory, cakeInitCodeHash, token0, token1)); // ensure that msg.sender is actually a V2 pair
         require(amount0 == 0 || amount1 == 0); // this strategy is unidirectional
-        amounts = PancakeswapLibrary.getAmountsIn(cake_factory, amountSendCurve, path);
+        amounts = PancakeswapLibrary.getAmountsIn(cake_factory, cakeInitCodeHash, amountSendCurve, path, pcsFee);
         }
         TransferHelper.safeApprove(path[path.length - 1], eps_3pool, amountSendCurve);
         exchangeCurve(path[path.length - 1], path[0], amountSendCurve, amounts[0]);
 
-        address firstPair = PancakeswapLibrary.pairFor(cake_factory, path[0], path[1]);
+        address firstPair = PancakeswapLibrary.pairFor(cake_factory, cakeInitCodeHash, path[0], path[1]);
         TransferHelper.safeTransfer(path[0], firstPair, amounts[0]);
         _swap(amounts, path);
     }
@@ -86,8 +88,8 @@ contract PancakeswapEllipsis3PoolV2 is IPancakeCallee, Withdrawable {
             (address token0,) = PancakeswapLibrary.sortTokens(input, output);
             uint amountOut = amounts[i + 1];
             (uint amount0Out, uint amount1Out) = input == token0 ? (uint(0), amountOut) : (amountOut, uint(0));
-            address to = PancakeswapLibrary.pairFor(cake_factory, output, path[i + 2]);
-            IUniswapV2Pair(PancakeswapLibrary.pairFor(cake_factory, input, output)).swap(
+            address to = PancakeswapLibrary.pairFor(cake_factory, cakeInitCodeHash, output, path[i + 2]);
+            IUniswapV2Pair(PancakeswapLibrary.pairFor(cake_factory, cakeInitCodeHash, input, output)).swap(
                 amount0Out, amount1Out, to, new bytes(0)
             );
         }

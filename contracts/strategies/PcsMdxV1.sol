@@ -15,6 +15,8 @@ import {MdexLibrary} from "../libraries/uniswap_v2/MdexLibrary.sol";
 
 contract PcsMdxV1 is Withdrawable, CHIBurner {
     address constant pcsFactory = 0xBCfCcbde45cE874adCB698cC183deBcF17952812;
+    bytes32 constant cakeInitCodeHash = hex'd0d4c4cd0848c93cb4fd1f498d7013ee6bfb25783ea21593d5834f5d250ece66';
+    uint32 constant pcsFee = 20;
 
     // MDX first
     function swapMdxFirst(
@@ -58,11 +60,11 @@ contract PcsMdxV1 is Withdrawable, CHIBurner {
         uint256 amountIn,
         uint256 amountOutMin
     ) private {
-        address pairAddress = PancakeswapLibrary.pairFor(pcsFactory, tokenIn, tokenOut);
+        address pairAddress = PancakeswapLibrary.pairFor(pcsFactory,cakeInitCodeHash, tokenIn, tokenOut);
         IUniswapV2Pair pair = IUniswapV2Pair(pairAddress);
 
-        (uint reserveIn, uint reserveOut) = PancakeswapLibrary.getReserves(pcsFactory, tokenIn, tokenOut);
-        uint256 amountOut = PancakeswapLibrary.getAmountOut(amountIn, reserveIn, reserveOut);
+        (uint reserveIn, uint reserveOut) = PancakeswapLibrary.getReserves(pcsFactory, cakeInitCodeHash, tokenIn, tokenOut);
+        uint256 amountOut = PancakeswapLibrary.getAmountOut(amountIn, reserveIn, reserveOut, pcsFee);
         require(amountOut > amountOutMin, 'PCS low return');
         TransferHelper.safeApproveAndTransfer(tokenIn, pairAddress, amountIn);
 
@@ -86,7 +88,7 @@ contract PcsMdxV1 is Withdrawable, CHIBurner {
         address[] calldata path,
         uint256 amountLast
     ) external discountCHIOn restricted {
-        address pcsPair = PancakeswapLibrary.pairFor(pcsFactory, path[path.length - 2], path[path.length - 1]);
+        address pcsPair = PancakeswapLibrary.pairFor(pcsFactory, cakeInitCodeHash, path[path.length - 2], path[path.length - 1]);
         (address token0, ) = PancakeswapLibrary.sortTokens(path[path.length - 2], path[path.length - 1]);
         uint256 amount0Out = token0 == path[path.length - 1] ? amountLast : 0;
         uint256 amount1Out = token0 == path[path.length - 1] ? 0 : amountLast;
@@ -109,10 +111,10 @@ contract PcsMdxV1 is Withdrawable, CHIBurner {
         address[] memory path = AddressArrayEncoder.decode(data);
         uint256 amountSendMdx = amount0 == 0 ? amount1 : amount0;
 
-        uint256[] memory amounts = PancakeswapLibrary.getAmountsIn(pcsFactory, amountSendMdx, path);
+        uint256[] memory amounts = PancakeswapLibrary.getAmountsIn(pcsFactory, cakeInitCodeHash, amountSendMdx, path, pcsFee);
         exchangeMdx(path[path.length - 1], path[0], amountSendMdx, amounts[0]);
 
-        address firstPair = PancakeswapLibrary.pairFor(pcsFactory, path[0], path[1]);
+        address firstPair = PancakeswapLibrary.pairFor(pcsFactory, cakeInitCodeHash, path[0], path[1]);
         TransferHelper.safeTransfer(path[0], firstPair, amounts[0]);
         _pcs_swap(amounts, path);
     }
@@ -142,8 +144,8 @@ contract PcsMdxV1 is Withdrawable, CHIBurner {
             (address token0,) = PancakeswapLibrary.sortTokens(input, output);
             uint amountOut = amounts[i + 1];
             (uint amount0Out, uint amount1Out) = input == token0 ? (uint(0), amountOut) : (amountOut, uint(0));
-            address to = PancakeswapLibrary.pairFor(pcsFactory, output, path[i + 2]);
-            IUniswapV2Pair(PancakeswapLibrary.pairFor(pcsFactory, input, output)).swap(amount0Out, amount1Out, to, new bytes(0));
+            address to = PancakeswapLibrary.pairFor(pcsFactory, cakeInitCodeHash, output, path[i + 2]);
+            IUniswapV2Pair(PancakeswapLibrary.pairFor(pcsFactory, cakeInitCodeHash, input, output)).swap(amount0Out, amount1Out, to, new bytes(0));
         }
     }
 }

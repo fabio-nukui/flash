@@ -15,6 +15,8 @@ import "../interfaces/uniswap_v2/IPancakeCallee.sol";
 
 contract PancakeswapEllipsis3PoolV1B is IPancakeCallee, Withdrawable, CHIBurner {
     address constant cake_factory = 0xBCfCcbde45cE874adCB698cC183deBcF17952812;
+    bytes32 constant cakeInitCodeHash = hex'd0d4c4cd0848c93cb4fd1f498d7013ee6bfb25783ea21593d5834f5d250ece66';
+    uint constant cake_fee = 20;
 
     address constant eps_3pool = 0x160CAed03795365F3A589f10C379FfA7d75d4E76;
     address constant BUSD = 0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56;
@@ -43,7 +45,7 @@ contract PancakeswapEllipsis3PoolV1B is IPancakeCallee, Withdrawable, CHIBurner 
         address token1,
         uint256 amount1
     ) internal {
-        address cake_pair = PancakeswapLibrary.pairFor(cake_factory, token0, token1);
+        address cake_pair = PancakeswapLibrary.pairFor(cake_factory, cakeInitCodeHash, token0, token1);
         (address tokenA, ) = PancakeswapLibrary.sortTokens(token0, token1);
         uint256 amountAOut = tokenA == token1 ? amount1 : 0;
         uint256 amountBOut = tokenA == token1 ? 0 : amount1;
@@ -78,11 +80,11 @@ contract PancakeswapEllipsis3PoolV1B is IPancakeCallee, Withdrawable, CHIBurner 
         { // scope for token{0,1}, avoids stack too deep errors
         address token0 = IUniswapV2Pair(msg.sender).token0();
         address token1 = IUniswapV2Pair(msg.sender).token1();
-        require(msg.sender == PancakeswapLibrary.pairFor(cake_factory, token0, token1)); // ensure that msg.sender is actually a V2 pair
+        require(msg.sender == PancakeswapLibrary.pairFor(cake_factory, cakeInitCodeHash, token0, token1)); // ensure that msg.sender is actually a V2 pair
         path[0] = amount0 == 0 ? token0 : token1;
         path[1] = amount0 == 0 ? token1 : token0;
         amountSendCurve = amount0 == 0 ? amount1 : amount0;
-        amountRepay = PancakeswapLibrary.getAmountsIn(cake_factory, amountSendCurve, path)[0];
+        amountRepay = PancakeswapLibrary.getAmountsIn(cake_factory, cakeInitCodeHash, amountSendCurve, path, cake_fee)[0];
         }
         TransferHelper.safeApprove(path[1], eps_3pool, amountSendCurve);
         exchangeCurve(path[1], path[0], amountSendCurve, amountRepay);
