@@ -1,5 +1,5 @@
 {
-  "contractName": "PcsPcs2V1",
+  "contractName": "Pcs2VdsV1",
   "abi": [
     {
       "inputs": [],
@@ -23,7 +23,8 @@
     },
     {
       "stateMutability": "payable",
-      "type": "receive"
+      "type": "receive",
+      "payable": true
     },
     {
       "inputs": [
@@ -36,9 +37,42 @@
           "internalType": "uint256",
           "name": "amountLast",
           "type": "uint256"
+        },
+        {
+          "internalType": "uint8",
+          "name": "chiFlag",
+          "type": "uint8"
         }
       ],
-      "name": "swapPcs1First",
+      "name": "swapVdsFirst",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount0",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount1",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bytes",
+          "name": "data",
+          "type": "bytes"
+        }
+      ],
+      "name": "uniswapV2Call",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -54,9 +88,14 @@
           "internalType": "uint256",
           "name": "amountLast",
           "type": "uint256"
+        },
+        {
+          "internalType": "uint8",
+          "name": "chiFlag",
+          "type": "uint8"
         }
       ],
-      "name": "swapPcs2First",
+      "name": "swapPcsFirst",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -98,8 +137,8 @@
     "56": {
       "events": {},
       "links": {},
-      "address": "0xC2Fd337EB097D610bDFa15984EF402f0449B1260",
-      "transactionHash": "0x26acc4a33917485183d464fd5805133c046df636a3c53b445840eccb0998b4f0"
+      "address": "0x027F51F8C4Ce4E0EA5410e4038b37ba0595fEd7b",
+      "transactionHash": "0x6cd9372f72cedae3bd4a4ce47e9bbba2dfa7e40eacd9b0f325e337e5f92ec85b"
     }
   },
   "schemaVersion": "3.3.4"

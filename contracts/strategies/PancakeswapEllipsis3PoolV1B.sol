@@ -16,7 +16,7 @@ import "../interfaces/uniswap_v2/IPancakeCallee.sol";
 contract PancakeswapEllipsis3PoolV1B is IPancakeCallee, Withdrawable, CHIBurner {
     address constant cake_factory = 0xBCfCcbde45cE874adCB698cC183deBcF17952812;
     bytes32 constant cakeInitCodeHash = hex'd0d4c4cd0848c93cb4fd1f498d7013ee6bfb25783ea21593d5834f5d250ece66';
-    uint constant cake_fee = 20;
+    uint32 constant cake_fee = 20;
 
     address constant eps_3pool = 0x160CAed03795365F3A589f10C379FfA7d75d4E76;
     address constant BUSD = 0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56;
