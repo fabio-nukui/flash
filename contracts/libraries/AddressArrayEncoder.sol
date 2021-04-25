@@ -13,7 +13,7 @@ library AddressArrayEncoder{
     function bytesToHeader(bytes calldata data) internal pure returns (uint8 header) {
         bytes memory b = data;
         assembly {
-          header := mload(add(b, 8))
+          header := mload(add(b, 1))
         }
     }
 
@@ -40,7 +40,7 @@ library AddressArrayEncoder{
         header = bytesToHeader(data);
 
         for(uint i = 0; i < n; i++){
-            addresses[i] = bytesToAddress(data[i * 20 + 8:(i + 1) * 20 + 8]);
+            addresses[i] = bytesToAddress(data[i * 20 + 1:(i + 1) * 20 + 1]);
         }
     }
 
