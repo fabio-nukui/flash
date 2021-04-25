@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-
 set -eux
 
 SYNCMODE="${1:-fast}"
-CACHE="${2:-8192}"
+CACHE="${2:-20480}"
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 geth \
-    --config ./config.toml \
-    --datadir ./node \
+    --config "$DIR"/config.toml \
+    --datadir "$DIR"/node \
     --pprof \
     --pprofaddr 0.0.0.0 \
     --rpc \
