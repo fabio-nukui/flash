@@ -38,13 +38,13 @@ class PcsPcs2(ArbitragePairV1):
         num_hops_extra_hops = len(self.first_trade.route.pools) - 1
         gas_cost_multiplier = 1 + GAS_INCREASE_WITH_HOP * num_hops_extra_hops
 
-        if isinstance(self.first_dex, PancakeswapDex):
+        if type(self.first_dex) == PancakeswapDex:
             return int(GAS_COST_PCS1_FIRST_CHI_ON * gas_cost_multiplier)
         else:
             return int(GAS_COST_PCS2_FIRST_CHI_ON * gas_cost_multiplier)
 
     def _get_contract_function(self):
-        if isinstance(self.first_dex, PancakeswapDex):
+        if type(self.first_dex) == PancakeswapDex:
             return self.contract.functions.swapPcs1First
         return self.contract.functions.swapPcs2First
 
