@@ -6,7 +6,7 @@ import random
 import time
 import traceback
 from concurrent import futures
-from threading import Thread
+from threading import Lock, Thread
 
 from eth_account.datastructures import SignedTransaction
 from web3 import Account, Web3
@@ -21,6 +21,8 @@ log = logging.getLogger(__name__)
 PUBLIC_ENDPOINTS_FILEPATH = 'addresses/public_rcp_endpoints.json'
 LIST_BG_WEB3: list[BackgroundWeb3] = []
 ACCOUNT = Account.from_key(configs.PRIVATE_KEY)
+ACCOUNT_TX_COUNTER: TransactionCounter = None
+TX_COUNTER_POLL_INTERVAL = 1.0
 
 CONNECTION_KEEP_ALIVE_TIME_INTERVAL = 30
 MAX_BLOCKS_WAIT_RECEIPT = 20
@@ -31,7 +33,7 @@ class BackgroundWeb3:
     def __init__(self, uri: str, verbose: bool = False):
         self.uri = uri
         self.verbose = verbose
-        self._web3 = w3.from_uri(uri, verbose=False)
+        self.web3 = w3.from_uri(uri, verbose=False)
         self._executor = futures.ThreadPoolExecutor(1)
         self._heartbeat_thread: Thread
         if not uri == configs.RCP_LOCAL_URI:
@@ -49,7 +51,7 @@ class BackgroundWeb3:
 
     def _send_transaction(self, tx: SignedTransaction):
         try:
-            self._web3.eth.send_raw_transaction(tx.rawTransaction)
+            self.web3.eth.send_raw_transaction(tx.rawTransaction)
             log.debug(f'Sent transaction using {self.uri}')
         except Exception:
             log.info(f'{self.uri!r} failed to send transaction')
@@ -73,6 +75,37 @@ class BackgroundWeb3:
                 log.debug(traceback.format_exc())
 
 
+class TransactionCounter:
+    def __init__(self, address: str, web3: Web3, poll_interval: float = TX_COUNTER_POLL_INTERVAL):
+        self.address = address
+        self.web3 = web3
+        self.poll_interval = poll_interval
+
+        self.lock = Lock()
+        self._count = web3.eth.get_transaction_count(address)
+
+        self._tread = Thread(target=self._keep_count_updated, daemon=True)
+        self._tread.start()
+
+    def _keep_count_updated(self):
+        while True:
+            count = self.web3.eth.get_transaction_count(self.address)
+            if count > self._count:  # Transaction count was updated by another party
+                with self.lock:
+                    self._count = count
+            time.sleep(self.poll_interval)
+
+    def get_nonce(self):
+        with self.lock:
+            self._count += 1
+            return self._count - 1
+
+    @property
+    def count(self):
+        with self.lock:
+            return self._count
+
+
 def load_contract(contract_data_filepath: str, web3: Web3 = None) -> Contract:
     """Load contract and add "sign_and_call" method to its functions"""
     web3 = w3.get_web3() if web3 is None else web3
@@ -94,6 +127,12 @@ def _has_chi_flag(func: ContractFunction):
     return any(fn_input.get('name') == CHI_FLAG for fn_input in function_inputs)
 
 
+def get_nonce(address: str, web3: Web3):
+    if address != ACCOUNT.address:
+        return web3.eth.get_transaction_count(address)
+    return ACCOUNT_TX_COUNTER.get_nonce()
+
+
 def sign_and_send_tx(
     tx: dict,
     web3: Web3,
@@ -104,7 +143,7 @@ def sign_and_send_tx(
 ) -> str:
     account = ACCOUNT if account is None else account
     tx['gas'] = tx.get('gas', 1_000_000)
-    tx['nonce'] = tx.get('nonce', web3.eth.get_transaction_count(account.address))
+    tx['nonce'] = tx.get('nonce', get_nonce(account.address, web3))
     tx['gasPrice'] = tx.get('gasPrice', price.get_gas_price())
 
     log.debug(f'Sending transaction: {tx}')
@@ -146,7 +185,7 @@ def sign_and_send_contract_tx(
     wait_finish_: bool = False,
     max_blocks_wait_: int = None,
     account_: Account = None,
-    **kwargs
+    **kwargs,
 ) -> str:
     web3 = func.web3
     account = ACCOUNT if account_ is None else account_
@@ -158,7 +197,7 @@ def sign_and_send_contract_tx(
         'from': account.address,
         'chainId': configs.CHAIN_ID,
         'gas': max_gas_,
-        'nonce': web3.eth.get_transaction_count(account.address),
+        'nonce': get_nonce(account.address, web3),
         'gasPrice': gas_price_
     })
     return sign_and_send_tx(tx, web3, wait_finish_, max_blocks_wait_, account)
@@ -204,4 +243,6 @@ def _get_providers() -> list[BackgroundWeb3]:
 
 def setup():
     global LIST_BG_WEB3
+    global ACCOUNT_TX_COUNTER
     LIST_BG_WEB3 = _get_providers()
+    ACCOUNT_TX_COUNTER = TransactionCounter(ACCOUNT.address, LIST_BG_WEB3[0].web3)
