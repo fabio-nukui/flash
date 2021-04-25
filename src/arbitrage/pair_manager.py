@@ -22,7 +22,7 @@ DEFAULT_DISABLE_SAMPLE_SIZE = 20
 DEFAULT_MIN_SUCCESS_RATE = 0.2
 
 # Disable if testing transaction raises message with 'K' https://uniswap.org/docs/v2/smart-contracts/common-errors/  # noqa: E501
-PAT_ERROR_REMOVE_POOL = re.compile('K|TransferHelper')
+PAT_ERROR_REMOVE_POOL = re.compile('K|TransferHelper|TRANSFER_FAILED')
 
 
 class PairManager:
