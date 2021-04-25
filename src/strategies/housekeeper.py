@@ -13,8 +13,8 @@ import configs
 import tools
 from arbitrage import PairManager
 from core import LiquidityPair, Token, TokenAmount
-from dex import DexProtocol, MDex, PancakeswapDex, ValueDefiSwapDex
-from strategies import pcs_mdx_v1, pcs_vds_v1
+from dex import DexProtocol, MDex, PancakeswapDex, PancakeswapDexV2, ValueDefiSwapDex
+from strategies import pcs_mdx_v1, pcs_pcs2_v1, pcs_vds_v1
 
 log = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ MIN_CONFIRMATIONS = 2
 MIN_ETHERS_WITHDRAW = 0.1  # About 100x the transaction fees on transfer + swap
 PRICE_CHANGE_WITHDRAW_IMPACT = 4  # At 4x, a 25% price decrease last 24h reduces min_withdraw to 0
 MAX_SLIPPAGE = 0.4
-RUN_INTERVAL = 300
+RUN_INTERVAL = 180
 BLOCKS24H = 28_800 if configs.CHAIN_ID == 56 else 6_520
 DEFAULT_PRICE_CHANGE = -0.5  # By default, penalize tokens that we cannot extract prices
 
@@ -260,6 +260,14 @@ def get_strategy(strategy_name: str, web3: Web3):
             'mdx_dex': MDex,
         }
         dexes = PairManager.load_dex_protocols(pcs_mdx_v1.ADDRESS_DIRECTORY, protocols, web3)
+        contract = tools.transaction.load_contract(pcs_mdx_v1.CONTRACT_DATA_FILEPATH)
+        return Strategy(contract, dexes, strategy_name)
+    if strategy_name == 'pcs_pcs2_v1':
+        protocols = {
+            'pcs_dex': PancakeswapDex,
+            'pcs2_dex': PancakeswapDexV2,
+        }
+        dexes = PairManager.load_dex_protocols(pcs_pcs2_v1.ADDRESS_DIRECTORY, protocols, web3)
         contract = tools.transaction.load_contract(pcs_mdx_v1.CONTRACT_DATA_FILEPATH)
         return Strategy(contract, dexes, strategy_name)
 
