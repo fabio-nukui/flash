@@ -15,6 +15,7 @@ def optimizer_second_order(
     dx: int,
     tol: int = 10 ** 18,
     max_iter: int = DEFAULT_MAX_ITER,
+    use_fallback: bool = True,
 ) -> tuple[int, int]:
     """Maximizes function using Newton's method and finite differences, where variables are in int.
 
@@ -29,6 +30,8 @@ def optimizer_second_order(
     try:
         return newton_optimizer(func, x0, dx, tol, max_iter)
     except Exception as e:
+        if not use_fallback:
+            raise e
         log.debug(f'Newton method error: {e!r}. Using fallback')
         return bissection_optimizer(func, x0, dx, tol, max_iter)
 

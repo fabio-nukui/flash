@@ -203,5 +203,5 @@ class PairManager:
         dexes = {}
         for dex_name, dex_cls in dex_protocols.items():
             addresses = [addr for addr in dict_addresses[dex_name] if addr not in removed_pools]
-            dexes[dex_name] = dex_cls(pools_addresses=addresses)
+            dexes[dex_name] = dex_cls(pools_addresses=addresses, web3=web3)
         return dexes

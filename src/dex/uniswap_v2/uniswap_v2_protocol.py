@@ -27,6 +27,7 @@ class UniswapV2Protocol(DexProtocol, TradePairsMixin):
         fee: Union[int, Callable],
         web3: Web3,
         pools_addresses: list[str] = None,
+        pools: list[UniV2Pair] = None,
         tokens: list[Token] = None,
         verbose_init: bool = False,
     ):
@@ -36,8 +37,8 @@ class UniswapV2Protocol(DexProtocol, TradePairsMixin):
 
         abi_filepaths = [FACTORY_ABI, ROUTER_ABI, PAIR_ABI]
 
-        if tokens is None and pools_addresses is None:
-            raise ValueError("None one of 'pools_addresses' or 'tokens' were passed")
+        if tokens is None and pools_addresses is None and pools is None:
+            raise ValueError("None one of 'pools_addresses', 'tokens' or 'pools' were passed")
         super().__init__(
             abi_filepaths,
             chain_id,
@@ -45,6 +46,7 @@ class UniswapV2Protocol(DexProtocol, TradePairsMixin):
             web3,
             fee,
             pools_addresses=pools_addresses,
+            pools=pools,
             tokens=tokens,
             verbose_init=verbose_init,
         )
@@ -52,6 +54,7 @@ class UniswapV2Protocol(DexProtocol, TradePairsMixin):
     def _connect(
         self,
         pools_addresses: list[str] = None,
+        pools: list[UniV2Pair] = None,
         tokens: list[Token] = None,
         verbose_init: bool = False,
     ):
@@ -63,7 +66,9 @@ class UniswapV2Protocol(DexProtocol, TradePairsMixin):
             address=Web3.toChecksumAddress(self.addresses['router']),
             abi=self.abis[ROUTER_ABI]
         )
-        if pools_addresses is not None:
+        if pools is not None:
+            self.pools = pools
+        elif pools_addresses is not None:
             if verbose_init:
                 from tqdm import tqdm
                 pools_addresses = tqdm(pools_addresses)

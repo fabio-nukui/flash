@@ -16,13 +16,14 @@ class PancakeswapDex(UniswapV2Protocol):
         self,
         tokens: list[Union[dict, Token]] = None,
         pools_addresses: list[str] = None,
+        pools: list[UniV2Pair] = None,
         web3: Web3 = None,
         verbose_init: bool = False,
         addresses_filepath: str = 'addresses/dex/uniswap_v2/pancakeswap.json',
         fee: int = 20,
     ):
         web3 = tools.w3.get_web3() if web3 is None else web3
-        if pools_addresses is None:
+        if pools_addresses is None and pools is None:
             if tokens is None:
                 with open('addresses/dex/uniswap_v2/pancakeswap_default_tokens.json') as f:
                     tokens_data = json.load(f)
@@ -39,6 +40,7 @@ class PancakeswapDex(UniswapV2Protocol):
             web3=web3,
             tokens=tokens,
             pools_addresses=pools_addresses,
+            pools=pools,
             verbose_init=verbose_init,
         )
 
@@ -48,12 +50,21 @@ class PancakeswapDexV2(PancakeswapDex):
         self,
         tokens: list[Union[dict, Token]] = None,
         pools_addresses: list[str] = None,
+        pools: list[UniV2Pair] = None,
         web3: Web3 = None,
         verbose_init: bool = False,
         addresses_filepath: str = 'addresses/dex/uniswap_v2/pancakeswap_v2.json',
         fee: int = 25,
     ):
-        super().__init__(tokens, pools_addresses, web3, verbose_init, addresses_filepath, fee)
+        super().__init__(
+            tokens,
+            pools_addresses,
+            pools,
+            web3,
+            verbose_init,
+            addresses_filepath,
+            fee,
+        )
 
 
 class MDex(UniswapV2Protocol):

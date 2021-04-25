@@ -26,6 +26,7 @@ INITIAL_VALUE = 1.0  # Initial value in USD to estimate best trade
 INCREMENT = 0.001  # Increment to estimate derivatives in optimization
 TOLERANCE_USD = 0.01  # Tolerance to stop optimization
 MAX_ITERATIONS = 100
+USE_FALLBACK = True
 
 log = logging.getLogger(__name__)
 
@@ -65,6 +66,7 @@ class ArbitragePairV1:
         self.opt_increment = optimization_params.get('increment', INCREMENT)
         self.opt_tolerance = optimization_params.get('tolerance', TOLERANCE_USD)
         self.opt_max_iter = optimization_params.get('max_iter', MAX_ITERATIONS)
+        self.opt_use_fallback = optimization_params.get('use_fallback', USE_FALLBACK)
 
         self.amount_last = TokenAmount(token_last)
         self.estimated_result = TokenAmount(token_first)
@@ -152,6 +154,7 @@ class ArbitragePairV1:
                 dx=int(self.opt_increment * 10 ** self.token_last.decimals / usd_price_token_last),
                 tol=int(self.opt_tolerance * 10 ** self.token_last.decimals / usd_price_token_last),
                 max_iter=self.opt_max_iter,
+                use_fallback=self.opt_use_fallback,
             )
         except Exception as e:
             log.info(f'{self}: Error during optimization: {e!r}')
@@ -185,7 +188,7 @@ class ArbitragePairV1:
 
         baseline_gas_price = tools.price.get_gas_price()
         self.gas_price = int(baseline_gas_price * gas_premium)
-        if self.max_gas_price > self.gas_price:
+        if self.gas_price > self.max_gas_price:
             if self.raise_at_excessive_gas_price:
                 raise Exception(
                     f'{self}: Excessive gas price (estimated_gross_result_usd='
