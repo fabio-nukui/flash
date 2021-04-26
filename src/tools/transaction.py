@@ -18,7 +18,7 @@ from tools import price, w3
 
 log = logging.getLogger(__name__)
 
-PUBLIC_ENDPOINTS_FILEPATH = 'addresses/public_rcp_endpoints.json'
+PUBLIC_ENDPOINTS_FILEPATH = 'addresses/public_rpc_endpoints.json'
 LIST_BG_WEB3: list[BackgroundWeb3] = []
 ACCOUNT = Account.from_key(configs.PRIVATE_KEY)
 ACCOUNT_TX_COUNTER: TransactionCounter = None
@@ -36,7 +36,7 @@ class BackgroundWeb3:
         self.web3 = w3.from_uri(uri, verbose=False)
         self._executor = futures.ThreadPoolExecutor(1)
         self._heartbeat_thread: Thread
-        if not uri == configs.RCP_LOCAL_URI:
+        if not uri == configs.RPC_LOCAL_URI:
             self._keep_alive()
 
     def send_transaction(self, tx: SignedTransaction):
@@ -45,7 +45,7 @@ class BackgroundWeb3:
         self._executor.submit(self._send_transaction, tx)
 
     def is_alive(self):
-        if self.uri == configs.RCP_LOCAL_URI:
+        if self.uri == configs.RPC_LOCAL_URI:
             return True
         return self._heartbeat_thread.is_alive()
 
@@ -230,10 +230,10 @@ def wait_tx_finish(
 
 def _get_providers() -> list[BackgroundWeb3]:
     log.info(f'{configs.MULTI_BROADCAST_TRANSACTIONS=}')
-    if configs.FORCE_LOCAL_RCP_CONNECTION:
-        endpoints = [configs.RCP_LOCAL_URI]
+    if configs.FORCE_LOCAL_RPC_CONNECTION:
+        endpoints = [configs.RPC_LOCAL_URI]
     else:
-        endpoints = [configs.RCP_LOCAL_URI, configs.RCP_REMOTE_URI]
+        endpoints = [configs.RPC_LOCAL_URI, configs.RPC_REMOTE_URI]
     if configs.MULTI_BROADCAST_TRANSACTIONS:
         public_endpoints = json.load(open(PUBLIC_ENDPOINTS_FILEPATH))[str(configs.CHAIN_ID)]
         endpoints.extend(public_endpoints)

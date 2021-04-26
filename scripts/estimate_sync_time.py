@@ -13,11 +13,11 @@ N_LINES_BUFFER = 100
 N_RECENT_FILES_READ = 2
 
 SECONDS_PER_BLOCK = 3
-RCP_ENDPOINT = 'https://bsc-dataseed.binance.org'
+RPC_ENDPOINT = 'https://bsc-dataseed.binance.org'
 
 REFERENCE_BLOCK = {
     't': datetime.utcnow(),
-    'n': Web3(HTTPProvider(RCP_ENDPOINT), [geth_poa_middleware]).eth.block_number
+    'n': Web3(HTTPProvider(RPC_ENDPOINT), [geth_poa_middleware]).eth.block_number
 }
 
 DIR_PATH = pathlib.Path(__file__).parent / 'node'

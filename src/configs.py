@@ -4,12 +4,12 @@ import os
 LOG_AWS = os.getenv('LOG_AWS') == 'True'
 
 # Web3
-RCP_REMOTE_URI = os.getenv('RCP_REMOTE_URI', 'wss://bsc-ws-node.nariox.org:443')
-RCP_LOCAL_URI = os.getenv('RCP_LOCAL_URI', 'geth.ipc')
+RPC_REMOTE_URI = os.getenv('RPC_REMOTE_URI', 'wss://bsc-ws-node.nariox.org:443')
+RPC_LOCAL_URI = os.getenv('RPC_LOCAL_URI', 'geth.ipc')
 CHAIN_ID = int(os.environ['CHAIN_ID'])
 POA_CHAIN = os.getenv('POA_CHAIN') == 'True'
 MULTI_BROADCAST_TRANSACTIONS = os.getenv('MULTI_BROADCAST_TRANSACTIONS') == 'True'
-FORCE_LOCAL_RCP_CONNECTION = os.getenv('FORCE_LOCAL_RCP_CONNECTION') == 'True'
+FORCE_LOCAL_RPC_CONNECTION = os.getenv('FORCE_LOCAL_RPC_CONNECTION') == 'True'
 
 # Wallet
 PRIVATE_KEY = os.environ['PRIVATE_KEY']

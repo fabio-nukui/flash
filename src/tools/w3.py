@@ -27,12 +27,12 @@ def from_uri(endpoint_uri: str, verbose: bool = True) -> Web3:
     return Web3(provider, middlewares)
 
 
-def get_web3(verbose: bool = False, force_local: bool = configs.FORCE_LOCAL_RCP_CONNECTION) -> Web3:
+def get_web3(verbose: bool = False, force_local: bool = configs.FORCE_LOCAL_RPC_CONNECTION) -> Web3:
     if force_local:
         web3_remote = from_uri('wss://dummy.com', verbose)
     else:
-        web3_remote = from_uri(configs.RCP_REMOTE_URI, verbose)
-    web3_local = from_uri(configs.RCP_LOCAL_URI, verbose)
+        web3_remote = from_uri(configs.RPC_REMOTE_URI, verbose)
+    web3_local = from_uri(configs.RPC_LOCAL_URI, verbose)
 
     try:
         last_block_remote = web3_remote.eth.block_number
@@ -45,22 +45,22 @@ def get_web3(verbose: bool = False, force_local: bool = configs.FORCE_LOCAL_RCP_
         last_block_local = None
 
     if last_block_local is None and last_block_remote is None:
-        raise Exception('No available RCP connection')
+        raise Exception('No available RPC connection')
     elif last_block_local is None and last_block_remote is not None:
         if verbose:
-            log.info('Using remote RCP endpoint')
+            log.info('Using remote RPC endpoint')
         web3 = web3_remote
     elif last_block_local is not None and last_block_remote is None:
         if verbose:
-            log.info('Using local RCP endpoint')
+            log.info('Using local RPC endpoint')
         web3 = web3_local
     elif (n := last_block_remote - last_block_local) > 1:
         if verbose:
-            log.info(f'Local RCP endpoint behind by {n} blocks, using remote endpoint')
+            log.info(f'Local RPC endpoint behind by {n} blocks, using remote endpoint')
         web3 = web3_remote
     else:
         if verbose:
-            log.info('Using local RCP endpoint')
+            log.info('Using local RPC endpoint')
         web3 = web3_local
 
     if verbose:
