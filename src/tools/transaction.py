@@ -22,7 +22,7 @@ PUBLIC_ENDPOINTS_FILEPATH = 'addresses/public_rpc_endpoints.json'
 LIST_BG_WEB3: list[BackgroundWeb3] = []
 ACCOUNT = Account.from_key(configs.PRIVATE_KEY)
 ACCOUNT_TX_COUNTER: TransactionCounter = None
-TX_COUNTER_POLL_INTERVAL = 1.0
+TX_COUNTER_POLL_DELAY = 2.0
 
 CONNECTION_KEEP_ALIVE_TIME_INTERVAL = 30
 MAX_BLOCKS_WAIT_RECEIPT = 20
@@ -76,10 +76,10 @@ class BackgroundWeb3:
 
 
 class TransactionCounter:
-    def __init__(self, address: str, web3: Web3, poll_interval: float = TX_COUNTER_POLL_INTERVAL):
+    def __init__(self, address: str, web3: Web3, poll_delay: float = TX_COUNTER_POLL_DELAY):
         self.address = address
         self.web3 = web3
-        self.poll_interval = poll_interval
+        self.poll_delay = poll_delay
 
         self.lock = Lock()
         self._count = web3.eth.get_transaction_count(address)
@@ -88,12 +88,13 @@ class TransactionCounter:
         self._tread.start()
 
     def _keep_count_updated(self):
-        while True:
+        listener = w3.BlockListener(self.web3)
+        for _ in listener.wait_for_new_blocks():
+            time.sleep(self.poll_delay)
             count = self.web3.eth.get_transaction_count(self.address)
-            if count > self._count:  # Transaction count was updated by another party
+            if count != self._count:
                 with self.lock:
                     self._count = count
-            time.sleep(self.poll_interval)
 
     def get_nonce(self):
         with self.lock:
@@ -143,13 +144,15 @@ def sign_and_send_tx(
 ) -> str:
     account = ACCOUNT if account is None else account
     tx['gas'] = tx.get('gas', 1_000_000)
-    tx['nonce'] = tx.get('nonce', get_nonce(account.address, web3))
-    tx['gasPrice'] = tx.get('gasPrice', price.get_gas_price())
 
-    log.debug(f'Sending transaction: {tx}')
+    # Do not use dict get() with default, or it will update nonce unnecessarily
+    tx['nonce'] = tx['nonce'] if 'nonce' in tx else get_nonce(account.address, web3)
+    tx['gasPrice'] = tx['gasPrice'] if 'gasPrice' in tx else price.get_gas_price()
+
     signed_tx = account.sign_transaction(tx)
-    broadcast_tx(signed_tx)
     tx_hash = signed_tx.hash.hex()
+    log.debug(f'Sending transaction {tx_hash}: {tx}')
+    broadcast_tx(signed_tx)
 
     if wait_finish:
         wait_tx_finish(tx_hash, web3, max_blocks_wait, verbose)
