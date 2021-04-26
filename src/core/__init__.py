@@ -1,4 +1,4 @@
-from .base import LiquidityPool, Price, Route, Token, TokenAmount, Trade
+from .base import LiquidityPool, Price, Route, Token, TokenAmount, Trade, TradePools
 from .pairs import LiquidityPair, RoutePairs, TradePairs
 
 __all__ = [
@@ -11,4 +11,5 @@ __all__ = [
     'TokenAmount',
     'Trade',
     'TradePairs',
+    'TradePools',
 ]

@@ -216,44 +216,6 @@ class Price:
         return NotImplemented
 
 
-class LiquidityPool:
-    def __init__(self, fee: int, tokens: Union[list[Token], tuple[Token]], contract: Contract):
-        self.fee = fee
-        self.contract = contract
-        self.address = contract.address
-        self.tokens = tokens
-
-
-class Route:
-    def __init__(
-        self,
-        pools: list[LiquidityPool],
-        token_in: Token,
-        token_out: Token,
-        tokens: list[Token] = None,
-    ):
-        """Route of liquidity pools, use to compute trade with in/out amounts"""
-        assert token_in in pools[0].tokens
-        assert token_out in pools[-1].tokens
-        self.pools = pools
-        self.token_in = token_in
-        self.token_out = token_out
-        self.tokens = tokens or []
-
-    @property
-    def symbols(self) -> str:
-        return '->'.join(token.symbol for token in self.tokens)
-
-    def __repr__(self):
-        return f'{self.__class__.__name__}({self.symbols})'
-
-    def get_amount_out(self, amount_in: TokenAmount) -> TokenAmount:
-        raise NotImplementedError
-
-    def get_amount_in(self, amount_out: TokenAmount) -> TokenAmount:
-        raise NotImplementedError
-
-
 class Trade:
     def __init__(
         self,
@@ -308,3 +270,60 @@ class Trade:
 
     def _get_amount_out(self) -> TokenAmount:
         raise NotImplementedError
+
+
+class LiquidityPool:
+    def __init__(self, fee: int, tokens: Union[list[Token], tuple[Token]], contract: Contract):
+        self.fee = fee
+        self.contract = contract
+        self.address = contract.address
+        self.tokens = tokens
+
+
+class Route:
+    def __init__(
+        self,
+        pools: list[LiquidityPool],
+        token_in: Token,
+        token_out: Token,
+        tokens: list[Token] = None,
+    ):
+        """Route of liquidity pools, use to compute trade with in/out amounts"""
+        assert token_in in pools[0].tokens
+        assert token_out in pools[-1].tokens
+        self.pools = pools
+        self.token_in = token_in
+        self.token_out = token_out
+        self.tokens = tokens or []
+
+    @property
+    def symbols(self) -> str:
+        return '->'.join(token.symbol for token in self.tokens)
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}({self.symbols})'
+
+    def get_amount_out(self, amount_in: TokenAmount) -> TokenAmount:
+        raise NotImplementedError
+
+    def get_amount_in(self, amount_out: TokenAmount) -> TokenAmount:
+        raise NotImplementedError
+
+
+class TradePools(Trade):
+    def __init__(
+        self,
+        amount_in: TokenAmount,
+        amount_out: TokenAmount,
+        route: Route,
+        max_slippage: int = None
+    ):
+        """Trade consisting of a route of liquidity pools, with amount_in and amount_out"""
+        super().__init__(amount_in, amount_out, max_slippage)
+        self.route = route
+
+    def _get_amount_in(self) -> TokenAmount:
+        return self.route.get_amount_in(self.amount_out)
+
+    def _get_amount_out(self) -> TokenAmount:
+        return self.route.get_amount_out(self.amount_in)

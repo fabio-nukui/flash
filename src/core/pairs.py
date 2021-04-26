@@ -8,7 +8,7 @@ from web3.contract import Contract
 import configs
 from exceptions import InsufficientLiquidity
 
-from .base import LiquidityPool, Route, Token, TokenAmount, Trade
+from .base import LiquidityPool, Route, Token, TokenAmount, TradePools
 
 log = logging.getLogger(__name__)
 
@@ -144,7 +144,7 @@ class RoutePairs(Route):
         return amount_out
 
 
-class TradePairs(Trade):
+class TradePairs(TradePools):
     def __init__(
         self,
         amount_in: TokenAmount,
@@ -158,12 +158,6 @@ class TradePairs(Trade):
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.route.symbols}: {self._str_in_out})'
-
-    def _get_amount_in(self) -> TokenAmount:
-        return self.route.get_amount_in(self.amount_out)
-
-    def _get_amount_out(self) -> TokenAmount:
-        return self.route.get_amount_out(self.amount_in)
 
     @classmethod
     def best_trade_exact_in(
