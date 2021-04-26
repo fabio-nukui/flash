@@ -66,7 +66,7 @@ class BackgroundWeb3:
         while True:
             time.sleep(CONNECTION_KEEP_ALIVE_TIME_INTERVAL + random.random())
             try:
-                future = self._executor.submit(getattr, self._web3.eth, 'block_number')
+                future = self._executor.submit(getattr, self.web3.eth, 'block_number')
                 block_number = future.result()
                 if self.verbose:
                     log.debug(f'Connection {self.uri} on {block_number=}')
