@@ -5,7 +5,6 @@ from copy import copy
 
 from web3.contract import Contract
 
-import configs
 from exceptions import InsufficientLiquidity
 
 from .base import LiquidityPool, Route, Token, TokenAmount, TradePools
@@ -17,15 +16,8 @@ class LiquidityPair(LiquidityPool):
     def __init__(self, reserves: tuple[TokenAmount, TokenAmount], fee: int, *, contract: Contract):
         """Abstract class representing all liquidity pools with 2 different assets"""
         # Follow Uniswap convension of tokens sorted by address
-        self._reserve_0, self._reserve_1 = sorted(reserves, key=lambda x: x.token)
-        super().__init__(
-            fee,
-            tokens=(self._reserve_0.token, self._reserve_1.token),
-            contract=contract
-        )
-
-        if self._reserve_0.is_empty() or self._reserve_1.is_empty():
-            self._update_amounts()
+        reserves = sorted(reserves, key=lambda x: x.token)
+        super().__init__(fee, reserves, contract)
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self._reserve_0.symbol}/{self._reserve_1.symbol})'
@@ -56,21 +48,6 @@ class LiquidityPair(LiquidityPool):
         if amount_out is not None and amount_out >= reserve_out:
             raise InsufficientLiquidity
         return reserve_in, reserve_out
-
-    @property
-    def reserves(self) -> tuple[TokenAmount, TokenAmount]:
-        if not configs.STOP_RESERVE_UPDATE:
-            self._update_amounts()
-        return (self._reserve_0, self._reserve_1)
-
-    def apply_transactions(self, amounts: list[TokenAmount]):
-        for amount in amounts:
-            if amount.token == self._reserve_0.token:
-                self._reserve_0 += amount
-            elif amount.token == self._reserve_1.token:
-                self._reserve_1 += amount
-            else:
-                raise ValueError("'amounts' must have same tokens as reserves")
 
     def _update_amounts(self):
         """Update the reserve amounts of both token pools and the unix timestamp of the latest

@@ -35,12 +35,11 @@ class CurvePool(LiquidityPool):
         self.pool_token_contract = web3.eth.contract(pool_token_address, abi=pool_token_abi)
         super().__init__(
             fee,
-            tokens=self.get_tokens(),
+            reserves=(TokenAmount(token) for token in self.get_tokens()),
             contract=web3.eth.contract(pool_address, abi=pool_abi)
         )
 
         self.n_coins = len(self.tokens)
-        self._reserves = [TokenAmount(token) for token in self.tokens]
         self._rates = tuple(int(10 ** t.decimals) for t in self.tokens)
 
     def __repr__(self):
@@ -49,12 +48,6 @@ class CurvePool(LiquidityPool):
     @property
     def balances(self) -> list[int]:
         return [reserve.amount for reserve in self.reserves]
-
-    @property
-    def reserves(self) -> list[TokenAmount]:
-        if not configs.STOP_RESERVE_UPDATE:
-            self._update_balance()
-        return self._reserves
 
     def get_tokens(self) -> list[Token]:
         i = 0

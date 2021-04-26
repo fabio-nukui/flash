@@ -128,9 +128,11 @@ def _has_chi_flag(func: ContractFunction):
     return any(fn_input.get('name') == CHI_FLAG for fn_input in function_inputs)
 
 
-def get_nonce(address: str, web3: Web3):
+def get_nonce(address: str, web3: Web3, dry_run: bool = False):
     if address != ACCOUNT.address:
         return web3.eth.get_transaction_count(address)
+    if dry_run:
+        return ACCOUNT_TX_COUNTER.count
     return ACCOUNT_TX_COUNTER.get_nonce()
 
 
@@ -175,6 +177,7 @@ def dry_run_contract_tx(
         'from': account.address,
         'chainId': configs.CHAIN_ID,
         'gas': max_gas_,
+        'nonce': get_nonce(account.address, web3, dry_run=True),
         'gasPrice': gas_price_,
     })
     web3.eth.call(tx)

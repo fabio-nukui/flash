@@ -10,7 +10,7 @@ StartLimitIntervalSec=0
 Type=simple
 ExecStart=/usr/bin/env bash /mnt/raid/bsc/start-node-archive  # Replace with correct script and node location
 User=ubuntu
-Restart=on-failure
+Restart=always
 RestartSec=1
 KillMode=mixed
 

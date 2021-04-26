@@ -4,7 +4,7 @@ import functools
 import json
 import logging
 from enum import Enum
-from typing import Union, overload
+from typing import Iterable, Union, overload
 
 from web3 import Web3
 from web3.contract import Contract
@@ -273,11 +273,35 @@ class Trade:
 
 
 class LiquidityPool:
-    def __init__(self, fee: int, tokens: Union[list[Token], tuple[Token]], contract: Contract):
+    def __init__(
+        self,
+        fee: int,
+        reserves: Iterable[TokenAmount],
+        contract: Contract
+    ):
         self.fee = fee
         self.contract = contract
         self.address = contract.address
-        self.tokens = tokens
+        self._reserves = tuple(reserves)
+        self.tokens = tuple(reserve.token for reserve in self._reserves)
+
+        if any(reserve.is_empty() for reserve in self._reserves):
+            self._update_amounts()
+
+    @property
+    def reserves(self) -> tuple[TokenAmount, ...]:
+        if not configs.STOP_RESERVE_UPDATE:
+            self._update_amounts()
+        return self._reserves
+
+    def apply_transactions(self, amounts: list[TokenAmount]):
+        for i, amount in enumerate(amounts):
+            if amount.token != self._reserves[i].token:
+                raise ValueError("'amounts' must have same tokens as reserves")
+            self._reserves[i] += amount
+
+    def _update_amounts(self):
+        raise NotImplementedError
 
 
 class Route:

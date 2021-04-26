@@ -7,7 +7,7 @@ from typing import Iterable, Union
 from web3 import Web3
 
 import configs
-from core import LiquidityPair, Token
+from core import LiquidityPool, Token
 from exceptions import InsufficientLiquidity
 from tools import http, w3
 from tools.cache import ttl_cache
@@ -114,9 +114,9 @@ def get_price_usd_native_token(web3: Web3) -> float:
     return get_chainlink_price_usd(symbol, web3)
 
 
-def get_price_usd(token: Token, pools: list[LiquidityPair], web3: Web3 = WEB3) -> float:
+def get_price_usd(token: Token, pools: list[LiquidityPool], web3: Web3 = WEB3) -> float:
     """Return token price in USD using chainlink and, if token not in chainlink, by comparing
-    vs liquidity pair with largest liquidity and with chainlink usd price
+    vs liquidity pool with largest liquidity and with chainlink usd price
     """
     try:
         return get_chainlink_price_usd(token, web3)
