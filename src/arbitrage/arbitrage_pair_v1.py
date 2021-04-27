@@ -58,6 +58,7 @@ class ArbitragePairV1:
         max_transaction_checks: int = DEFAULT_MAX_TRANSACTION_CHECKS,
         gas_share_of_profit: float = DEFAULT_GAS_SHARE_OF_PROFIT,
         max_gas_price: int = MAX_GAS_PRICE,
+        max_gas_multiplier: float = MAX_GAS_MULTIPLIER,
         high_gas_price_strategy: HighGasPriceStrategy = HighGasPriceStrategy.baseline_3x,
         optimization_params: dict = None,
     ):
@@ -80,6 +81,7 @@ class ArbitragePairV1:
         self.max_transaction_checks = max_transaction_checks
         self.gas_share_of_profit = gas_share_of_profit
         self.max_gas_price = max_gas_price
+        self.max_gas_multiplier = max_gas_multiplier
         self.high_gas_price_strategy = high_gas_price_strategy
 
         optimization_params = optimization_params or {}
@@ -258,7 +260,7 @@ class ArbitragePairV1:
             'func': self._get_contract_function(),
             'path': self._get_path_argument(),
             'amountLast': self.amount_last.amount,
-            'max_gas_': int(self.gas_cost * MAX_GAS_MULTIPLIER),
+            'max_gas_': int(self.gas_cost * self.max_gas_multiplier),
             'gas_price_': self.gas_price,
         }
 
