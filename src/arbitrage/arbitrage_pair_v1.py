@@ -117,7 +117,7 @@ class ArbitragePairV1:
         self.timestamp_sent: float = 0.0
         self.block_executed: int = None
         self.tx_hash = ''
-        self.n_tx_check = 0
+        self.n_tx_checks = 0
         self.tx_status = TxStatus.empty
         self.gas_used: int = None
         self.block_send_delay: int = None
