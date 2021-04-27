@@ -1,8 +1,6 @@
 # Pancakeswap (PCS) x ValueDefiSwap (VDS)
 
 import logging
-from itertools import permutations
-from typing import Iterable
 
 import tools
 import configs
@@ -53,21 +51,6 @@ class PcsVdsPair(ArbitragePairV1):
         ]
 
 
-def get_arbitrage_params(
-    pcs_dex: PancakeswapDex,
-    vds_dex: ValueDefiSwapDex,
-) -> Iterable[dict]:
-    for dex_0, dex_1 in permutations([pcs_dex, vds_dex]):
-        for pool in dex_1.pools:
-            for token_first, token_last in permutations(pool.tokens):
-                yield {
-                    'token_first': token_first,
-                    'token_last': token_last,
-                    'first_dex': dex_0,
-                    'second_dex': dex_1,
-                }
-
-
 def run():
     web3 = tools.w3.get_web3(verbose=True)
     dex_protocols = {
@@ -77,16 +60,10 @@ def run():
     dexes = PairManager.load_dex_protocols(ADDRESS_DIRECTORY, dex_protocols, web3)
     contract = tools.transaction.load_contract(CONTRACT_DATA_FILEPATH)
     arbitrage_pairs = [
-        PcsVdsPair(**params, contract=contract, web3=web3)
-        for params in get_arbitrage_params(dexes['pcs_dex'], dexes['vds_dex'])
+        PcsVdsPair(**params, contract=contract)
+        for params in PairManager.get_v1_pool_arguments(dexes.values(), web3)
     ]
-    pair_manager = PairManager(
-        ADDRESS_DIRECTORY,
-        arbitrage_pairs,
-        web3,
-        MIN_ESTIMATED_PROFIT,
-        DISABLE_SAMPLE_SIZE,
-    )
+    pair_manager = PairManager(ADDRESS_DIRECTORY, arbitrage_pairs, web3)
     listener = tools.w3.BlockListener(web3)
     for block_number in listener.wait_for_new_blocks():
         configs.BLOCK = block_number
