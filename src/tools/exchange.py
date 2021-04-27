@@ -39,6 +39,7 @@ def get_quote_1inch(
         'amount': from_token_amount,
         'gasPrice': gas_price,
     }
+    print(f'{_1INCH_API_URL}/quote', query_params)
     res = http.get(f'{_1INCH_API_URL}/quote', params=query_params, timeout=TIMEOUT_REQUESTS)
     amount = int(res.json()['toTokenAmount'])
     return amount

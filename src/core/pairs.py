@@ -8,7 +8,7 @@ from web3.contract import Contract
 
 from exceptions import InsufficientLiquidity
 
-from .base import LiquidityPool, Route, Token, TokenAmount, TradePools
+from .base import LiquidityPool, Route, Token, TokenAmount, TradePools, TradeType
 
 log = logging.getLogger(__name__)
 
@@ -145,10 +145,11 @@ class TradePairs(TradePools):
         amount_in: TokenAmount,
         amount_out: TokenAmount,
         route: RoutePairs,
-        max_slippage: int = None
+        max_slippage: int = None,
+        trade_type: TradeType = None,
     ):
         """Trade involving a sequence of liquidity pools"""
-        super().__init__(amount_in, amount_out, route, max_slippage)
+        super().__init__(amount_in, amount_out, route, max_slippage, trade_type)
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.route.symbols}: {self._str_in_out})'

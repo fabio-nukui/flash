@@ -8,6 +8,7 @@ from web3.exceptions import TransactionNotFound
 
 import tools
 from core import LiquidityPool, Route, RoutePairs, Token, TokenAmount, TradePairs, TradePools
+from core.base import TradeType
 from dex import DexProtocol
 from exceptions import InsufficientLiquidity, NotProfitable, OptimizationError
 
@@ -158,11 +159,18 @@ class ArbitragePairV1:
         return second_trade.amount_out - first_trade.amount_in
 
     def get_arbitrage_trades(self, amount_last: TokenAmount) -> tuple[TradePairs, TradePairs]:
-        amount_in_first_trade = self.first_route.get_amount_in(amount_last)
-        first_trade = TradePairs(amount_in_first_trade, amount_last, self.first_route)
-
-        amount_out_second_trade = self.second_route.get_amount_out(amount_last)
-        second_trade = TradePools(amount_last, amount_out_second_trade, self.second_route)
+        first_trade = TradePairs(
+            amount_in=self.first_route.get_amount_in(amount_last),
+            amount_out=amount_last,
+            route=self.first_route,
+            trade_type=TradeType.exact_out,
+        )
+        second_trade = TradePools(
+            amount_in=amount_last,
+            amount_out=self.second_route.get_amount_out(amount_last),
+            route=self.second_route,
+            trade_type=TradeType.exact_in,
+        )
         return first_trade, second_trade
 
     def update_estimate(self, block_number: int = None):

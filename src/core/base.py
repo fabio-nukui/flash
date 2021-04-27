@@ -221,7 +221,8 @@ class Trade:
         self,
         amount_in: TokenAmount,
         amount_out: TokenAmount,
-        max_slippage: int = None
+        max_slippage: int = None,
+        trade_type: TradeType = None,
     ):
         """Decentralized exchange trade:
             - For Exact In trade, set amount_in.amount to zero
@@ -236,19 +237,21 @@ class Trade:
         self.max_slippage = DEFAULT_MAX_SLIPPAGE if max_slippage is None else max_slippage
 
         if not amount_in.is_empty() and amount_out.is_empty():
+            assert trade_type is None or trade_type == TradeType.exact_in
             self.trade_type = TradeType.exact_in
             self.amount_in = amount_in
             self.max_amount_in = amount_in
             self.amount_out = self._get_amount_out()
             self.min_amount_out = self.amount_out * 10_000 // (10_000 + self.max_slippage)
         elif amount_in.is_empty() and not amount_out.is_empty():
+            assert trade_type is None or trade_type == TradeType.exact_out
             self.trade_type = TradeType.exact_out
             self.amount_out = amount_out
             self.min_amount_out = amount_out
             self.amount_in = self._get_amount_in()
             self.max_amount_in = self.amount_in * (10_000 + self.max_slippage) // 10_000
         else:
-            self.trade_type = TradeType.exact
+            self.trade_type = TradeType.exact if trade_type is not None else TradeType
             self.amount_in = amount_in
             self.max_amount_in = amount_in
             self.amount_out = amount_out
@@ -358,11 +361,12 @@ class TradePools(Trade):
         amount_in: TokenAmount,
         amount_out: TokenAmount,
         route: Route,
-        max_slippage: int = None
+        max_slippage: int = None,
+        trade_type: TradeType = None,
     ):
         """Trade consisting of a route of liquidity pools, with amount_in and amount_out"""
         self.route = route  # Assign route before super().__init__ or it will bug out
-        super().__init__(amount_in, amount_out, max_slippage)
+        super().__init__(amount_in, amount_out, max_slippage, trade_type)
 
     def _get_amount_in(self) -> TokenAmount:
         return self.route.get_amount_in(self.amount_out)

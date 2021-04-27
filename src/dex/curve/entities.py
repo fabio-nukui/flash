@@ -7,6 +7,7 @@ from web3.exceptions import BadFunctionCallOutput
 
 import configs
 from core import LiquidityPool, Token, TokenAmount, Trade
+from core.base import TradeType
 from tools.cache import ttl_cache
 
 LENDING_PRECISION = int(10 ** 18)
@@ -173,7 +174,7 @@ class CurveTrade(Trade):
         max_slippage: int = None,
     ):
         self.pool = pool
-        super().__init__(amount_in, amount_out, max_slippage)
+        super().__init__(amount_in, amount_out, max_slippage, trade_type=TradeType.exact_in)
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.pool}: {self._str_in_out})'
