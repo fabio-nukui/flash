@@ -199,7 +199,7 @@ class ArbitragePairV1:
                 use_fallback=self.opt_use_fallback,
             )
         except Exception as e:
-            if not self.high_gas_price_strategy == HighGasPriceStrategy.raise_:
+            if self.opt_use_fallback:
                 log.info(f'{self}: Error during optimization: {e!r}')
                 log.debug('Error: ', exc_info=True)
             raise OptimizationError
