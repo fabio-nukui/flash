@@ -7,7 +7,7 @@ from typing import Iterable, Union
 from web3 import Web3
 
 import configs
-from core import LiquidityPool, Token
+from core import LiquidityPool, Token, TokenAmount
 from exceptions import InsufficientLiquidity
 from tools import http, w3
 from tools.cache import ttl_cache
@@ -84,14 +84,15 @@ def get_gas_cost_native_tokens(gas: int, web3: Web3 = WEB3) -> float:
     return float(Web3.fromWei(gas, 'ether')) * get_gas_price(web3)
 
 
+def get_price_usd_native_token(web3: Web3) -> float:
+    symbol = get_native_token_symbol()
+    return get_chainlink_price_usd(symbol, web3)
+
+
 def get_gas_cost_usd(gas: int, web3: Web3 = WEB3) -> float:
-    asset_name = get_native_token_symbol()
-    address = PRICE_FEEDS[asset_name]['address']
-    decimals = PRICE_FEEDS[asset_name]['decimals']
-
     gas_cost = get_gas_cost_native_tokens(gas, web3)
+    price_native_token_usd = get_price_usd_native_token(web3)
 
-    price_native_token_usd = _get_chainlink_data(asset_name, address, decimals, web3)
     return gas_cost * price_native_token_usd
 
 
@@ -109,14 +110,9 @@ async def get_prices_coingecko(addresses: Iterable[str]) -> dict[str, float]:
     }
 
 
-def get_price_usd_native_token(web3: Web3) -> float:
-    symbol = get_native_token_symbol()
-    return get_chainlink_price_usd(symbol, web3)
-
-
 def get_price_usd(token: Token, pools: list[LiquidityPool], web3: Web3 = WEB3) -> float:
     """Return token price in USD using chainlink and, if token not in chainlink, by comparing
-    vs liquidity pool with largest liquidity and with chainlink usd price
+    vs liquidity pool with largest liquidity in known tokens
     """
     try:
         return get_chainlink_price_usd(token, web3)
@@ -126,19 +122,16 @@ def get_price_usd(token: Token, pools: list[LiquidityPool], web3: Web3 = WEB3) -
     for pool in pools:
         if token not in pool.tokens:
             continue
-        if pool.tokens[0] == token:
-            paired_token = pool.tokens[1]
-            same_reserve, paired_reserve = pool.reserves
-        else:
-            paired_token = pool.tokens[0]
-            paired_reserve, same_reserve = pool.reserves
-        try:
-            price_paired_token = get_chainlink_price_usd(paired_token, web3)
-        except KeyError:
-            continue
-        liquidity = price_paired_token * paired_reserve.amount_in_units * 2
-        price_token = price_paired_token * paired_reserve.amount / same_reserve.amount
-        liquidity_prices.append((liquidity, price_token))
+        for reserve in pool.reserves:
+            if reserve.token not in PRICE_FEEDS:
+                continue
+            reserve_token_price = get_chainlink_price_usd(reserve.token, web3)
+            liquidity = reserve_token_price * reserve.amount_in_units
+            amount_single_usd = int((1 / reserve_token_price) * 10 ** reserve.token.decimals)
+            reserve_token_usd_amount = TokenAmount(reserve.token, amount_single_usd)
+            token_usd_amount = pool.get_amount_out(reserve_token_usd_amount, token)
+            token_usd_price = 1 / token_usd_amount.amount_in_units
+            liquidity_prices.append((liquidity, token_usd_price))
     if not liquidity_prices:
         raise InsufficientLiquidity('Found no token with chainlink price linked to input token.')
     return max(liquidity_prices)[1]

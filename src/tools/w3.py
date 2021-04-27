@@ -71,10 +71,17 @@ def get_web3(verbose: bool = False, force_local: bool = configs.FORCE_LOCAL_RPC_
 
 
 class BlockListener:
-    def __init__(self, web3: Web3 = None, block_label='latest', verbose: bool = True):
+    def __init__(
+        self,
+        web3: Web3 = None,
+        block_label='latest',
+        verbose: bool = True,
+        poll_interval: float = configs.POLL_INTERVAL,
+    ):
         self.web3 = get_web3() if web3 is None else web3
         self.filter = self.web3.eth.filter(block_label)
         self.verbose = verbose
+        self.poll_interval = poll_interval
 
     def wait_for_new_blocks(self) -> int:
         while True:
@@ -86,4 +93,4 @@ class BlockListener:
                 if self.verbose:
                     log.debug(f'New block: {block_number}')
                 yield block_number
-            time.sleep(configs.POLL_INTERVAL)
+            time.sleep(self.poll_interval)

@@ -70,7 +70,6 @@ class TradePairsMixin:
         token_in: Token,
         amount_out: TokenAmount,
         max_hops: int = 1,
-        hop_penalty: float = None,
         max_slippage: int = None,
     ) -> TradePairs:
         return TradePairs.best_trade_exact_out(
@@ -78,7 +77,6 @@ class TradePairsMixin:
             token_in,
             amount_out,
             max_hops,
-            hop_penalty,
             max_slippage,
         )
 
@@ -87,7 +85,6 @@ class TradePairsMixin:
         amount_in: TokenAmount,
         token_out: Token,
         max_hops: int = 1,
-        hop_penalty: float = None,
         max_slippage: int = None,
     ) -> TradePairs:
         return TradePairs.best_trade_exact_in(
@@ -95,7 +92,6 @@ class TradePairsMixin:
             amount_in,
             token_out,
             max_hops,
-            hop_penalty,
             max_slippage,
         )
 

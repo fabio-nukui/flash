@@ -9,6 +9,7 @@ import configs
 from arbitrage import ArbitragePairV1, PairManager
 from dex import PancakeswapDex, ValueDefiSwapDex
 
+log = logging.getLogger(__name__)
 
 # Strategy parameters
 MIN_ESTIMATED_PROFIT = 1
@@ -22,8 +23,6 @@ GAS_INCREASE_WITH_HOP = 0.266831606034439
 # Created with notebooks/2021-04-12-pcs_vds_v1.ipynb
 ADDRESS_DIRECTORY = 'strategy_files/pcs_vds_v1'
 CONTRACT_DATA_FILEPATH = 'deployed_contracts/PcsVdsV1B.json'
-
-log = logging.getLogger(__name__)
 
 
 class PcsVdsPair(ArbitragePairV1):

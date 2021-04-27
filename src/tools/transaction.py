@@ -23,6 +23,8 @@ LIST_BG_WEB3: list[BackgroundWeb3] = []
 ACCOUNT = Account.from_key(configs.PRIVATE_KEY)
 ACCOUNT_TX_COUNTER: TransactionCounter = None
 TX_COUNTER_POLL_DELAY = 2.0
+TX_WAIT_POLL_INTERVAL = 0.01
+NONCE_COUNTER_POLL_INTERVAL = 0.1
 
 CONNECTION_KEEP_ALIVE_TIME_INTERVAL = 30
 MAX_BLOCKS_WAIT_RECEIPT = 20
@@ -76,9 +78,16 @@ class BackgroundWeb3:
 
 
 class TransactionCounter:
-    def __init__(self, address: str, web3: Web3, poll_delay: float = TX_COUNTER_POLL_DELAY):
+    def __init__(
+        self,
+        address: str,
+        web3: Web3,
+        poll_interval: float = NONCE_COUNTER_POLL_INTERVAL,
+        poll_delay: float = TX_COUNTER_POLL_DELAY
+    ):
         self.address = address
         self.web3 = web3
+        self.poll_interval = poll_interval
         self.poll_delay = poll_delay
 
         self.lock = Lock()
@@ -88,13 +97,22 @@ class TransactionCounter:
         self._tread.start()
 
     def _keep_count_updated(self):
-        listener = w3.BlockListener(self.web3)
-        for _ in listener.wait_for_new_blocks():
-            time.sleep(self.poll_delay)
-            count = self.web3.eth.get_transaction_count(self.address)
-            if count != self._count:
-                with self.lock:
-                    self._count = count
+        while True:
+            try:
+                listener = w3.BlockListener(
+                    self.web3,
+                    verbose=False,
+                    poll_interval=self.poll_interval,
+                )
+                for _ in listener.wait_for_new_blocks():
+                    time.sleep(self.poll_delay)
+                    count = self.web3.eth.get_transaction_count(self.address)
+                    if count != self._count:
+                        with self.lock:
+                            self._count = count
+            except Exception:
+                log.debug('TransactionCounter listener failed, restarting in 1 sec')
+                time.sleep(1)
 
     def get_nonce(self):
         with self.lock:
@@ -216,7 +234,7 @@ def wait_tx_finish(
     verbose: bool = False,
     min_confirmations: int = 1,
 ):
-    listener = w3.BlockListener(web3)
+    listener = w3.BlockListener(web3, poll_interval=TX_WAIT_POLL_INTERVAL)
     max_blocks_wait = max_blocks_wait or MAX_BLOCKS_WAIT_RECEIPT
     n = 0
     for current_block in listener.wait_for_new_blocks():

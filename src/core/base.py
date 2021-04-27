@@ -90,7 +90,7 @@ def _not_empty(func):
 
 
 def _same_token(func):
-    """Decorator that checks that operatins between TokenAmounts only work if their
+    """Decorator that checks that operations between TokenAmounts only work if their
         underlying Token is the same"""
     @functools.wraps(func)
     def wrapper(self, other):
@@ -303,6 +303,18 @@ class LiquidityPool:
     def _update_amounts(self):
         raise NotImplementedError
 
+    @overload
+    def get_amount_in(self, amount_out: TokenAmount) -> TokenAmount: ...  # noqa: E704
+
+    def get_amount_in(self, token_in: Token, amount_out: TokenAmount) -> TokenAmount:
+        raise NotImplementedError
+
+    @overload
+    def get_amount_out(self, amount_in: Token) -> TokenAmount: ...  # noqa: E704
+
+    def get_amount_out(self, amount_in: Token, token_out: TokenAmount) -> TokenAmount:
+        raise NotImplementedError
+
 
 class Route:
     def __init__(
@@ -310,15 +322,13 @@ class Route:
         pools: list[LiquidityPool],
         token_in: Token,
         token_out: Token,
-        tokens: list[Token] = None,
+        tokens: list[Token],
     ):
         """Route of liquidity pools, use to compute trade with in/out amounts"""
-        assert token_in in pools[0].tokens
-        assert token_out in pools[-1].tokens
         self.pools = pools
         self.token_in = token_in
         self.token_out = token_out
-        self.tokens = tokens or []
+        self.tokens = tokens
 
     @property
     def symbols(self) -> str:
@@ -328,10 +338,18 @@ class Route:
         return f'{self.__class__.__name__}({self.symbols})'
 
     def get_amount_out(self, amount_in: TokenAmount) -> TokenAmount:
-        raise NotImplementedError
+        assert len(self.tokens) == len(self.pools) + 1
+        for token_out, pool in zip(self.tokens[1:], self.pools):
+            # amount_out of each iteration is amount_in of next one
+            amount_in = pool.get_amount_out(amount_in, token_out)
+        return amount_in
 
     def get_amount_in(self, amount_out: TokenAmount) -> TokenAmount:
-        raise NotImplementedError
+        assert len(self.tokens) == len(self.pools) + 1
+        for token_in, pool in zip(reversed(self.tokens[:-1]), reversed(self.pools)):
+            # amount_in of each iteration is amount_out of next one
+            amount_out = pool.get_amount_in(token_in, amount_out)
+        return amount_out
 
 
 class TradePools(Trade):
@@ -343,8 +361,8 @@ class TradePools(Trade):
         max_slippage: int = None
     ):
         """Trade consisting of a route of liquidity pools, with amount_in and amount_out"""
+        self.route = route  # Assign route before super().__init__ or it will bug out
         super().__init__(amount_in, amount_out, max_slippage)
-        self.route = route
 
     def _get_amount_in(self) -> TokenAmount:
         return self.route.get_amount_in(self.amount_out)

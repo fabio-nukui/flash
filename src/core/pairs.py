@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from copy import copy
+from typing import Union
 
 from web3.contract import Contract
 
@@ -20,7 +21,7 @@ class LiquidityPair(LiquidityPool):
         super().__init__(fee, reserves, contract)
 
     def __repr__(self):
-        return f'{self.__class__.__name__}({self._reserve_0.symbol}/{self._reserve_1.symbol})'
+        return f'{self.__class__.__name__}({self._reserves[0].symbol}/{self._reserves[1].symbol})'
 
     def _get_in_out_reserves(
         self,
@@ -53,18 +54,23 @@ class LiquidityPair(LiquidityPool):
         """Update the reserve amounts of both token pools and the unix timestamp of the latest
         transaction"""
         (
-            self._reserve_0.amount,
-            self._reserve_1.amount,
+            self._reserves[0].amount,
+            self._reserves[1].amount,
             self.latest_transaction_timestamp
         ) = self._get_reserves()
 
     def _get_reserves(self):
         raise NotImplementedError
 
-    def get_amount_out(self, amount_in: TokenAmount) -> TokenAmount:
+    def get_amount_out(self, amount_in: TokenAmount, token_out: Token = None) -> TokenAmount:
         """Get amount of tokens out given exact amount in.
             This is the default constant product AMM implementation, override in subclass if needed.
         """
+        if token_out is not None:
+            assert token_out in self.tokens and token_out != amount_in.token
+        return self._get_amount_out(amount_in)
+
+    def _get_amount_out(self, amount_in: TokenAmount) -> TokenAmount:
         reserve_in, reserve_out = self._get_in_out_reserves(amount_in=amount_in)
 
         amount_in_with_fee = amount_in.amount * (10_000 - self.fee)
@@ -74,10 +80,23 @@ class LiquidityPair(LiquidityPool):
         amount_out = numerator // denominator
         return TokenAmount(reserve_out.token, amount_out)
 
-    def get_amount_in(self, amount_out: TokenAmount) -> TokenAmount:
+    def get_amount_in(
+        self,
+        arg_0: Union[Token, TokenAmount],
+        arg_1: TokenAmount = None
+    ) -> TokenAmount:
         """Get amount of tokens out given exact amount in.
             This is the default constant product AMM implementation, override in subclass if needed.
         """
+        if arg_1 is None:
+            assert isinstance(arg_0, TokenAmount)
+            return self._get_amount_in(arg_0)  # arg_0 is amount_out
+        assert isinstance(arg_0, Token) and isinstance(arg_1, TokenAmount)
+        # arg_0 is token_in and arg_1 is amount_out  # noqa: E501
+        assert arg_0 in self.tokens and arg_0 != arg_1.token
+        return self._get_amount_in(arg_1)
+
+    def _get_amount_in(self, amount_out: TokenAmount) -> TokenAmount:
         reserve_in, reserve_out = self._get_in_out_reserves(amount_out=amount_out)
         numerator = reserve_in.amount * amount_out.amount * 10_000
         denominator = (reserve_out.amount - amount_out.amount) * (10_000 - self.fee)
@@ -96,25 +115,24 @@ class RoutePairs(Route):
         """Route of liquidity pairs, use to compute trade with in/out amounts"""
         self.pools: LiquidityPair
 
-        super().__init__(pools, token_in, token_out)
-        self.tokens = self._get_tokens()
-
-    def _get_tokens(self) -> list[Token]:
-        tokens = [self.token_in]
-        for pair in self.pools:
+        tokens = [token_in]
+        for pair in pools:
             if tokens[-1] == pair.tokens[0]:
                 tokens.append(pair.tokens[1])
             else:
                 tokens.append(pair.tokens[0])
-        return tokens
+
+        super().__init__(pools, token_in, token_out, tokens)
 
     def get_amount_out(self, amount_in: TokenAmount) -> TokenAmount:
+        """Implementation of get_amount_out that uses the fact that all pools are pairs"""
         for pool in self.pools:
             # amount_out of each iteration is amount_in of next one
             amount_in = pool.get_amount_out(amount_in)
         return amount_in
 
     def get_amount_in(self, amount_out: TokenAmount) -> TokenAmount:
+        """Implementation of get_amount_in that uses the fact that all pools are pairs"""
         for pool in reversed(self.pools):
             # amount_in of each iteration is amount_out of next one
             amount_out = pool.get_amount_in(amount_out)
@@ -130,8 +148,7 @@ class TradePairs(TradePools):
         max_slippage: int = None
     ):
         """Trade involving a sequence of liquidity pools"""
-        self.route = route
-        super().__init__(amount_in, amount_out, max_slippage)
+        super().__init__(amount_in, amount_out, route, max_slippage)
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.route.symbols}: {self._str_in_out})'
@@ -143,7 +160,6 @@ class TradePairs(TradePools):
         amount_in: TokenAmount,
         token_out: Token,
         max_hops: int = 1,
-        hop_penalty: float = None,
         max_slippage: int = None,
     ) -> TradePairs:
         trades = cls.trades_exact_in(
@@ -151,7 +167,6 @@ class TradePairs(TradePools):
             amount_in,
             token_out,
             max_hops,
-            hop_penalty,
             max_slippage,
         )
         if not trades:
@@ -164,7 +179,6 @@ class TradePairs(TradePools):
         amount_in: TokenAmount,
         token_out: Token,
         max_hops: int = 1,
-        hop_penalty: float = None,
         max_slippage: int = None,
         current_pools: list[LiquidityPair] = None,
         original_amount_in: TokenAmount = None,
@@ -177,7 +191,6 @@ class TradePairs(TradePools):
             amount_in (TokenAmount): Exact amount to be traded in
             token_out (Token): Token to be traded out
             max_hops (int): Maximum number of hops
-            hop_penalty (float, optional): Penalty % on additional hops to account for higher gas
             max_slippage (int): Maximum slippage in basis points
             current_pools (List[LiquidityPair], optional): Used for recursion
             original_amount_in (TokenAmount, optional): Used for recursion
@@ -202,12 +215,7 @@ class TradePairs(TradePools):
                 continue
             if amount_out.token == token_out:
                 # End of recursion
-                route = RoutePairs(
-                    [*current_pools, pool],
-                    original_amount_in.token,
-                    token_out,
-                    hop_penalty=hop_penalty,
-                )
+                route = RoutePairs([*current_pools, pool], original_amount_in.token, token_out)
                 trade = TradePairs(
                     route=route,
                     amount_in=original_amount_in,
@@ -223,7 +231,6 @@ class TradePairs(TradePools):
                     amount_in=amount_out,  # Amount in of next recursion is current amount_out
                     token_out=token_out,
                     max_hops=max_hops - 1,
-                    hop_penalty=hop_penalty,
                     max_slippage=max_slippage,
                     current_pools=[*current_pools, pool],
                     original_amount_in=original_amount_in,
@@ -238,7 +245,6 @@ class TradePairs(TradePools):
         token_in: Token,
         amount_out: TokenAmount,
         max_hops: int = 1,
-        hop_penalty: float = None,
         max_slippage: int = None,
     ) -> TradePairs:
         trades = cls.trades_exact_out(
@@ -246,7 +252,6 @@ class TradePairs(TradePools):
             token_in,
             amount_out,
             max_hops,
-            hop_penalty,
             max_slippage,
         )
         if not trades:
@@ -259,7 +264,6 @@ class TradePairs(TradePools):
         token_in: Token,
         amount_out: TokenAmount,
         max_hops: int = 1,
-        hop_penalty: float = None,
         max_slippage: int = None,
         current_pools: list[LiquidityPair] = None,
         original_amount_out: TokenAmount = None,
@@ -272,7 +276,6 @@ class TradePairs(TradePools):
             token_in (Token): Token to be traded in
             amount_out (TokenAmount): Exact amount to be traded out
             max_hops (int): Maximum number of hops
-            hop_penalty (float, optional): Penalty on additional hops
             max_slippage (int): Maximum slippage in basis points
             current_pools (List[LiquidityPair], optional): Used for recursion
             original_amount_out (TokenAmount, optional): Used for recursion
@@ -297,12 +300,7 @@ class TradePairs(TradePools):
                 continue
             if amount_in.token == token_in:
                 # End of recursion
-                route = RoutePairs(
-                    [pool, *current_pools],
-                    token_in,
-                    original_amount_out.token,
-                    hop_penalty,
-                )
+                route = RoutePairs([pool, *current_pools], token_in, original_amount_out.token)
                 trade = TradePairs(
                     route=route,
                     amount_in=TokenAmount(token_in),
@@ -318,7 +316,6 @@ class TradePairs(TradePools):
                     token_in=token_in,
                     amount_out=amount_in,  # Amount out of next recursion is current amount_in
                     max_hops=max_hops - 1,
-                    hop_penalty=hop_penalty,
                     max_slippage=max_slippage,
                     current_pools=[pool, *current_pools],
                     original_amount_out=original_amount_out,

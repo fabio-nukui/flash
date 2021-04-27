@@ -39,7 +39,7 @@ class ValueDefiPair(LiquidityPair, UniV2PairInitMixin):
     def __repr__(self):
         return (
             f'{self.__class__.__name__}'
-            f'({self._reserve_0.symbol}/{self._reserve_1.symbol}: '
+            f'({self._reserves[0].symbol}/{self._reserves[1].symbol}: '
             f'{self.weights[0]}/{self.weights[1]})'
         )
 
@@ -69,9 +69,9 @@ class ValueDefiPair(LiquidityPair, UniV2PairInitMixin):
             weight_out, weight_in = self.weights
         return weight_in, weight_out
 
-    def get_amount_out(self, amount_in: TokenAmount) -> TokenAmount:
+    def _get_amount_out(self, amount_in: TokenAmount) -> TokenAmount:
         if self.weights == (50, 50):
-            return super().get_amount_out(amount_in)
+            return super()._get_amount_out(amount_in)
         reserve_in, reserve_out = self._get_in_out_reserves(amount_in=amount_in)
         weight_in, weight_out = self._get_in_out_weights(amount_in=amount_in)
 
@@ -82,9 +82,9 @@ class ValueDefiPair(LiquidityPair, UniV2PairInitMixin):
         # Use abs(base) to allow for negative values during optimization tests
         return reserve_out * (1 - abs(base) ** power)
 
-    def get_amount_in(self, amount_out: TokenAmount) -> TokenAmount:
+    def _get_amount_in(self, amount_out: TokenAmount) -> TokenAmount:
         if self.weights == (50, 50):
-            return super().get_amount_in(amount_out)
+            return super()._get_amount_in(amount_out)
         reserve_in, reserve_out = self._get_in_out_reserves(amount_out=amount_out)
         weight_in, weight_out = self._get_in_out_weights(amount_out=amount_out)
 

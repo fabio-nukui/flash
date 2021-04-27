@@ -1,17 +1,13 @@
-# Pancakeswap (PCS) x ValueDefiSwap (VDS)
+# Pancakeswap (PCS) x MDex (MDX)
 
 import logging
-from itertools import permutations
-from typing import Iterable
 
 import tools
 import configs
 from arbitrage import ArbitragePairV1, PairManager
 from dex import PancakeswapDex, MDex
 
-
-# Strategy parameters
-MIN_ESTIMATED_PROFIT = 1
+log = logging.getLogger(__name__)
 
 # Based on notebooks/analysis/pcs_mdx_analysis_v1.ipynb (2021-04-23)
 GAS_COST_PCS_FIRST_CHI_ON = 140_575.7
@@ -21,8 +17,6 @@ GAS_INCREASE_WITH_HOP = 0.2908916690437962
 # Created with notebooks/pcs_mdx_v1.ipynb (2021-04-22)
 ADDRESS_DIRECTORY = 'strategy_files/pcs_mdx_v1'
 CONTRACT_DATA_FILEPATH = 'deployed_contracts/PcsMdxV1.json'
-
-log = logging.getLogger(__name__)
 
 
 class PcsMdxPair(ArbitragePairV1):
@@ -44,21 +38,6 @@ class PcsMdxPair(ArbitragePairV1):
         return [t.address for t in self.first_trade.route.tokens]
 
 
-def get_arbitrage_params(
-    pcs_dex: PancakeswapDex,
-    mdx_dex: MDex,
-) -> Iterable[dict]:
-    for dex_0, dex_1 in permutations([pcs_dex, mdx_dex]):
-        for pool in dex_1.pools:
-            for token_first, token_last in permutations(pool.tokens):
-                yield {
-                    'token_first': token_first,
-                    'token_last': token_last,
-                    'first_dex': dex_0,
-                    'second_dex': dex_1,
-                }
-
-
 def run():
     web3 = tools.w3.get_web3(verbose=True)
     dex_protocols = {
@@ -68,10 +47,10 @@ def run():
     dexes = PairManager.load_dex_protocols(ADDRESS_DIRECTORY, dex_protocols, web3)
     contract = tools.transaction.load_contract(CONTRACT_DATA_FILEPATH)
     arbitrage_pairs = [
-        PcsMdxPair(**params, contract=contract, web3=web3)
-        for params in get_arbitrage_params(dexes['pcs_dex'], dexes['mdx_dex'])
+        PcsMdxPair(**params, contract=contract)
+        for params in PairManager.get_v1_pool_arguments(dexes.values(), web3)
     ]
-    pair_manager = PairManager(ADDRESS_DIRECTORY, arbitrage_pairs, web3, MIN_ESTIMATED_PROFIT)
+    pair_manager = PairManager(ADDRESS_DIRECTORY, arbitrage_pairs, web3)
     listener = tools.w3.BlockListener(web3)
     for block_number in listener.wait_for_new_blocks():
         configs.BLOCK = block_number

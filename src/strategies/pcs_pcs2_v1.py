@@ -1,18 +1,16 @@
-# Pancakeswap (PCS) x ValueDefiSwap (VDS)
+# Pancakeswap (PCS) x PancakeswapV2 (PCS2)
 
 import logging
-from itertools import permutations
-from typing import Iterable
-
-from web3 import Web3
 
 import configs
 import tools
 from arbitrage import ArbitragePairV1, PairManager
+from arbitrage.arbitrage_pair_v1 import HighGasPriceStrategy
 from dex import PancakeswapDex, PancakeswapDexV2
 
+log = logging.getLogger(__name__)
+
 # Strategy parameters
-MIN_ESTIMATED_PROFIT = 1
 MAX_HOPS_FIRST_DEX = 1
 
 # Estimations
@@ -29,8 +27,6 @@ CONTRACT_DATA_FILEPATH = 'deployed_contracts/PcsPcs2V1.json'
 
 # Optimization params
 USE_FALLBACK = False
-
-log = logging.getLogger(__name__)
 
 
 class PcsPcs2(ArbitragePairV1):
@@ -52,34 +48,6 @@ class PcsPcs2(ArbitragePairV1):
         return [t.address for t in self.first_trade.route.tokens]
 
 
-def get_arbitrage_params(
-    pcs_dex: PancakeswapDex,
-    pcs2_dex: PancakeswapDexV2,
-    web3: Web3,
-) -> Iterable[dict]:
-    for dex_0, dex_1 in permutations([pcs_dex, pcs2_dex]):
-        for pool in dex_1.pools:
-            for token_first, token_last in permutations(pool.tokens):
-                first_dex_pools = [
-                    p
-                    for p in dex_0.pools
-                    if token_first in p.tokens and token_last in p.tokens
-                ]
-                second_dex_pools = [
-                    p
-                    for p in dex_1.pools
-                    if token_first in p.tokens and token_last in p.tokens
-                ]
-                if not first_dex_pools or not second_dex_pools:
-                    continue
-                yield {
-                    'token_first': token_first,
-                    'token_last': token_last,
-                    'first_dex': dex_0.__class__(pools=first_dex_pools, web3=web3),
-                    'second_dex': dex_1.__class__(pools=second_dex_pools, web3=web3),
-                }
-
-
 def run():
     web3 = tools.w3.get_web3(verbose=True)
     optimization_params = {'use_fallback': USE_FALLBACK}
@@ -91,18 +59,16 @@ def run():
     contract = tools.transaction.load_contract(CONTRACT_DATA_FILEPATH)
     arbitrage_pairs = [
         PcsPcs2(
+            **params,
             contract=contract,
-            web3=web3,
-            max_hops_first_dex=MAX_HOPS_FIRST_DEX,
             gas_share_of_profit=GAS_SHARE_OF_PROFIT,
             max_gas_price=MAX_GAS_PRICE,
-            raise_at_excessive_gas_price=RAISE_AT_EXCESSIVE_GAS_PRICE,
+            high_gas_price_strategy=HighGasPriceStrategy.raise_,
             optimization_params=optimization_params,
-            **params,
         )
-        for params in get_arbitrage_params(dexes['pcs_dex'], dexes['pcs2_dex'], web3)
+        for params in PairManager.get_v1_pool_arguments(dexes.values(), web3, MAX_HOPS_FIRST_DEX)
     ]
-    pair_manager = PairManager(ADDRESS_DIRECTORY, arbitrage_pairs, web3, MIN_ESTIMATED_PROFIT)
+    pair_manager = PairManager(ADDRESS_DIRECTORY, arbitrage_pairs, web3)
     listener = tools.w3.BlockListener(web3)
     for block_number in listener.wait_for_new_blocks():
         configs.BLOCK = block_number
