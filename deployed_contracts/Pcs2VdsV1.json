@@ -23,7 +23,8 @@
     },
     {
       "stateMutability": "payable",
-      "type": "receive"
+      "type": "receive",
+      "payable": true
     },
     {
       "inputs": [
@@ -126,8 +127,8 @@
     "56": {
       "events": {},
       "links": {},
-      "address": "0x209F049f4E7F92b16f1F253c9f1EEBF03cEddC98",
-      "transactionHash": "0x009b4e40a9ef86de49180a23bd0fd5d5f45027f302a332bdfff2965ada4a5cbb"
+      "address": "0xF7423736bfe4fA9cc77C665609Cb5ef3081E5470",
+      "transactionHash": "0x84cca6ac4bc9021559b0d5d2d0937b70d059b4656873873102b4421e75087a77"
     }
   },
   "schemaVersion": "3.3.4"
