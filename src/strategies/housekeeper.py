@@ -14,6 +14,7 @@ import tools
 from arbitrage import PairManager
 from core import LiquidityPair, Token, TokenAmount
 from dex import DexProtocol, MDex, PancakeswapDex, PancakeswapDexV2, ValueDefiSwapDex
+from exceptions import InsufficientLiquidity
 from strategies import pcs2_vds_v1, pcs_mdx_v1, pcs_pcs2_v1, pcs_vds_v1
 
 log = logging.getLogger(__name__)
@@ -81,6 +82,8 @@ def get_price_changes_last_24h(
             try:
                 prices_24h.append(tools.price.get_price_usd(token, pools, web3))
             except BadFunctionCallOutput:  # In case token/pair didn't exist 24h ago
+                prices_24h.append(0)
+            except InsufficientLiquidity:  # Token lost liquidity
                 prices_24h.append(0)
 
     prices_now = []
