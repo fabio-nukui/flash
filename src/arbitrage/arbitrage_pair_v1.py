@@ -242,8 +242,10 @@ class ArbitragePairV1:
 
     def _process_high_gas_price(self, baseline_gas_price: int, gas_price: int) -> tuple[int, float]:
         if self.high_gas_price_strategy == HighGasPriceStrategy.baseline_3x:
+            log.info('High gas price detected, using fallback strategy baseline_3x')
             return 3 * baseline_gas_price, 3.0
         if self.high_gas_price_strategy == HighGasPriceStrategy.recalculate_at_max:
+            log.info('High gas price detected, using fallback strategy recalculate_at_max')
             return self.max_gas_price, self.max_gas_price / baseline_gas_price
         raise Exception(
             f'{self}: Excessive gas price (estimated_gross_result_usd='

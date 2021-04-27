@@ -5,7 +5,6 @@ import logging
 import configs
 import tools
 from arbitrage import ArbitragePairV1, PairManager
-from arbitrage.arbitrage_pair_v1 import HighGasPriceStrategy
 from dex import PancakeswapDex, PancakeswapDexV2
 
 log = logging.getLogger(__name__)
@@ -18,7 +17,7 @@ GAS_COST_PCS1_FIRST_CHI_ON = 140_000
 GAS_COST_PCS2_FIRST_CHI_ON = 140_000
 GAS_INCREASE_WITH_HOP = 0.2908916690437962
 GAS_SHARE_OF_PROFIT = 0.01
-MAX_GAS_PRICE = 11 * 10 ** 9
+MAX_GAS_PRICE = 16 * 10 ** 9
 RAISE_AT_EXCESSIVE_GAS_PRICE = False
 
 # Created with notebooks/pcs_mdx_v1.ipynb (2021-04-22)
@@ -63,7 +62,6 @@ def run():
             contract=contract,
             gas_share_of_profit=GAS_SHARE_OF_PROFIT,
             max_gas_price=MAX_GAS_PRICE,
-            high_gas_price_strategy=HighGasPriceStrategy.raise_,
             optimization_params=optimization_params,
         )
         for params in PairManager.get_v1_pool_arguments(dexes.values(), web3, MAX_HOPS_FIRST_DEX)
