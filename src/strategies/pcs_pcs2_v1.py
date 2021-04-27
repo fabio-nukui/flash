@@ -11,7 +11,7 @@ from dex import PancakeswapDex, PancakeswapDexV2
 log = logging.getLogger(__name__)
 
 # Strategy parameters
-MAX_HOPS_FIRST_DEX = 1
+MAX_HOPS_FIRST_DEX = 2
 
 # Estimations
 GAS_COST_PCS1_FIRST_CHI_ON = 130_000
