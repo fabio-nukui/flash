@@ -61,7 +61,7 @@ def get_share_of_profit(params: dict):
     ]
     route_addresses = [
         pool.address
-        for pool in params['first_route'] + params['second_route']
+        for pool in params['first_route'].pools + params['second_route'].pools
     ]
     if any(addr in route_addresses for addr in reduced_gas_share_pools):
         return 0.01
