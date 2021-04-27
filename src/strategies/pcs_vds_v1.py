@@ -12,6 +12,7 @@ log = logging.getLogger(__name__)
 # Strategy parameters
 MIN_ESTIMATED_PROFIT = 1
 DISABLE_SAMPLE_SIZE = 50
+GAS_SHARE_OF_PROFIT = 0.26
 
 # Gas-related parameters; data from notebooks/pcs_vds_analysis.ipynb (2021-04-20)
 GAS_COST_PCS_FIRST_CHI_ON = 156_279.7
@@ -51,6 +52,22 @@ class PcsVdsPair(ArbitragePairV1):
         ]
 
 
+def get_share_of_profit(params: dict):
+    reduced_gas_share_pools = [
+        '0xfC207DB720851f52545229E406068b205E02B952',  # pcs xBLZD/WBNB
+        '0xb7f68eA4Ec4ea7Ee04E7Ed33B5dA85d7B43057D6',  # vds xBLZD/WBNB
+        '0xBFa35CD43fad8eabbA8D75b1f4bb120DCF409755',  # pcs BLUE/GREEN
+        '0x1ecA68Ca40c0849AFA8C3A88Be0e06e99f701eF1',  # vds BLUE/GREEN
+    ]
+    route_addresses = [
+        pool.address
+        for pool in params['first_route'] + params['second_route']
+    ]
+    if any(addr in route_addresses for addr in reduced_gas_share_pools):
+        return 0.01
+    return GAS_SHARE_OF_PROFIT
+
+
 def run():
     web3 = tools.w3.get_web3(verbose=True)
     dex_protocols = {
@@ -60,7 +77,7 @@ def run():
     dexes = PairManager.load_dex_protocols(ADDRESS_DIRECTORY, dex_protocols, web3)
     contract = tools.transaction.load_contract(CONTRACT_DATA_FILEPATH)
     arbitrage_pairs = [
-        PcsVdsPair(**params, contract=contract)
+        PcsVdsPair(**params, contract=contract, gas_share_of_profit=get_share_of_profit(params))
         for params in PairManager.get_v1_pool_arguments(dexes.values(), web3)
     ]
     pair_manager = PairManager(ADDRESS_DIRECTORY, arbitrage_pairs, web3)
