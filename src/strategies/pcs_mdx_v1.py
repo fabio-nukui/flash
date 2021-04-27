@@ -9,6 +9,9 @@ from dex import PancakeswapDex, MDex
 
 log = logging.getLogger(__name__)
 
+# Strategy params
+GAS_SHARE_OF_PROFIT = 0.27
+
 # Based on notebooks/analysis/pcs_mdx_analysis_v1.ipynb (2021-04-23)
 GAS_COST_PCS_FIRST_CHI_ON = 140_575.7
 GAS_COST_MDX_FIRST_CHI_ON = 138_368.1
@@ -47,7 +50,7 @@ def run():
     dexes = PairManager.load_dex_protocols(ADDRESS_DIRECTORY, dex_protocols, web3)
     contract = tools.transaction.load_contract(CONTRACT_DATA_FILEPATH)
     arbitrage_pairs = [
-        PcsMdxPair(**params, contract=contract)
+        PcsMdxPair(**params, contract=contract, gas_share_of_profit=GAS_SHARE_OF_PROFIT)
         for params in PairManager.get_v1_pool_arguments(dexes.values(), web3)
     ]
     pair_manager = PairManager(ADDRESS_DIRECTORY, arbitrage_pairs, web3)
