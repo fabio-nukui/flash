@@ -48,6 +48,20 @@ class Pcs2VdsPair(ArbitragePairV1):
         ]
 
 
+def get_share_of_profit(params: dict):
+    reduced_gas_share_pools = [
+        '0xD9002B7E7d63A71F04a16840DA028e1cd534889D',  # pcs2 xBLZD/WBNB
+        '0xb7f68eA4Ec4ea7Ee04E7Ed33B5dA85d7B43057D6',  # vds xBLZD/WBNB
+    ]
+    route_addresses = [
+        pool.address
+        for pool in params['first_route'].pools + params['second_route'].pools
+    ]
+    if any(addr in route_addresses for addr in reduced_gas_share_pools):
+        return 0.01
+    return GAS_SHARE_OF_PROFIT
+
+
 def run():
     web3 = tools.w3.get_web3(verbose=True)
     dex_protocols = {
@@ -57,7 +71,7 @@ def run():
     dexes = PairManager.load_dex_protocols(ADDRESS_DIRECTORY, dex_protocols, web3)
     contract = tools.transaction.load_contract(CONTRACT_DATA_FILEPATH)
     arbitrage_pairs = [
-        Pcs2VdsPair(**params, contract=contract, gas_share_of_profit=GAS_SHARE_OF_PROFIT)
+        Pcs2VdsPair(**params, contract=contract, gas_share_of_profit=get_share_of_profit(params))
         for params in PairManager.get_v1_pool_arguments(dexes.values(), web3)
     ]
     pair_manager = PairManager(ADDRESS_DIRECTORY, arbitrage_pairs, web3)
