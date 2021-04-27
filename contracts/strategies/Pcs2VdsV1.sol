@@ -19,7 +19,7 @@ import "../interfaces/valuedefiswap/IValueLiquidFactory.sol";
 contract Pcs2VdsV1 is IPancakeCallee, Withdrawable, CHIBurner {
     address constant pcsFactory = 0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73;
     bytes32 constant cakeInitCodeHash = hex'00fb7f630766e6a796048ea87d01acd3068e8ff67d078148a3fa3f4a84f69bd5';
-    uint32 constant pcsFee = 20;
+    uint32 constant pcsFee = 25;
     address constant vdsFactory = 0x1B8E12F839BD4e73A47adDF76cF7F0097d74c14C;
     address constant vdsFormula = 0x45f24BaEef268BB6d63AEe5129015d69702BCDfa;
 
