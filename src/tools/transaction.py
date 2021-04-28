@@ -25,6 +25,7 @@ ACCOUNT_TX_COUNTER: TransactionCounter = None
 TX_COUNTER_POLL_DELAY = 2.0
 TX_WAIT_POLL_INTERVAL = 0.01
 NONCE_COUNTER_POLL_INTERVAL = 0.1
+MAX_N_BLOCKS_NONCE_COUNTER_STAY_AHEAD = 3
 
 CONNECTION_KEEP_ALIVE_TIME_INTERVAL = 30
 MAX_BLOCKS_WAIT_RECEIPT = 20
@@ -83,7 +84,7 @@ class TransactionCounter:
         address: str,
         web3: Web3,
         poll_interval: float = NONCE_COUNTER_POLL_INTERVAL,
-        poll_delay: float = TX_COUNTER_POLL_DELAY
+        poll_delay: float = TX_COUNTER_POLL_DELAY,
     ):
         self.address = address
         self.web3 = web3
@@ -92,6 +93,7 @@ class TransactionCounter:
 
         self.lock = Lock()
         self._count = web3.eth.get_transaction_count(address)
+        self._n_blocks_stay_ahead = 0
 
         self._tread = Thread(target=self._keep_count_updated, daemon=True)
         self._tread.start()
@@ -107,9 +109,16 @@ class TransactionCounter:
                 for _ in listener.wait_for_new_blocks():
                     time.sleep(self.poll_delay)
                     count = self.web3.eth.get_transaction_count(self.address)
-                    if count != self._count:
+                    if count > self._count:
                         with self.lock:
                             self._count = count
+                    elif self.count > count:
+                        self._n_blocks_stay_ahead += 1
+                        if self._n_blocks_stay_ahead > MAX_N_BLOCKS_NONCE_COUNTER_STAY_AHEAD:
+                            self._n_blocks_stay_ahead = 0
+                            with self.lock:
+                                self._count = count
+
             except Exception:
                 log.debug('TransactionCounter listener failed, restarting in 1 sec')
                 time.sleep(1)
