@@ -1,3 +1,4 @@
+import json
 import logging
 from datetime import datetime
 from enum import Enum
@@ -6,6 +7,7 @@ from web3 import Web3
 from web3.contract import Contract, ContractFunction
 from web3.exceptions import TransactionNotFound
 
+import configs
 import tools
 from core import LiquidityPool, Route, RoutePairs, Token, TokenAmount, TradePairs, TradePools
 from core.base import TradeType
@@ -29,6 +31,12 @@ USE_FALLBACK = True
 # Gas parameters
 DEFAULT_GAS_SHARE_OF_PROFIT = 0.26
 MAX_GAS_MULTIPLIER = 3.5
+
+PREFERED_TOKENS_FILE = 'addresses/preferred_tokens.json'
+TOKEN_MULTIPLIERS = {
+    Token(configs.CHAIN_ID, **data['token']): data['multiplier']
+    for data in json.load(open(PREFERED_TOKENS_FILE))[str(configs.CHAIN_ID)]
+}
 
 
 class HighGasPriceStrategy(Enum):
@@ -92,6 +100,7 @@ class ArbitragePairV1:
         self.opt_max_iter = optimization_params.get('max_iter', MAX_ITERATIONS)
         self.opt_use_fallback = optimization_params.get('use_fallback', USE_FALLBACK)
 
+        self.result_multiplier: float = TOKEN_MULTIPLIERS.get(self.token_first, 1.0)
         self.flag_disabled = False
         self.reference_price_pools = [
             pool
@@ -149,6 +158,10 @@ class ArbitragePairV1:
     @property
     def tokens(self) -> list[Token]:
         return list(set(self.first_route.tokens + self.second_route.tokens))
+
+    @property
+    def adjusted_profit(self) -> float:
+        return self.estimated_net_result_usd * self.result_multiplier
 
     def _estimate_result_int(self, amount_last_int: int) -> int:
         amount_last = TokenAmount(self.token_last, amount_last_int)

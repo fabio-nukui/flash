@@ -339,7 +339,7 @@ class PairManager:
                 pairs.append(pair)
         if not pairs:
             return
-        best_pair = max(pairs, key=lambda x: x.arb.estimated_net_result_usd)
+        best_pair = max(pairs, key=lambda x: x.arb.adjusted_profitz)
         log.info(f'Arbitrage opportunity found on block {block_number}')
         if not best_pair.test_pools():
             return
