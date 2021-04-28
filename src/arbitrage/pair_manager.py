@@ -330,6 +330,7 @@ class PairManager:
         self._update_and_execute(block_number, next_round_pairs)
         self._update_arb_pairs()
         self._update_pools()
+        log.info(f'{self}: Completed run on {block_number=}')
 
     def _update_and_execute(self, block_number: int, next_round_pairs: list[ManagedPair]) -> bool:
         pairs = []
