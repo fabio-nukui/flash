@@ -45,6 +45,13 @@ with open('addresses/strategies/housekeeper.json') as f:
     STABLE_RESERVE_TOKEN_DATA = addresses['stable_reserve_token']
     CHI_TOKEN_DATA = addresses['chi_token']
 
+PREFERED_TOKENS_FILE = 'addresses/preferred_tokens.json'
+TOKEN_MULTIPLIER_WEIGHT = 0.2
+TOKEN_MULTIPLIERS = {
+    Token(configs.CHAIN_ID, **data['token']): 1 + data['weight'] / TOKEN_MULTIPLIER_WEIGHT
+    for data in json.load(open(PREFERED_TOKENS_FILE))[str(configs.CHAIN_ID)]
+}
+
 
 def get_address_balances(address: str, tokens: list[Token]) -> list[TokenAmount]:
     amounts = []
@@ -117,7 +124,9 @@ class Strategy:
         amounts_withdraw = []
         for (token_amount, native_amount), price_change in zip(balances, price_change_24h):
             price_impact_on_withdraw = 1 + price_change * PRICE_CHANGE_WITHDRAW_IMPACT
-            if native_amount > max(MIN_ETHERS_WITHDRAW * price_impact_on_withdraw, 0):
+            token_multiplier = TOKEN_MULTIPLIERS.get(token_amount.token, 1.0)
+            min_withdraw = MIN_ETHERS_WITHDRAW * price_impact_on_withdraw * token_multiplier
+            if native_amount > min_withdraw * max(min_withdraw, 0):
                 amounts_withdraw.append(token_amount)
         if not amounts_withdraw:
             log.info(f'{self}: No tokens to withdraw')

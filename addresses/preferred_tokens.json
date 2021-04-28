@@ -1,7 +1,7 @@
 {
     "56": [
         {
-            "multiplier": 1.02,
+            "weight": 2,
             "token": {
                 "address": "0x3EE2200Efb3400fAbB9AacF31297cBdD1d435D47",
                 "symbol": "ADA",
@@ -9,7 +9,7 @@
             }
         },
         {
-            "multiplier": 1.02,
+            "weight": 2,
             "token": {
                 "address": "0x0Eb3a705fc54725037CC9e008bDede697f62F335",
                 "symbol": "ATOM",
@@ -17,7 +17,7 @@
             }
         },
         {
-            "multiplier": 1.02,
+            "weight": 2,
             "token": {
                 "address": "0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c",
                 "symbol": "BTCB",
@@ -25,7 +25,7 @@
             }
         },
         {
-            "multiplier": 1.05,
+            "weight": 5,
             "token": {
                 "address": "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56",
                 "symbol": "BUSD",
@@ -33,7 +33,7 @@
             }
         },
         {
-            "multiplier": 1.04,
+            "weight": 4,
             "token": {
                 "address": "0x1AF3F329e8BE154074D8769D1FFa4eE058B1DBc3",
                 "symbol": "DAI",
@@ -41,7 +41,7 @@
             }
         },
         {
-            "multiplier": 1.02,
+            "weight": 2,
             "token": {
                 "address": "0x7083609fCE4d1d8Dc0C979AAb8c869Ea2C873402",
                 "symbol": "DOT",
@@ -49,7 +49,7 @@
             }
         },
         {
-            "multiplier": 1.02,
+            "weight": 2,
             "token": {
                 "address": "0x2170Ed0880ac9A755fd29B2688956BD959F933F8",
                 "symbol": "ETH",
@@ -57,7 +57,7 @@
             }
         },
         {
-            "multiplier": 1.02,
+            "weight": 2,
             "token": {
                 "address": "0xF8A0BF9cF54Bb92F17374d9e9A321E6a111a51bD",
                 "symbol": "LINK",
@@ -65,7 +65,7 @@
             }
         },
         {
-            "multiplier": 1.04,
+            "weight": 4,
             "token": {
                 "address": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
                 "symbol": "USDC",
@@ -73,7 +73,7 @@
             }
         },
         {
-            "multiplier": 1.04,
+            "weight": 4,
             "token": {
                 "address": "0x55d398326f99059fF775485246999027B3197955",
                 "symbol": "USDT",
@@ -81,7 +81,7 @@
             }
         },
         {
-            "multiplier": 1.04,
+            "weight": 4,
             "token": {
                 "address": "0x23396cF899Ca06c4472205fC903bDB4de249D6fC",
                 "symbol": "UST",
@@ -89,7 +89,7 @@
             }
         },
         {
-            "multiplier": 1.05,
+            "weight": 5,
             "token": {
                 "address": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
                 "symbol": "WBNB",

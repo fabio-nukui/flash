@@ -33,8 +33,9 @@ DEFAULT_GAS_SHARE_OF_PROFIT = 0.26
 MAX_GAS_MULTIPLIER = 3.5
 
 PREFERED_TOKENS_FILE = 'addresses/preferred_tokens.json'
+TOKEN_MULTIPLIER_WEIGHT = 0.01
 TOKEN_MULTIPLIERS = {
-    Token(configs.CHAIN_ID, **data['token']): data['multiplier']
+    Token(configs.CHAIN_ID, **data['token']): 1 + data['weight'] * TOKEN_MULTIPLIER_WEIGHT
     for data in json.load(open(PREFERED_TOKENS_FILE))[str(configs.CHAIN_ID)]
 }
 
