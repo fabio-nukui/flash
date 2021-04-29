@@ -251,7 +251,7 @@ class Trade:
             self.amount_in = self._get_amount_in()
             self.max_amount_in = self.amount_in * (10_000 + self.max_slippage) // 10_000
         else:
-            self.trade_type = TradeType.exact if trade_type is not None else TradeType
+            self.trade_type = TradeType.exact if trade_type is None else trade_type
             self.amount_in = amount_in
             self.max_amount_in = amount_in
             self.amount_out = amount_out
