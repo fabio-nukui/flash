@@ -22,10 +22,9 @@ PUBLIC_ENDPOINTS_FILEPATH = 'addresses/public_rpc_endpoints.json'
 LIST_BG_WEB3: list[BackgroundWeb3] = []
 ACCOUNT = Account.from_key(configs.PRIVATE_KEY)
 ACCOUNT_TX_COUNTER: TransactionCounter = None
-TX_COUNTER_POLL_DELAY = 2.0
 TX_WAIT_POLL_INTERVAL = 0.01
-NONCE_COUNTER_POLL_INTERVAL = 0.1
-MAX_N_BLOCKS_NONCE_COUNTER_STAY_AHEAD = 3
+TX_COUNTER_POLL_INTERVAL = 1.0
+MAX_SECONDS_TX_COUNTER_STAY_AHEAD = 30
 
 CONNECTION_KEEP_ALIVE_TIME_INTERVAL = 30
 MAX_BLOCKS_WAIT_RECEIPT = 20
@@ -83,17 +82,16 @@ class TransactionCounter:
         self,
         address: str,
         web3: Web3,
-        poll_interval: float = NONCE_COUNTER_POLL_INTERVAL,
-        poll_delay: float = TX_COUNTER_POLL_DELAY,
+        poll_interval: float = TX_COUNTER_POLL_INTERVAL,
     ):
         self.address = address
         self.web3 = web3
         self.poll_interval = poll_interval
-        self.poll_delay = poll_delay
+        self.max_checks_stay_ahead = int(MAX_SECONDS_TX_COUNTER_STAY_AHEAD / poll_interval)
 
         self.lock = Lock()
         self._count = web3.eth.get_transaction_count(address)
-        self._n_blocks_stay_ahead = 0
+        self._n_checks_stay = 0
 
         self._tread = Thread(target=self._keep_count_updated, daemon=True)
         self._tread.start()
@@ -101,23 +99,19 @@ class TransactionCounter:
     def _keep_count_updated(self):
         while True:
             try:
-                listener = w3.BlockListener(
-                    self.web3,
-                    verbose=False,
-                    poll_interval=self.poll_interval,
-                )
-                for _ in listener.wait_for_new_blocks():
-                    time.sleep(self.poll_delay)
-                    count = self.web3.eth.get_transaction_count(self.address)
-                    if count > self._count:
+                time.sleep(self.poll_interval)
+                count = self.web3.eth.get_transaction_count(self.address)
+                if self.count > count:
+                    self._n_checks_stay += 1
+                    if self._n_checks_stay > self.max_checks_stay_ahead:
+                        self._n_checks_stay = 0
                         with self.lock:
                             self._count = count
-                    elif self.count > count:
-                        self._n_blocks_stay_ahead += 1
-                        if self._n_blocks_stay_ahead > MAX_N_BLOCKS_NONCE_COUNTER_STAY_AHEAD:
-                            self._n_blocks_stay_ahead = 0
-                            with self.lock:
-                                self._count = count
+                else:
+                    self._n_checks_stay = 0
+                    if self._count < count:
+                        with self.lock:
+                            self._count = count
 
             except Exception:
                 log.debug('TransactionCounter listener failed, restarting in 1 sec')
