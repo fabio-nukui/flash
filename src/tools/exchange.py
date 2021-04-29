@@ -83,7 +83,12 @@ def exchange_1inch(
         'gasPrice': gas_price,
         'allowPartialFill': True,
     }
-    res = http.get(f'{_1INCH_API_URL}/swap', params=query_params, timeout=TIMEOUT_REQUESTS)
+    res = http.get(
+        f'{_1INCH_API_URL}/swap',
+        n_tries=6,
+        params=query_params,
+        timeout=TIMEOUT_REQUESTS
+    )
     tx = res.json()['tx']
     tx['gas'] = int(tx['gas'] * 1.25)
     tx['value'] = int(tx['value'])
