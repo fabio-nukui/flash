@@ -48,7 +48,7 @@ with open('addresses/strategies/housekeeper.json') as f:
 PREFERED_TOKENS_FILE = 'addresses/preferred_tokens.json'
 TOKEN_MULTIPLIER_WEIGHT = 0.2
 TOKEN_MULTIPLIERS = {
-    Token(configs.CHAIN_ID, **data['token']): 1 + data['weight'] / TOKEN_MULTIPLIER_WEIGHT
+    Token(configs.CHAIN_ID, **data['token']): 1 + data['weight'] * TOKEN_MULTIPLIER_WEIGHT
     for data in json.load(open(PREFERED_TOKENS_FILE))[str(configs.CHAIN_ID)]
 }
 
