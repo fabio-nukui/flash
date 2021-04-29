@@ -27,11 +27,11 @@ def from_uri(endpoint_uri: str, verbose: bool = True) -> Web3:
     return Web3(provider, middlewares)
 
 
-def get_web3(verbose: bool = False, force_local: bool = configs.FORCE_LOCAL_RPC_CONNECTION) -> Web3:
-    if force_local:
-        web3_remote = from_uri('wss://dummy.com', verbose)
-    else:
+def get_web3(verbose: bool = False, use_remote: bool = configs.USE_REMOTE_RCP_CONNECTION) -> Web3:
+    if use_remote:
         web3_remote = from_uri(configs.RPC_REMOTE_URI, verbose)
+    else:
+        web3_remote = from_uri('wss://dummy.com', verbose)
     web3_local = from_uri(configs.RPC_LOCAL_URI, verbose)
 
     try:

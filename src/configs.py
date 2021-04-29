@@ -9,7 +9,7 @@ RPC_LOCAL_URI = os.getenv('RPC_LOCAL_URI', 'geth.ipc')
 CHAIN_ID = int(os.environ['CHAIN_ID'])
 POA_CHAIN = os.getenv('POA_CHAIN') == 'True'
 MULTI_BROADCAST_TRANSACTIONS = os.getenv('MULTI_BROADCAST_TRANSACTIONS') == 'True'
-FORCE_LOCAL_RPC_CONNECTION = os.getenv('FORCE_LOCAL_RPC_CONNECTION') == 'True'
+USE_REMOTE_RCP_CONNECTION = os.getenv('USE_REMOTE_RCP_CONNECTION') == 'True'
 
 # Wallet
 PRIVATE_KEY = os.environ['PRIVATE_KEY']

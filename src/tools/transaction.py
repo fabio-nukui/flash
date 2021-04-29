@@ -257,10 +257,10 @@ def wait_tx_finish(
 
 def _get_providers() -> list[BackgroundWeb3]:
     log.info(f'{configs.MULTI_BROADCAST_TRANSACTIONS=}')
-    if configs.FORCE_LOCAL_RPC_CONNECTION:
-        endpoints = [configs.RPC_LOCAL_URI]
-    else:
+    if configs.USE_REMOTE_RCP_CONNECTION:
         endpoints = [configs.RPC_LOCAL_URI, configs.RPC_REMOTE_URI]
+    else:
+        endpoints = [configs.RPC_LOCAL_URI]
     if configs.MULTI_BROADCAST_TRANSACTIONS:
         public_endpoints = json.load(open(PUBLIC_ENDPOINTS_FILEPATH))[str(configs.CHAIN_ID)]
         endpoints.extend(public_endpoints)
