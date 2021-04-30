@@ -258,7 +258,7 @@ def convert_amounts(tokens: Iterable[Token], stable_reserve_token: Token, web3: 
 
 
 def get_strategy(strategy_name: str, web3: Web3):
-    strategy = importlib.import_module(strategy_name)
+    strategy = importlib.import_module(f'strategies.{strategy_name}')
     dexes = PairManager.load_dex_protocols(strategy.ADDRESS_DIRECTORY, strategy.DEX_PROTOCOLS, web3)
     contract = tools.transaction.load_contract(strategy.CONTRACT_DATA_FILEPATH)
     return Strategy(contract, dexes, strategy_name)
