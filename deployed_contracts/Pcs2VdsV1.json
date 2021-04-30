@@ -23,8 +23,7 @@
     },
     {
       "stateMutability": "payable",
-      "type": "receive",
-      "payable": true
+      "type": "receive"
     },
     {
       "inputs": [
@@ -48,7 +47,7 @@
       "inputs": [
         {
           "internalType": "address",
-          "name": "sender",
+          "name": "",
           "type": "address"
         },
         {
@@ -94,7 +93,7 @@
       "inputs": [
         {
           "internalType": "address",
-          "name": "sender",
+          "name": "",
           "type": "address"
         },
         {

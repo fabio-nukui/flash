@@ -52,7 +52,7 @@
       "inputs": [
         {
           "internalType": "address",
-          "name": "sender",
+          "name": "",
           "type": "address"
         },
         {
@@ -103,7 +103,7 @@
       "inputs": [
         {
           "internalType": "address",
-          "name": "sender",
+          "name": "",
           "type": "address"
         },
         {

@@ -1,5 +1,5 @@
 {
-  "contractName": "PcsMdxV1",
+  "contractName": "PcsPcs2V2",
   "abi": [
     {
       "inputs": [],
@@ -23,60 +23,15 @@
     },
     {
       "stateMutability": "payable",
-      "type": "receive"
+      "type": "receive",
+      "payable": true
     },
     {
       "inputs": [
-        {
-          "internalType": "address[]",
-          "name": "path",
-          "type": "address[]"
-        },
-        {
-          "internalType": "uint256",
-          "name": "amountLast",
-          "type": "uint256"
-        }
-      ],
-      "name": "swapMdxFirst",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
-        },
-        {
-          "internalType": "uint256",
-          "name": "amount0",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "amount1",
-          "type": "uint256"
-        },
         {
           "internalType": "bytes",
           "name": "data",
           "type": "bytes"
-        }
-      ],
-      "name": "swapV2Call",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address[]",
-          "name": "path",
-          "type": "address[]"
         },
         {
           "internalType": "uint256",
@@ -84,7 +39,31 @@
           "type": "uint256"
         }
       ],
-      "name": "swapPcsFirst",
+      "name": "swap_b2I",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "success",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes",
+          "name": "data",
+          "type": "bytes"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amountLast",
+          "type": "uint256"
+        }
+      ],
+      "name": "test",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -126,8 +105,8 @@
     "56": {
       "events": {},
       "links": {},
-      "address": "0x2D8EfcB6af3fd884ea10De8be6765825bb43c6ee",
-      "transactionHash": "0xc8b2d40b36981e601c2d5d9f14871800121f0f0866d517a198c3bdaab380927e"
+      "address": "0x2c7d100a6c6b180229B5bbDCD11611381D17BB02",
+      "transactionHash": "0x7ffd2c9a215248b2c63624f2f18d00b7aafeb0c0e1a4ae25edf20179346e6fb3"
     }
   },
   "schemaVersion": "3.3.4"
