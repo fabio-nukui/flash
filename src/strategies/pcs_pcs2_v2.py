@@ -26,7 +26,7 @@ MAX_GAS_MULTIPLIER = 7
 
 # Created with notebooks/pcs_mdx_v1.ipynb (2021-04-22)
 ADDRESS_DIRECTORY = 'strategy_files/pcs_pcs2_v1'
-CONTRACT_DATA_FILEPATH = 'deployed_contracts/PcsPcs2V2.json'
+CONTRACT_DATA_FILEPATH = 'deployed_contracts/PcsPcs2V2B.json'
 
 # Optimization params
 USE_FALLBACK = False
