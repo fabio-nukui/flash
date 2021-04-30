@@ -1,5 +1,5 @@
 {
-  "contractName": "PcsPcs2V2",
+  "contractName": "PcsPcs2V2B",
   "abi": [
     {
       "inputs": [],
@@ -23,7 +23,8 @@
     },
     {
       "stateMutability": "payable",
-      "type": "receive"
+      "type": "receive",
+      "payable": true
     },
     {
       "inputs": [
@@ -39,30 +40,6 @@
         }
       ],
       "name": "swap_b2I",
-      "outputs": [
-        {
-          "internalType": "bool",
-          "name": "success",
-          "type": "bool"
-        }
-      ],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "bytes",
-          "name": "data",
-          "type": "bytes"
-        },
-        {
-          "internalType": "uint256",
-          "name": "amountLast",
-          "type": "uint256"
-        }
-      ],
-      "name": "test",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -104,8 +81,8 @@
     "56": {
       "events": {},
       "links": {},
-      "address": "0x2c7d100a6c6b180229B5bbDCD11611381D17BB02",
-      "transactionHash": "0x7ffd2c9a215248b2c63624f2f18d00b7aafeb0c0e1a4ae25edf20179346e6fb3"
+      "address": "0x4cf1011a3Ce308D66D26dD56eC214d8854a9FAe1",
+      "transactionHash": "0xb44d6ce2f38a219080bb29104d7df79288e92fefef89bb63b2b4ee95a375d09b"
     }
   },
   "schemaVersion": "3.3.4"
