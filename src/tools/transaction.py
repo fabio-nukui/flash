@@ -56,8 +56,9 @@ class BackgroundWeb3:
             self.web3.eth.send_raw_transaction(tx.rawTransaction)
             log.debug(f'Sent transaction using {self.uri}')
         except Exception:
-            log.info(f'{self.uri!r} failed to send transaction')
-            log.debug(traceback.format_exc())
+            if self.uri == configs.RPC_LOCAL_URI:
+                log.warning(f'{self.uri!r} failed to send transaction')
+                log.debug(traceback.format_exc())
 
     def _keep_alive(self):
         log.debug(f'Keep-alive: {self.uri}')
@@ -73,8 +74,9 @@ class BackgroundWeb3:
                 if self.verbose:
                     log.debug(f'Connection {self.uri} on {block_number=}')
             except Exception:
-                log.debug(f'{self.uri!r} failed to send last block')
-                log.debug(traceback.format_exc())
+                if self.uri == configs.RPC_LOCAL_URI:
+                    log.warning(f'{self.uri!r} failed to send last block')
+                    log.warning(traceback.format_exc())
 
 
 class TransactionCounter:
