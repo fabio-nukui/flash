@@ -10,45 +10,52 @@ import "../libraries/AddressArrayEncoder.sol";
 
 import "../interfaces/common/IERC20.sol";
 import {PancakeswapLibrary} from "../libraries/uniswap_v2/PancakeswapLibrary.sol";
-import {MdexLibrary} from "../libraries/uniswap_v2/MdexLibrary.sol";
 
 
-contract PcsPcs2V1 is Withdrawable, CHIBurner {
-    address constant pcs1Factory = 0xBCfCcbde45cE874adCB698cC183deBcF17952812;
-    address constant pcs2Factory = 0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73;
+contract PcsPcs2V2 is Withdrawable, CHIBurner {
     bytes32 constant initCodeHash1 = hex'd0d4c4cd0848c93cb4fd1f498d7013ee6bfb25783ea21593d5834f5d250ece66';
     bytes32 constant initCodeHash2 = hex'00fb7f630766e6a796048ea87d01acd3068e8ff67d078148a3fa3f4a84f69bd5';
     uint32 constant pcs1Fee = 20;
     uint32 constant pcs2Fee = 25;
-    uint8 constant PCS_1_FIRST = 0;
-    uint8 constant PCS_2_FIRST = 1;
+    address constant pcs1Factory = 0xBCfCcbde45cE874adCB698cC183deBcF17952812;
+    address constant pcs2Factory = 0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73;
+    uint8 constant PCS_1 = 0;
+    uint8 constant PCS_2 = 1;
 
-    // PcsV1 first
-    function swapPcs1First(
-        address[] calldata path,
+    function swap_b2I( // 156040
+        bytes calldata data,
         uint256 amountLast
-    ) external discountCHIOn restricted {
-        address pcs1Pair = PancakeswapLibrary.pairFor(pcs1Factory, initCodeHash1, path[path.length - 2], path[path.length - 1]);
-        (address token0, ) = PancakeswapLibrary.sortTokens(path[path.length - 2], path[path.length - 1]);
+    ) external discountCHIOn restricted returns(bool success) {
+        (uint8 firstDex,, address[] memory path) = AddressArrayEncoder.decodeWithHeader2(data);
+        address pcs1Pair;
+        address token0;
+        {  // Scope to avoid stack too deep error
+        (address firstFactory, bytes32 firstHash) = firstDex == PCS_1 ? (pcs1Factory, initCodeHash1) : (pcs2Factory, initCodeHash2);
+        pcs1Pair = PancakeswapLibrary.pairFor(firstFactory, firstHash, path[path.length - 2], path[path.length - 1]);
+        (token0, ) = PancakeswapLibrary.sortTokens(path[path.length - 2], path[path.length - 1]);
+        }
         uint256 amount0Out = token0 == path[path.length - 1] ? amountLast : 0;
         uint256 amount1Out = token0 == path[path.length - 1] ? 0 : amountLast;
-
-        bytes memory data = AddressArrayEncoder.encodeWithHeader(PCS_1_FIRST, path);
-        IUniswapV2Pair(pcs1Pair).swap(amount0Out, amount1Out, address(this), data);
+        (success,) = pcs1Pair.call(
+            abi.encodeWithSelector(IUniswapV2Pair(pcs1Pair).swap.selector, amount0Out, amount1Out, address(this), data)
+        );
     }
 
-    // PcsV2 first
-    function swapPcs2First(
-        address[] calldata path,
+    function test(
+        bytes calldata data,
         uint256 amountLast
     ) external discountCHIOn restricted {
-        address pcs2Pair = PancakeswapLibrary.pairFor(pcs2Factory, initCodeHash2, path[path.length - 2], path[path.length - 1]);
-        (address token0, ) = PancakeswapLibrary.sortTokens(path[path.length - 2], path[path.length - 1]);
+        (uint8 firstDex,, address[] memory path) = AddressArrayEncoder.decodeWithHeader2(data);
+        address pcs1Pair;
+        address token0;
+        {  // Scope to avoid stack too deep error
+        (address firstFactory, bytes32 firstHash) = firstDex == PCS_1 ? (pcs1Factory, initCodeHash1) : (pcs2Factory, initCodeHash2);
+        pcs1Pair = PancakeswapLibrary.pairFor(firstFactory, firstHash, path[path.length - 2], path[path.length - 1]);
+        (token0, ) = PancakeswapLibrary.sortTokens(path[path.length - 2], path[path.length - 1]);
+        }
         uint256 amount0Out = token0 == path[path.length - 1] ? amountLast : 0;
         uint256 amount1Out = token0 == path[path.length - 1] ? 0 : amountLast;
-
-        bytes memory data = AddressArrayEncoder.encodeWithHeader(PCS_2_FIRST, path);
-        IUniswapV2Pair(pcs2Pair).swap(amount0Out, amount1Out, address(this), data);
+        IUniswapV2Pair(pcs1Pair).swap(amount0Out, amount1Out, address(this), data);
     }
 
     function pancakeCall(
@@ -57,15 +64,20 @@ contract PcsPcs2V1 is Withdrawable, CHIBurner {
         uint256 amount1,
         bytes calldata data
     ) external {
-        (uint8 mode, address[] memory path) = AddressArrayEncoder.decodeWithHeader(data);
+        (uint8 firstDex, uint8 secondDex, address[] memory path) = AddressArrayEncoder.decodeWithHeader2(data);
         uint256 amountSendPair = amount0 == 0 ? amount1 : amount0;
 
-        (address firstFactory, address secondFactory) = mode == PCS_1_FIRST ? (pcs1Factory, pcs2Factory) : (pcs2Factory, pcs1Factory);
-        (bytes32 firstHash, bytes32 secondHash) = mode == PCS_1_FIRST ? (initCodeHash1, initCodeHash2) : (initCodeHash2, initCodeHash1);
-        (uint32 firstFee, uint32 secondFee) = mode == PCS_1_FIRST ? (pcs1Fee, pcs2Fee) : (pcs2Fee, pcs1Fee);
+        (address firstFactory, bytes32 firstHash, uint32 firstFee) =
+            firstDex == PCS_1
+                ? (pcs1Factory, initCodeHash1, pcs1Fee)
+                : (pcs2Factory, initCodeHash2, pcs2Fee);
+        (address secondFactory, bytes32 secondHash, uint32 secondFee) =
+            secondDex == PCS_1
+                ? (pcs1Factory, initCodeHash1, pcs1Fee)
+                : (pcs2Factory, initCodeHash2, pcs2Fee);
 
         uint256[] memory amounts = PancakeswapLibrary.getAmountsIn(firstFactory, firstHash, amountSendPair, path, firstFee);
-        exchangePcs(secondFactory, secondHash, secondFee, path[path.length - 1], path[0], amountSendPair, amounts[0]);
+        exchangePcs(secondFactory, secondHash, secondFee, path[path.length - 1], path[0], amountSendPair, 0);
 
         address firstPair = PancakeswapLibrary.pairFor(firstFactory, firstHash, path[0], path[1]);
         TransferHelper.safeTransfer(path[0], firstPair, amounts[0]);
@@ -86,7 +98,7 @@ contract PcsPcs2V1 is Withdrawable, CHIBurner {
 
         (uint reserveIn, uint reserveOut) = PancakeswapLibrary.getPairReserves(pairAddress, tokenIn, tokenOut);
         uint256 amountOut = PancakeswapLibrary.getAmountOut(amountIn, reserveIn, reserveOut, fee);
-        require(amountOut > amountOutMin, 'PCS low return');
+        require(amountOut > amountOutMin, 'LR');
         TransferHelper.safeApproveAndTransfer(tokenIn, pairAddress, amountIn);
 
         (uint256 amount0Out, uint256 amount1Out) = tokenIn == pair.token0() ? (uint(0), amountOut) : (amountOut, uint(0));

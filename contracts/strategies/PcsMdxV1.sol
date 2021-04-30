@@ -38,7 +38,7 @@ contract PcsMdxV1 is Withdrawable, CHIBurner {
     }
 
     function swapV2Call(
-        address sender,
+        address,
         uint256 amount0,
         uint256 amount1,
         bytes calldata data
@@ -103,7 +103,7 @@ contract PcsMdxV1 is Withdrawable, CHIBurner {
     }
 
     function pancakeCall(
-        address sender,
+        address,
         uint256 amount0,
         uint256 amount1,
         bytes calldata data

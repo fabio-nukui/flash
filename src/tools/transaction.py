@@ -189,7 +189,7 @@ def dry_run_contract_tx(
     gas_price_: int = None,
     account_: Account = None,
     **kwargs,
-):
+) -> str:
     web3 = func.web3
     account = ACCOUNT if account_ is None else account_
     gas_price_ = price.get_gas_price() if gas_price_ is None else gas_price_
@@ -201,7 +201,7 @@ def dry_run_contract_tx(
         'nonce': get_nonce(account.address, web3, dry_run=True),
         'gasPrice': gas_price_,
     })
-    web3.eth.call(tx)
+    return web3.eth.call(tx).hex()
 
 
 def sign_and_send_contract_tx(

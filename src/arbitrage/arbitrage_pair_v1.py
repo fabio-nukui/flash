@@ -149,8 +149,11 @@ class ArbitragePairV1:
     def _get_contract_function(self) -> ContractFunction:
         raise NotImplementedError
 
-    def _get_path_argument(self) -> list[str]:
+    def _get_function_arguments(self) -> dict:
         raise NotImplementedError
+
+    def _get_contract_test_function(self):
+        return self._get_contract_function()
 
     @property
     def pools(self) -> list[LiquidityPool]:
@@ -277,17 +280,17 @@ class ArbitragePairV1:
             f'{self.estimated_gross_result_usd:.2f})'
         )
 
-    def _get_tx_arguments(self):
+    def _get_tx_arguments(self, test: bool = False):
         return {
-            'func': self._get_contract_function(),
-            'path': self._get_path_argument(),
+            'func': self._get_contract_test_function() if test else self._get_contract_function(),
+            **self._get_function_arguments(),
             'amountLast': self.amount_last.amount,
             'max_gas_': int(self.gas_cost * self.max_gas_multiplier),
             'gas_price_': self.gas_price,
         }
 
     def dry_run(self):
-        tools.transaction.dry_run_contract_tx(**self._get_tx_arguments())
+        tools.transaction.dry_run_contract_tx(**self._get_tx_arguments(test=True))
 
     def get_params(self) -> dict:
         return {

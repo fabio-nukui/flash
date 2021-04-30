@@ -5,25 +5,24 @@ import logging
 import configs
 import tools
 from arbitrage import ArbitragePairV1, PairManager
-from arbitrage.arbitrage_pair_v1 import HighGasPriceStrategy
 from dex import PancakeswapDex, PancakeswapDexV2
 
 log = logging.getLogger(__name__)
 
 # Strategy parameters
 MAX_HOPS_FIRST_DEX = 2
+SELF_TRADE = True
 
 # Estimations
 GAS_COST_PCS1_FIRST_CHI_ON = 130_000
 GAS_COST_PCS2_FIRST_CHI_ON = 130_000
 GAS_INCREASE_WITH_HOP = 0.2908916690437962
 GAS_SHARE_OF_PROFIT = 0.24
-MAX_GAS_PRICE = 1_400 * 10 ** 9  # Around $100
 MAX_GAS_MULTIPLIER = 7
 
 # Created with notebooks/pcs_mdx_v1.ipynb (2021-04-22)
 ADDRESS_DIRECTORY = 'strategy_files/pcs_pcs2_v1'
-CONTRACT_DATA_FILEPATH = 'deployed_contracts/PcsPcs2V1.json'
+CONTRACT_DATA_FILEPATH = 'deployed_contracts/PcsPcs2V2.json'
 
 # Optimization params
 USE_FALLBACK = False
@@ -40,13 +39,17 @@ class PcsPcs2(ArbitragePairV1):
             return int(GAS_COST_PCS2_FIRST_CHI_ON * gas_cost_multiplier)
 
     def _get_contract_function(self):
-        if type(self.first_dex) == PancakeswapDex:
-            return self.contract.functions.swapPcs1First
-        return self.contract.functions.swapPcs2First
+        return self.contract.functions.swap_b2I
 
-    def _get_function_arguments(self) -> dict():
+    def _get_contract_test_function(self):
+        return self.contract.functions.test
+
+    def _get_function_arguments(self) -> dict:
+        first_dex = '00' if type(self.first_dex) == PancakeswapDex else '01'
+        second_dex = '00' if type(self.first_dex) == PancakeswapDexV2 else '01'
+        path = ''.join(t.address[2:] for t in self.first_trade.route.tokens)
         return {
-            'path': [t.address for t in self.first_trade.route.tokens]
+            'data': f'0x{first_dex}{second_dex}{path}',
         }
 
 
@@ -80,12 +83,15 @@ def run():
             **params,
             contract=contract,
             gas_share_of_profit=get_share_of_profit(params),
-            max_gas_price=MAX_GAS_PRICE,
             max_gas_multiplier=MAX_GAS_MULTIPLIER,
-            high_gas_price_strategy=HighGasPriceStrategy.recalculate_at_max,
             optimization_params=optimization_params,
         )
-        for params in PairManager.get_v1_pool_arguments(dexes.values(), web3, MAX_HOPS_FIRST_DEX)
+        for params in PairManager.get_v1_pool_arguments(
+            dexes.values(),
+            web3,
+            MAX_HOPS_FIRST_DEX,
+            SELF_TRADE,
+        )
     ]
     pair_manager = PairManager(ADDRESS_DIRECTORY, arbitrage_pairs, web3)
     listener = tools.w3.BlockListener(web3)

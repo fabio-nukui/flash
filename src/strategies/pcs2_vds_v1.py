@@ -35,17 +35,19 @@ class Pcs2VdsPair(ArbitragePairV1):
             return self.contract.functions.swapPcsFirst
         return self.contract.functions.swapVdsFirst
 
-    def _get_path_argument(self):
+    def _get_function_arguments(self) -> dict():
         if type(self.first_dex) == PancakeswapDexV2:
-            return [
+            path = [
                 self.second_trade.route.pools[0].address,
                 *(t.address for t in self.first_trade.route.tokens)
             ]
-        return [
-            self.token_first.address,
-            self.token_last.address,
-            *(p.address for p in self.first_trade.route.pools)
-        ]
+        else:
+            path = [
+                self.token_first.address,
+                self.token_last.address,
+                *(p.address for p in self.first_trade.route.pools)
+            ]
+        return {'path': path}
 
 
 def get_share_of_profit(params: dict):

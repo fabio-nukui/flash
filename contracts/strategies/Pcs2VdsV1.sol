@@ -43,7 +43,7 @@ contract Pcs2VdsV1 is IPancakeCallee, Withdrawable, CHIBurner {
     }
 
     function uniswapV2Call(
-        address sender,
+        address,
         uint256 amount0,
         uint256 amount1,
         bytes calldata data
@@ -125,7 +125,7 @@ contract Pcs2VdsV1 is IPancakeCallee, Withdrawable, CHIBurner {
     }
 
     function pancakeCall(
-        address sender,
+        address,
         uint256 amount0,
         uint256 amount1,
         bytes calldata data

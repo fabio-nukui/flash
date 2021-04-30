@@ -25,6 +25,8 @@ from .arbitrage_pair_v1 import ArbitragePairV1, TxStatus
 
 log = logging.getLogger(__name__)
 
+PathLike = Union[bytes, str, os.PathLike]
+
 POOLS_FILE = 'pools.json'
 REMOVED_POOLS_FILE = 'pools_removed.json'
 REMOVED_POOLS_BACKUP_FILE = 'pools_removed_BAK.json'
@@ -273,7 +275,7 @@ class ManagedPool:
 class PairManager:
     def __init__(
         self,
-        addresses_directory: Union[bytes, str, pathlib.Path],
+        addresses_directory: PathLike,
         arbitrage_pairs: list[ArbitragePairV1],
         web3: Web3,
         min_profitability: float = DEFAULT_MIN_PROFITABILITY,
@@ -413,7 +415,7 @@ class PairManager:
 
     @staticmethod
     def load_dex_protocols(
-        addresses_directory: Union[str, pathlib.Path],
+        addresses_directory: PathLike,
         dex_protocols: dict[str, Type[DexProtocol]],
         web3: Web3,
     ) -> dict[str, DexProtocol]:
@@ -466,6 +468,8 @@ class PairManager:
                         [token_last, token_first],  # The order for token_first/token_last is inverted for the second route  # noqa: E501
                     )
                     for first_route in first_dex_routes:
+                        if pool in first_route.pools:
+                            continue
                         yield {
                             'token_first': token_first,
                             'token_last': token_last,

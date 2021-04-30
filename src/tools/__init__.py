@@ -8,5 +8,5 @@ __all__ = [
     'price',
     'simulation',
     'transaction',
-    'w3'
+    'w3',
 ]
