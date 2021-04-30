@@ -58,7 +58,7 @@ contract PcsPcs2V2B is Withdrawable, CHIBurner {
                 : (pcs2Factory, initCodeHash2, pcs2Fee);
 
         uint256[] memory amounts = PancakeswapLibrary.getAmountsIn(firstFactory, firstHash, amountSendPair, path, firstFee);
-        exchangePcs(secondFactory, secondHash, secondFee, path[path.length - 1], path[0], amountSendPair, 0);
+        exchangePcs(secondFactory, secondHash, secondFee, path[path.length - 1], path[0], amountSendPair, amounts[0]);
 
         address firstPair = PancakeswapLibrary.pairFor(firstFactory, firstHash, path[0], path[1]);
         TransferHelper.safeTransfer(path[0], firstPair, amounts[0]);
