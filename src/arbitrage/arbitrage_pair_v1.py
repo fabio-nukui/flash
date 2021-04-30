@@ -31,6 +31,7 @@ USE_FALLBACK = True
 # Gas parameters
 DEFAULT_GAS_SHARE_OF_PROFIT = 0.26
 MAX_GAS_MULTIPLIER = 3.5
+MIN_ARBITRAGE_LOGS = 4  # At least one CHI transfer and three ERC20 transfers
 
 PREFERED_TOKENS_FILE = 'addresses/preferred_tokens.json'
 TOKEN_MULTIPLIER_WEIGHT = 0.01
@@ -375,7 +376,7 @@ class ArbitragePairV1:
         self.gas_used = receipt.gasUsed
         self.block_executed = receipt.blockNumber
         self.block_send_delay = self.block_executed - self.block_found - 1
-        if receipt.status == 0:
+        if receipt.status == 0 or len(receipt.logs) < MIN_ARBITRAGE_LOGS:
             log.info(f'Transaction {self.tx_hash} failed (gas_used={self.gas_used})')
             self.tx_status = TxStatus.failed
             log.info(self.get_execution_stats())

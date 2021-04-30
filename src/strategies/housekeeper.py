@@ -1,4 +1,5 @@
 # Runs housekeeping functions such as withdrawing funds from contracts
+import importlib
 import json
 import logging
 import os
@@ -13,9 +14,8 @@ import configs
 import tools
 from arbitrage import PairManager
 from core import LiquidityPair, Token, TokenAmount
-from dex import DexProtocol, MDex, PancakeswapDex, PancakeswapDexV2, ValueDefiSwapDex
+from dex import DexProtocol
 from exceptions import InsufficientLiquidity
-from strategies import pcs2_vds_v1, pcs_mdx_v1, pcs_pcs2_v1, pcs_vds_v1
 
 log = logging.getLogger(__name__)
 
@@ -258,38 +258,10 @@ def convert_amounts(tokens: Iterable[Token], stable_reserve_token: Token, web3: 
 
 
 def get_strategy(strategy_name: str, web3: Web3):
-    if strategy_name == 'pcs_vds_v1':
-        protocols = {
-            'pcs_dex': PancakeswapDex,
-            'vds_dex': ValueDefiSwapDex,
-        }
-        dexes = PairManager.load_dex_protocols(pcs_vds_v1.ADDRESS_DIRECTORY, protocols, web3)
-        contract = tools.transaction.load_contract(pcs_vds_v1.CONTRACT_DATA_FILEPATH)
-        return Strategy(contract, dexes, strategy_name)
-    if strategy_name == 'pcs_mdx_v1':
-        protocols = {
-            'pcs_dex': PancakeswapDex,
-            'mdx_dex': MDex,
-        }
-        dexes = PairManager.load_dex_protocols(pcs_mdx_v1.ADDRESS_DIRECTORY, protocols, web3)
-        contract = tools.transaction.load_contract(pcs_mdx_v1.CONTRACT_DATA_FILEPATH)
-        return Strategy(contract, dexes, strategy_name)
-    if strategy_name == 'pcs_pcs2_v1':
-        protocols = {
-            'pcs_dex': PancakeswapDex,
-            'pcs2_dex': PancakeswapDexV2,
-        }
-        dexes = PairManager.load_dex_protocols(pcs_pcs2_v1.ADDRESS_DIRECTORY, protocols, web3)
-        contract = tools.transaction.load_contract(pcs_pcs2_v1.CONTRACT_DATA_FILEPATH)
-        return Strategy(contract, dexes, strategy_name)
-    if strategy_name == 'pcs2_vds_v1':
-        protocols = {
-            'pcs2_dex': PancakeswapDexV2,
-            'vds_dex': ValueDefiSwapDex,
-        }
-        dexes = PairManager.load_dex_protocols(pcs2_vds_v1.ADDRESS_DIRECTORY, protocols, web3)
-        contract = tools.transaction.load_contract(pcs2_vds_v1.CONTRACT_DATA_FILEPATH)
-        return Strategy(contract, dexes, strategy_name)
+    strategy = importlib.import_module(strategy_name)
+    dexes = PairManager.load_dex_protocols(strategy.ADDRESS_DIRECTORY, strategy.DEX_PROTOCOLS, web3)
+    contract = tools.transaction.load_contract(strategy.CONTRACT_DATA_FILEPATH)
+    return Strategy(contract, dexes, strategy_name)
 
 
 def run():

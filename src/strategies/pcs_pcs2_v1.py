@@ -12,6 +12,10 @@ log = logging.getLogger(__name__)
 
 # Strategy parameters
 MAX_HOPS_FIRST_DEX = 2
+DEX_PROTOCOLS = {
+    'pcs_dex': PancakeswapDex,
+    'pcs2_dex': PancakeswapDexV2,
+}
 
 # Estimations
 GAS_COST_PCS1_FIRST_CHI_ON = 130_000
@@ -69,11 +73,7 @@ def get_share_of_profit(params: dict):
 def run():
     web3 = tools.w3.get_web3(verbose=True)
     optimization_params = {'use_fallback': USE_FALLBACK}
-    dex_protocols = {
-        'pcs_dex': PancakeswapDex,
-        'pcs2_dex': PancakeswapDexV2,
-    }
-    dexes = PairManager.load_dex_protocols(ADDRESS_DIRECTORY, dex_protocols, web3)
+    dexes = PairManager.load_dex_protocols(ADDRESS_DIRECTORY, DEX_PROTOCOLS, web3)
     contract = tools.transaction.load_contract(CONTRACT_DATA_FILEPATH)
     arbitrage_pairs = [
         PcsPcs2(

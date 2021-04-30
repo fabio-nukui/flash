@@ -11,6 +11,10 @@ log = logging.getLogger(__name__)
 
 # Strategy params
 GAS_SHARE_OF_PROFIT = 0.27
+DEX_PROTOCOLS = {
+    'pcs_dex': PancakeswapDex,
+    'mdx_dex': MDex,
+}
 
 # Based on notebooks/analysis/pcs_mdx_analysis_v1.ipynb (2021-04-23)
 GAS_COST_PCS_FIRST_CHI_ON = 140_575.7
@@ -43,11 +47,7 @@ class PcsMdxPair(ArbitragePairV1):
 
 def run():
     web3 = tools.w3.get_web3(verbose=True)
-    dex_protocols = {
-        'pcs_dex': PancakeswapDex,
-        'mdx_dex': MDex,
-    }
-    dexes = PairManager.load_dex_protocols(ADDRESS_DIRECTORY, dex_protocols, web3)
+    dexes = PairManager.load_dex_protocols(ADDRESS_DIRECTORY, DEX_PROTOCOLS, web3)
     contract = tools.transaction.load_contract(CONTRACT_DATA_FILEPATH)
     arbitrage_pairs = [
         PcsMdxPair(**params, contract=contract, gas_share_of_profit=GAS_SHARE_OF_PROFIT)

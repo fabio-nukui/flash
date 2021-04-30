@@ -9,6 +9,11 @@ from dex import PancakeswapDexV2, ValueDefiSwapDex
 
 log = logging.getLogger(__name__)
 
+DEX_PROTOCOLS = {
+    'pcs2_dex': PancakeswapDexV2,
+    'vds_dex': ValueDefiSwapDex,
+}
+
 # Gas-related parameters; extrapoated from from notebooks/pcs_vds_analysis.ipynb (2021-04-20)
 GAS_COST_PCS_FIRST_CHI_ON = 156_279.7
 GAS_COST_VDS_FIRST_CHI_ON = 139_586.4
@@ -66,11 +71,7 @@ def get_share_of_profit(params: dict):
 
 def run():
     web3 = tools.w3.get_web3(verbose=True)
-    dex_protocols = {
-        'pcs2_dex': PancakeswapDexV2,
-        'vds_dex': ValueDefiSwapDex,
-    }
-    dexes = PairManager.load_dex_protocols(ADDRESS_DIRECTORY, dex_protocols, web3)
+    dexes = PairManager.load_dex_protocols(ADDRESS_DIRECTORY, DEX_PROTOCOLS, web3)
     contract = tools.transaction.load_contract(CONTRACT_DATA_FILEPATH)
     arbitrage_pairs = [
         Pcs2VdsPair(**params, contract=contract, gas_share_of_profit=get_share_of_profit(params))

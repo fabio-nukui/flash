@@ -13,6 +13,10 @@ log = logging.getLogger(__name__)
 MIN_ESTIMATED_PROFIT = 1
 DISABLE_SAMPLE_SIZE = 50
 GAS_SHARE_OF_PROFIT = 0.26
+DEX_PROTOCOLS = {
+    'pcs_dex': PancakeswapDex,
+    'vds_dex': ValueDefiSwapDex,
+}
 
 # Gas-related parameters; data from notebooks/pcs_vds_analysis.ipynb (2021-04-20)
 GAS_COST_PCS_FIRST_CHI_ON = 156_279.7
@@ -72,11 +76,7 @@ def get_share_of_profit(params: dict):
 
 def run():
     web3 = tools.w3.get_web3(verbose=True)
-    dex_protocols = {
-        'pcs_dex': PancakeswapDex,
-        'vds_dex': ValueDefiSwapDex,
-    }
-    dexes = PairManager.load_dex_protocols(ADDRESS_DIRECTORY, dex_protocols, web3)
+    dexes = PairManager.load_dex_protocols(ADDRESS_DIRECTORY, DEX_PROTOCOLS, web3)
     contract = tools.transaction.load_contract(CONTRACT_DATA_FILEPATH)
     arbitrage_pairs = [
         PcsVdsPair(**params, contract=contract, gas_share_of_profit=get_share_of_profit(params))
