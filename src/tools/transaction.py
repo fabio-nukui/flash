@@ -185,9 +185,10 @@ def sign_and_send_tx(
 def dry_run_contract_tx(
     func: ContractFunction,
     *args,
-    max_gas_: int = 1_000_000,
-    gas_price_: int = None,
     account_: Account = None,
+    value_: int = 0,
+    gas_price_: int = None,
+    max_gas_: int = 1_000_000,
     **kwargs,
 ) -> str:
     web3 = func.web3
@@ -196,6 +197,7 @@ def dry_run_contract_tx(
 
     tx = func(*args, **kwargs).buildTransaction({
         'from': account.address,
+        'value': value_,
         'chainId': configs.CHAIN_ID,
         'gas': max_gas_,
         'nonce': get_nonce(account.address, web3, dry_run=True),
@@ -207,11 +209,12 @@ def dry_run_contract_tx(
 def sign_and_send_contract_tx(
     func: ContractFunction,
     *args,
-    max_gas_: int = 1_000_000,
+    account_: Account = None,
+    value_: int = 0,
     gas_price_: int = None,
+    max_gas_: int = 1_000_000,
     wait_finish_: bool = False,
     max_blocks_wait_: int = None,
-    account_: Account = None,
     **kwargs,
 ) -> str:
     web3 = func.web3
@@ -222,10 +225,11 @@ def sign_and_send_contract_tx(
 
     tx = func(*args, **kwargs).buildTransaction({
         'from': account.address,
+        'value': value_,
         'chainId': configs.CHAIN_ID,
         'gas': max_gas_,
         'nonce': get_nonce(account.address, web3),
-        'gasPrice': gas_price_
+        'gasPrice': gas_price_,
     })
     return sign_and_send_tx(tx, web3, wait_finish_, max_blocks_wait_, account)
 
