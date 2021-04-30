@@ -418,13 +418,14 @@ class PairManager:
         addresses_directory: PathLike,
         dex_protocols: dict[str, Type[DexProtocol]],
         web3: Web3,
+        load_removed: bool = False,
     ) -> dict[str, DexProtocol]:
         addresses_directory = pathlib.Path(addresses_directory)
         pools_file = addresses_directory / POOLS_FILE
         if not pools_file.exists():
             raise Exception(f'No active pools file found at {pools_file}')
         dict_addresses = json.load(open(pools_file))
-        removed_pools = _load_removed_pools(addresses_directory)
+        removed_pools = _load_removed_pools(addresses_directory) if not load_removed else []
         dexes = {}
         for dex_name, dex_cls in dex_protocols.items():
             addresses = [addr for addr in dict_addresses[dex_name] if addr not in removed_pools]
