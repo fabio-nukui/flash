@@ -45,9 +45,6 @@ class PcsPcs2(ArbitragePairV1):
     def _get_contract_function(self):
         return self.contract.functions.swap_b2I
 
-    def _get_contract_test_function(self):
-        return self.contract.functions.test
-
     def _get_function_arguments(self) -> dict:
         first_dex = '00' if type(self.first_dex) == PancakeswapDex else '01'
         second_dex = '00' if type(self.first_dex) == PancakeswapDexV2 else '01'
