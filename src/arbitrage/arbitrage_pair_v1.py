@@ -68,6 +68,7 @@ class ArbitragePairV1:
         web3: Web3,
         min_confirmations: int = DEFAULT_MIN_CONFIRMATIONS,
         max_transaction_checks: int = DEFAULT_MAX_TRANSACTION_CHECKS,
+        base_bas_cost: int = BASE_GAS_COST,
         gas_share_of_profit: float = DEFAULT_GAS_SHARE_OF_PROFIT,
         max_gas_price: int = MAX_GAS_PRICE,
         max_gas_multiplier: float = MAX_GAS_MULTIPLIER,
@@ -91,6 +92,7 @@ class ArbitragePairV1:
         self.web3 = web3
         self.min_confirmations = min_confirmations
         self.max_transaction_checks = max_transaction_checks
+        self.base_gas_cost = base_bas_cost
         self.gas_share_of_profit = gas_share_of_profit
         self.max_gas_price = max_gas_price
         self.max_gas_multiplier = max_gas_multiplier
@@ -257,7 +259,7 @@ class ArbitragePairV1:
             estimated_result.amount_in_units * self.result_token_usd_price
         self.gas_cost = self._get_gas_cost()
 
-        base_gas_cost_usd = tools.price.get_gas_cost_usd(BASE_GAS_COST)
+        base_gas_cost_usd = tools.price.get_gas_cost_usd(self.base_gas_cost)
         gas_premium = self.gas_share_of_profit * self.estimated_gross_result_usd / base_gas_cost_usd
         gas_premium = max(gas_premium, 1.0)
 
@@ -308,6 +310,7 @@ class ArbitragePairV1:
             'estimated_tx_cost': self.estimated_tx_cost,
             'estimated_net_result_usd': self.estimated_net_result_usd,
             'gas_share_of_profit': self.gas_share_of_profit,
+            'base_gas_cost': self.base_gas_cost,
         }
 
     def get_execution_stats(self) -> dict:
