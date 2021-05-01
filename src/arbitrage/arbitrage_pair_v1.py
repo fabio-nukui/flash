@@ -296,6 +296,7 @@ class ArbitragePairV1:
     def get_params(self) -> dict:
         return {
             'tx_hash': self.tx_hash,
+            'to': self.contract.address,
             'block_found': self.block_found,
             'timestamp_found': self.timestamp_found,
             'amount_last': self.amount_last.amount,
