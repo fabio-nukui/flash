@@ -1,9 +1,13 @@
 # Pancakeswap (PCS) x ValueDefiSwap (VDS)
 
 import logging
+from typing import Iterable, Union
 
-import tools
+from web3 import Web3
+from web3.contract import Contract
+
 import configs
+import tools
 from arbitrage import ArbitragePairV1, PairManager
 from dex import PancakeswapDex, ValueDefiSwapDex
 
@@ -74,14 +78,22 @@ def get_share_of_profit(params: dict):
     return GAS_SHARE_OF_PROFIT
 
 
+def load_arbitrage_pairs(
+    dexes: Iterable[Union[PancakeswapDex, ValueDefiSwapDex]],
+    contract: Contract,
+    web3: Web3
+) -> list[PcsVdsPair]:
+    return [
+        PcsVdsPair(**params, contract=contract, gas_share_of_profit=get_share_of_profit(params))
+        for params in PairManager.get_v1_pool_arguments(dexes, web3)
+    ]
+
+
 def run():
     web3 = tools.w3.get_web3(verbose=True)
     dexes = PairManager.load_dex_protocols(ADDRESS_DIRECTORY, DEX_PROTOCOLS, web3)
     contract = tools.transaction.load_contract(CONTRACT_DATA_FILEPATH)
-    arbitrage_pairs = [
-        PcsVdsPair(**params, contract=contract, gas_share_of_profit=get_share_of_profit(params))
-        for params in PairManager.get_v1_pool_arguments(dexes.values(), web3)
-    ]
+    arbitrage_pairs = load_arbitrage_pairs(dexes.values(), contract, web3)
     pair_manager = PairManager(ADDRESS_DIRECTORY, arbitrage_pairs, web3)
     listener = tools.w3.BlockListener(web3)
     for block_number in listener.wait_for_new_blocks():

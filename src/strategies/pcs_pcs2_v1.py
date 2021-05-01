@@ -1,6 +1,10 @@
 # Pancakeswap (PCS) x PancakeswapV2 (PCS2)
 
 import logging
+from typing import Iterable, Union
+
+from web3 import Web3
+from web3.contract import Contract
 
 import configs
 import tools
@@ -33,7 +37,7 @@ CONTRACT_DATA_FILEPATH = 'deployed_contracts/PcsPcs2V1.json'
 USE_FALLBACK = False
 
 
-class PcsPcs2(ArbitragePairV1):
+class PcsPcs2Pair(ArbitragePairV1):
     def _get_gas_cost(self) -> int:
         num_hops_extra_hops = len(self.first_trade.route.pools) - 1
         gas_cost_multiplier = 1 + GAS_INCREASE_WITH_HOP * num_hops_extra_hops
@@ -70,13 +74,14 @@ def get_share_of_profit(params: dict):
     return GAS_SHARE_OF_PROFIT
 
 
-def run():
-    web3 = tools.w3.get_web3(verbose=True)
+def load_arbitrage_pairs(
+    dexes: Iterable[Union[PancakeswapDex, PancakeswapDexV2]],
+    contract: Contract,
+    web3: Web3
+) -> list[PcsPcs2Pair]:
     optimization_params = {'use_fallback': USE_FALLBACK}
-    dexes = PairManager.load_dex_protocols(ADDRESS_DIRECTORY, DEX_PROTOCOLS, web3)
-    contract = tools.transaction.load_contract(CONTRACT_DATA_FILEPATH)
-    arbitrage_pairs = [
-        PcsPcs2(
+    return [
+        PcsPcs2Pair(
             **params,
             contract=contract,
             gas_share_of_profit=get_share_of_profit(params),
@@ -85,8 +90,15 @@ def run():
             high_gas_price_strategy=HighGasPriceStrategy.recalculate_at_max,
             optimization_params=optimization_params,
         )
-        for params in PairManager.get_v1_pool_arguments(dexes.values(), web3, MAX_HOPS_FIRST_DEX)
+        for params in PairManager.get_v1_pool_arguments(dexes, web3, MAX_HOPS_FIRST_DEX)
     ]
+
+
+def run():
+    web3 = tools.w3.get_web3(verbose=True)
+    dexes = PairManager.load_dex_protocols(ADDRESS_DIRECTORY, DEX_PROTOCOLS, web3)
+    contract = tools.transaction.load_contract(CONTRACT_DATA_FILEPATH)
+    arbitrage_pairs = load_arbitrage_pairs(dexes.values(), contract, web3)
     pair_manager = PairManager(ADDRESS_DIRECTORY, arbitrage_pairs, web3)
     listener = tools.w3.BlockListener(web3)
     for block_number in listener.wait_for_new_blocks():
