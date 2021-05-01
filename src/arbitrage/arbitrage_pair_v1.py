@@ -20,6 +20,7 @@ log = logging.getLogger(__name__)
 DEFAULT_MIN_CONFIRMATIONS = 1
 DEFAULT_MAX_TRANSACTION_CHECKS = 20
 MAX_GAS_PRICE = 21428571428571  # Equal to 3 BNB/ETH tx cost at 140_000 gas
+BASE_GAS_COST = 140_000
 
 # Default optimization parameters
 INITIAL_VALUE = 1.0  # Initial value in USD to estimate best trade
@@ -256,8 +257,8 @@ class ArbitragePairV1:
             estimated_result.amount_in_units * self.result_token_usd_price
         self.gas_cost = self._get_gas_cost()
 
-        gas_cost_usd = tools.price.get_gas_cost_usd(self.gas_cost)
-        gas_premium = self.gas_share_of_profit * self.estimated_gross_result_usd / gas_cost_usd
+        base_gas_cost_usd = tools.price.get_gas_cost_usd(BASE_GAS_COST)
+        gas_premium = self.gas_share_of_profit * self.estimated_gross_result_usd / base_gas_cost_usd
         gas_premium = max(gas_premium, 1.0)
 
         baseline_gas_price = tools.price.get_gas_price()
@@ -267,6 +268,7 @@ class ArbitragePairV1:
         self.gas_price = gas_price
         self.estimated_tx_cost = \
             self.gas_price * self.gas_cost / 10 ** tools.price.get_native_token_decimals()
+        gas_cost_usd = tools.price.get_gas_cost_usd(self.gas_cost)
         self.estimated_net_result_usd = self.estimated_gross_result_usd - gas_cost_usd * gas_premium
 
     def _process_high_gas_price(self, baseline_gas_price: int, gas_price: int) -> tuple[int, float]:
