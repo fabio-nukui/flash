@@ -89,7 +89,7 @@ class ManagedPair:
 
         for tx in self.transactions:
             for pool in self.pools:
-                pool.add_tx(tx)
+                pool.add_tx(tx, skip_check=True)
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.arb})'
@@ -143,7 +143,6 @@ class ManagedPair:
         for tx_file in tx_files:
             tx = json.load(open(tx_file))
             tx['_written'] = True
-            self._load_transaction(tx)
 
     def _load_transaction(self, tx: dict):
         self.transactions.append(tx)
@@ -244,14 +243,19 @@ class ManagedPool:
     def disable(self):
         self._status = PoolStatus.disabled
 
-    def add_tx(self, tx: dict):
+    def add_tx(self, tx: dict, skip_check: bool = False):
         if tx['tx_status'] == TxStatus.succeeded:
             self.n_successes += 1
             self.block_failures = []
         elif tx['tx_status'] == TxStatus.failed:
             self.n_failures += 1
             self.block_failures.append(tx['block_found'])
-            self.check_disable()
+            if not skip_check:
+                self.check_disable()
+
+    def sort_and_check(self):
+        self.block_failures = sorted(self.block_failures)
+        self.check_disable()
 
     def check_disable(self):
         n_total = self.n_successes + self.n_failures
@@ -307,6 +311,8 @@ class PairManager:
             ManagedPair(arb, self.pools, self.addresses_directory)
             for arb in arbitrage_pairs
         ]
+        for pool in self.pools:
+            pool.sort_and_check()
         atexit.register(self._handle_exit)
         signal.signal(signal.SIGINT, self._handle_exit)
         signal.signal(signal.SIGTERM, self._handle_exit)
