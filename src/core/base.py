@@ -298,10 +298,13 @@ class LiquidityPool:
         return self._reserves
 
     def apply_transactions(self, amounts: list[TokenAmount]):
-        for i, amount in enumerate(amounts):
-            if amount.token != self._reserves[i].token:
+        for token_amount in amounts:
+            if token_amount.token == self._reserves[0].token:
+                self._reserves[0].amount += token_amount.amount
+            elif token_amount.token == self._reserves[1].token:
+                self._reserves[1].amount += token_amount.amount
+            else:
                 raise ValueError("'amounts' must have same tokens as reserves")
-            self._reserves[i] += amount
 
     def _update_amounts(self):
         raise NotImplementedError
