@@ -1,19 +1,35 @@
 #!/usr/bin/env bash
 
-set -ex
+set -e
 
-BLOCK_NUMBER="$1"
+while getopts ":f:p:n:" opt; do
+    case $opt in
+        f) FORK="$OPTARG"
+        ;;
+        p) PORT="$OPTARG"
+        ;;
+        n) BLOCK_NUMBER="$OPTARG"
+        ;;
+        \?) echo "Invalid option -$OPTARG" >&2
+        ;;
+    esac
+done
+
+FORK=${FORK:-http://localhost:8545}
+PORT=${PORT:-8546}
+
+set -x
 
 if [ -z ${BLOCK_NUMBER:+x} ]
 then
     npx hardhat node \
-        --fork 'http://localhost:8545' \
+        --fork "$FORK" \
         --hostname 0.0.0.0 \
-        --port 8546
+        --port "$PORT"
 else
     npx hardhat node \
-        --fork 'http://localhost:8545' \
+        --fork "$FORK" \
         --hostname 0.0.0.0 \
-        --port 8546 \
+        --port "$PORT" \
         --fork-block-number "$BLOCK_NUMBER"
 fi

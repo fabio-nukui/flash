@@ -12,18 +12,25 @@ import tools
 class HardhatForkProcess:
     DEFAULT_CMD = ['bash', 'scripts/hardhat-fork']
 
-    def __init__(self, block: Union[int, str] = None):
+    def __init__(self, block: Union[int, str] = None, fork: str = None, port: int = None):
         assert isinstance(block, int) or block in (None, 'latest')
         self.block = block
+        self.fork = fork
+        self.port = port
 
         self.proc: subprocess.Popen = None
         self.procgid: int = None
         atexit.register(self.stop)
 
     def _get_cmd(self) -> list[str]:
+        cmd = self.DEFAULT_CMD
+        if self.fork is not None:
+            cmd.extend(['-f', str(self.fork)])
         if isinstance(self.block, int):
-            return self.DEFAULT_CMD + [str(self.block)]
-        return self.DEFAULT_CMD
+            cmd.extend(['-n', str(self.block)])
+        if self.port is not None:
+            cmd.extend(['-p', str(self.port)])
+        return cmd
 
     def start(self):
         self.proc = subprocess.Popen(
