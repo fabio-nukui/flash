@@ -77,7 +77,8 @@ def get_share_of_profit(params: dict):
 def load_arbitrage_pairs(
     dexes: Iterable[Union[PancakeswapDex, PancakeswapDexV2]],
     contract: Contract,
-    web3: Web3
+    web3: Web3,
+    load_low_liquidity: bool = False,
 ) -> list[PcsPcs2Pair]:
     optimization_params = {'use_fallback': USE_FALLBACK}
     return [
@@ -90,7 +91,12 @@ def load_arbitrage_pairs(
             high_gas_price_strategy=HighGasPriceStrategy.recalculate_at_max,
             optimization_params=optimization_params,
         )
-        for params in PairManager.get_v1_pool_arguments(dexes, web3, MAX_HOPS_FIRST_DEX)
+        for params in PairManager.get_v1_pool_arguments(
+            dexes,
+            web3,
+            MAX_HOPS_FIRST_DEX,
+            load_low_liquidity=load_low_liquidity
+        )
     ]
 
 

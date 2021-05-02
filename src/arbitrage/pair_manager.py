@@ -438,29 +438,34 @@ class PairManager:
         web3: Web3,
         max_hops_first_dex: int = DEFAULT_MAX_HOPS_FIRST_DEX,
         self_trade: bool = False,
+        load_low_liquidity: bool = False,
     ) -> Iterable[tuple[DexProtocol, DexProtocol]]:
         all_tokens = {token for dex in dexes for token in dex.tokens}
         all_pools = [pool for dex in dexes for pool in dex.pools]
         prices = {}
         for token in all_tokens:
-            try:
-                prices[token] = tools.price.get_price_usd(token, all_pools, web3)
-            except InsufficientLiquidity:
-                pass
+            if not load_low_liquidity:
+                try:
+                    prices[token] = tools.price.get_price_usd(token, all_pools, web3)
+                except InsufficientLiquidity:
+                    pass
         for first_dex, second_dex in _get_dex_pairs(dexes, self_trade):
             for pool in second_dex.pools:
                 for token_first, token_last in permutations(pool.tokens):
-                    if token_last not in prices:
+                    if token_last not in prices and not load_low_liquidity:
                         continue
-                    min_amount_last = TokenAmount(
-                        token_last,
-                        int(MIN_AMOUNT_OUT_USD / prices[token_last] * 10 ** token_last.decimals),
-                    )
+                    if load_low_liquidity:
+                        min_amount_last = TokenAmount(token_last, 0)
+                    else:
+                        min_amount_last = TokenAmount(
+                            token_last,
+                            int(MIN_AMOUNT_OUT_USD / prices[token_last] * 10 ** token_last.decimals)
+                        )
                     first_dex_routes = _get_routes(
                         first_dex.pools,
                         token_first,
                         min_amount_last,
-                        max_hops_first_dex
+                        max_hops_first_dex,
                     )
                     second_route = Route(
                         [pool],
@@ -527,7 +532,7 @@ def _get_routes(
             continue
         try:
             amount_in = pool.get_amount_in(min_amount_out)
-            assert amount_in > 0
+            assert amount_in >= 0
         except (InsufficientLiquidity, AssertionError):
             continue
         if amount_in.token == token_in:

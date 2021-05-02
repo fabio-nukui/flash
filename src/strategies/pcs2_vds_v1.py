@@ -76,11 +76,16 @@ def get_share_of_profit(params: dict):
 def load_arbitrage_pairs(
     dexes: Iterable[Union[PancakeswapDexV2, ValueDefiSwapDex]],
     contract: Contract,
-    web3: Web3
+    web3: Web3,
+    load_low_liquidity: bool = False,
 ) -> list[Pcs2VdsPair]:
     return [
         Pcs2VdsPair(**params, contract=contract, gas_share_of_profit=get_share_of_profit(params))
-        for params in PairManager.get_v1_pool_arguments(dexes, web3)
+        for params in PairManager.get_v1_pool_arguments(
+            dexes,
+            web3,
+            load_low_liquidity=load_low_liquidity,
+        )
     ]
 
 

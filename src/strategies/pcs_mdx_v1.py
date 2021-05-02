@@ -52,11 +52,16 @@ class PcsMdxPair(ArbitragePairV1):
 def load_arbitrage_pairs(
     dexes: Iterable[Union[MDex, PancakeswapDex]],
     contract: Contract,
-    web3: Web3
+    web3: Web3,
+    load_low_liquidity: bool = False,
 ) -> list[PcsMdxPair]:
     return [
         PcsMdxPair(**params, contract=contract, gas_share_of_profit=GAS_SHARE_OF_PROFIT)
-        for params in PairManager.get_v1_pool_arguments(dexes, web3)
+        for params in PairManager.get_v1_pool_arguments(
+            dexes,
+            web3,
+            load_low_liquidity=load_low_liquidity,
+        )
     ]
 
 
