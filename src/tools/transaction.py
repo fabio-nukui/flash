@@ -205,7 +205,7 @@ def dry_run_contract_tx(
         'nonce': get_nonce(account.address, web3, dry_run=True),
         'gasPrice': gas_price_,
     })
-    return web3.eth.call(tx).hex()
+    return web3.eth.call(tx, block_identifier=configs.BLOCK).hex()
 
 
 def sign_and_send_contract_tx(
