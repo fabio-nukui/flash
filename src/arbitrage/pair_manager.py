@@ -87,10 +87,6 @@ class ManagedPair:
         self.transactions_directory.mkdir(parents=True, exist_ok=True)
         self.load_files()
 
-        for tx in self.transactions:
-            for pool in self.pools:
-                pool.add_tx(tx, skip_check=True)
-
     def __repr__(self):
         return f'{self.__class__.__name__}({self.arb})'
 
@@ -143,12 +139,13 @@ class ManagedPair:
         for tx_file in tx_files:
             tx = json.load(open(tx_file))
             tx['_written'] = True
+            self._load_transaction(tx, skip_check=True)
 
-    def _load_transaction(self, tx: dict):
+    def _load_transaction(self, tx: dict, skip_check: bool = False):
         self.transactions.append(tx)
         self.transactions = self.transactions[-MAX_TRANSACTIONS_STORE_PER_PAIR:]
         for pool in self.pools:
-            pool.add_tx(tx)
+            pool.add_tx(tx, skip_check)
         if tx['tx_status'] == TxStatus.succeeded:
             self.n_successes += 1
         elif tx['tx_status'] == TxStatus.failed:
@@ -254,8 +251,17 @@ class ManagedPool:
                 self.check_disable()
 
     def sort_and_check(self):
-        self.block_failures = sorted(self.block_failures)
-        self.check_disable()
+        block_failures = sorted(self.block_failures)
+        for i in range(len(block_failures) - self.max_repeated_failures):
+            n_blocks = block_failures[i] - block_failures[i + self.max_repeated_failures] + 1
+            if n_blocks <= self.max_repeated_failures * self.blocks_per_transaction:
+                log.info(
+                    f'{self}: {self.max_repeated_failures} repeated failures at block '
+                    f'{block_failures[i + self.max_repeated_failures]}, disabling pool'
+                )
+                break
+                self.disable()
+        self.block_failures = block_failures[-self.max_repeated_failures:]
 
     def check_disable(self):
         n_total = self.n_successes + self.n_failures
