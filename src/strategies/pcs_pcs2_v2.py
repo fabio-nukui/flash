@@ -62,8 +62,8 @@ def get_share_of_profit(params: dict):
     reduced_gas_share_pools = [
         '0xfC207DB720851f52545229E406068b205E02B952',  # pcs xBLZD/WBNB
         '0xD9002B7E7d63A71F04a16840DA028e1cd534889D',  # pcs2 xBLZD/WBNB
-        # '0x3Ee4de968E47877F432226d6a9A0DAD6EAc6001b',  # pcs sALPACA/ALPACA
-        # '0x6615187234104CE7d2fb1deF75eDb9d77408230D',  # pcs2 sALPACA/ALPACA
+        '0x3Ee4de968E47877F432226d6a9A0DAD6EAc6001b',  # pcs sALPACA/ALPACA
+        '0x6615187234104CE7d2fb1deF75eDb9d77408230D',  # pcs2 sALPACA/ALPACA
     ]
     route_addresses = [
         pool.address
