@@ -18,8 +18,8 @@ contract PcsPcs2V1 is Withdrawable, CHIBurner {
     address constant pcs2Factory = 0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73;
     bytes32 constant initCodeHash1 = hex'd0d4c4cd0848c93cb4fd1f498d7013ee6bfb25783ea21593d5834f5d250ece66';
     bytes32 constant initCodeHash2 = hex'00fb7f630766e6a796048ea87d01acd3068e8ff67d078148a3fa3f4a84f69bd5';
-    uint32 constant pcs1Fee = 20;
-    uint32 constant pcs2Fee = 25;
+    uint256 constant pcs1Fee = 20;
+    uint256 constant pcs2Fee = 25;
     uint8 constant PCS_1_FIRST = 0;
     uint8 constant PCS_2_FIRST = 1;
 
@@ -62,7 +62,7 @@ contract PcsPcs2V1 is Withdrawable, CHIBurner {
 
         (address firstFactory, address secondFactory) = mode == PCS_1_FIRST ? (pcs1Factory, pcs2Factory) : (pcs2Factory, pcs1Factory);
         (bytes32 firstHash, bytes32 secondHash) = mode == PCS_1_FIRST ? (initCodeHash1, initCodeHash2) : (initCodeHash2, initCodeHash1);
-        (uint32 firstFee, uint32 secondFee) = mode == PCS_1_FIRST ? (pcs1Fee, pcs2Fee) : (pcs2Fee, pcs1Fee);
+        (uint256 firstFee, uint256 secondFee) = mode == PCS_1_FIRST ? (pcs1Fee, pcs2Fee) : (pcs2Fee, pcs1Fee);
 
         uint256[] memory amounts = PancakeswapLibrary.getAmountsIn(firstFactory, firstHash, amountSendPair, path, firstFee);
         exchangePcs(secondFactory, secondHash, secondFee, path[path.length - 1], path[0], amountSendPair, amounts[0]);
@@ -75,7 +75,7 @@ contract PcsPcs2V1 is Withdrawable, CHIBurner {
     function exchangePcs(
         address factory,
         bytes32 initCodeHash,
-        uint32 fee,
+        uint256 fee,
         address tokenIn,
         address tokenOut,
         uint256 amountIn,

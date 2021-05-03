@@ -49,7 +49,7 @@ library PancakeswapLibrary {
     }
 
     // given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
-    function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut, uint32 fee) internal pure returns (uint amountOut) {
+    function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut, uint256 fee) internal pure returns (uint amountOut) {
         require(amountIn > 0, 'PancakeswapLibrary: INSUFFICIENT_INPUT_AMOUNT');
         require(reserveIn > 0 && reserveOut > 0, 'PancakeswapLibrary: INSUFFICIENT_LIQUIDITY');
         uint amountInWithFee = amountIn.mul(FEE_DENOMINATOR.sub(fee));
@@ -59,7 +59,7 @@ library PancakeswapLibrary {
     }
 
     // given an output amount of an asset and pair reserves, returns a required input amount of the other asset
-    function getAmountIn(uint amountOut, uint reserveIn, uint reserveOut, uint32 fee) internal pure returns (uint amountIn) {
+    function getAmountIn(uint amountOut, uint reserveIn, uint reserveOut, uint256 fee) internal pure returns (uint amountIn) {
         require(amountOut > 0, 'PancakeswapLibrary: INSUFFICIENT_OUTPUT_AMOUNT');
         require(reserveIn > 0 && reserveOut > 0, 'PancakeswapLibrary: INSUFFICIENT_LIQUIDITY');
         uint numerator = reserveIn.mul(amountOut).mul(FEE_DENOMINATOR);
@@ -68,7 +68,7 @@ library PancakeswapLibrary {
     }
 
     // performs chained getAmountOut calculations on any number of pairs
-    function getAmountsOut(address factory, bytes32 initCodeHash, uint amountIn, address[] memory path, uint32 fee) internal view returns (uint[] memory amounts) {
+    function getAmountsOut(address factory, bytes32 initCodeHash, uint amountIn, address[] memory path, uint256 fee) internal view returns (uint[] memory amounts) {
         require(path.length >= 2, 'PancakeswapLibrary: INVALID_PATH');
         amounts = new uint[](path.length);
         amounts[0] = amountIn;
@@ -79,7 +79,7 @@ library PancakeswapLibrary {
     }
 
     // performs chained getAmountIn calculations on any number of pairs
-    function getAmountsIn(address factory, bytes32 initCodeHash, uint amountOut, address[] memory path, uint32 fee) internal view returns (uint[] memory amounts) {
+    function getAmountsIn(address factory, bytes32 initCodeHash, uint amountOut, address[] memory path, uint256 fee) internal view returns (uint[] memory amounts) {
         require(path.length >= 2, 'PancakeswapLibrary: INVALID_PATH');
         amounts = new uint[](path.length);
         amounts[amounts.length - 1] = amountOut;

@@ -16,7 +16,7 @@ import {MdexLibrary} from "../libraries/uniswap_v2/MdexLibrary.sol";
 contract PcsMdxV1 is Withdrawable, CHIBurner {
     address constant pcsFactory = 0xBCfCcbde45cE874adCB698cC183deBcF17952812;
     bytes32 constant cakeInitCodeHash = hex'd0d4c4cd0848c93cb4fd1f498d7013ee6bfb25783ea21593d5834f5d250ece66';
-    uint32 constant pcsFee = 20;
+    uint256 constant pcsFee = 20;
 
     // MDX first
     function swapMdxFirst(

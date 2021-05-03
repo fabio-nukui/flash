@@ -15,8 +15,8 @@ import {PancakeswapLibrary} from "../libraries/uniswap_v2/PancakeswapLibrary.sol
 contract PcsPcs2V2 is Withdrawable, CHIBurner {
     bytes32 constant initCodeHash1 = hex'd0d4c4cd0848c93cb4fd1f498d7013ee6bfb25783ea21593d5834f5d250ece66';
     bytes32 constant initCodeHash2 = hex'00fb7f630766e6a796048ea87d01acd3068e8ff67d078148a3fa3f4a84f69bd5';
-    uint32 constant pcs1Fee = 20;
-    uint32 constant pcs2Fee = 25;
+    uint256 constant pcs1Fee = 20;
+    uint256 constant pcs2Fee = 25;
     address constant pcs1Factory = 0xBCfCcbde45cE874adCB698cC183deBcF17952812;
     address constant pcs2Factory = 0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73;
     uint8 constant PCS_1 = 0;
@@ -67,11 +67,11 @@ contract PcsPcs2V2 is Withdrawable, CHIBurner {
         (uint8 firstDex, uint8 secondDex, address[] memory path) = AddressArrayEncoder.decodeWithHeader2(data);
         uint256 amountSendPair = amount0 == 0 ? amount1 : amount0;
 
-        (address firstFactory, bytes32 firstHash, uint32 firstFee) =
+        (address firstFactory, bytes32 firstHash, uint256 firstFee) =
             firstDex == PCS_1
                 ? (pcs1Factory, initCodeHash1, pcs1Fee)
                 : (pcs2Factory, initCodeHash2, pcs2Fee);
-        (address secondFactory, bytes32 secondHash, uint32 secondFee) =
+        (address secondFactory, bytes32 secondHash, uint256 secondFee) =
             secondDex == PCS_1
                 ? (pcs1Factory, initCodeHash1, pcs1Fee)
                 : (pcs2Factory, initCodeHash2, pcs2Fee);
@@ -87,7 +87,7 @@ contract PcsPcs2V2 is Withdrawable, CHIBurner {
     function exchangePcs(
         address factory,
         bytes32 initCodeHash,
-        uint32 fee,
+        uint256 fee,
         address tokenIn,
         address tokenOut,
         uint256 amountIn,
