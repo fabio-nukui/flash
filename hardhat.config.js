@@ -8,7 +8,8 @@ module.exports = {
       chainId: 56,
       gas: 'auto',
       gasPrice: 5000000001,
-      blockGasLimit: 40000000
+      blockGasLimit: 40000000,
+      accounts: [],
     },
     forking: {
       url: 'http://localhost:8546',

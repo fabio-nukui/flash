@@ -9,10 +9,19 @@ import configs
 import tools
 
 
-class HardhatForkProcess:
-    DEFAULT_CMD = ['bash', 'scripts/hardhat-fork']
+DEFAULT_RPC_HTTP_ENDPOINT = 'http://localhost:8545'
+DEFAULT_HARDHAT_FORK_PORT = 8546
 
-    def __init__(self, block: Union[int, str] = None, fork: str = None, port: int = None):
+
+class HardhatForkProcess:
+    DEFAULT_CMD = ['npx', 'hardhat', 'node', '--hostname', '0.0.0.0']
+
+    def __init__(
+        self,
+        block: Union[int, str] = None,
+        fork: str = DEFAULT_RPC_HTTP_ENDPOINT,
+        port: int = DEFAULT_HARDHAT_FORK_PORT,
+    ):
         assert isinstance(block, int) or block in (None, 'latest')
         self.block = block
         self.fork = fork
@@ -23,13 +32,9 @@ class HardhatForkProcess:
         atexit.register(self.stop)
 
     def _get_cmd(self) -> list[str]:
-        cmd = self.DEFAULT_CMD
-        if self.fork is not None:
-            cmd.extend(['-f', str(self.fork)])
+        cmd = self.DEFAULT_CMD + ['--fork', self.fork, '--port', str(self.port)]
         if isinstance(self.block, int):
-            cmd.extend(['-n', str(self.block)])
-        if self.port is not None:
-            cmd.extend(['-p', str(self.port)])
+            cmd.extend(['--fork-block-number', str(self.block)])
         return cmd
 
     def start(self):
@@ -43,7 +48,7 @@ class HardhatForkProcess:
         self.procgid = os.getpgid(self.proc.pid)
         while True:  # Wait for process to be ready
             line = self.proc.stdout.readline()
-            if 'Account #19' in line:
+            if '========' in line:
                 break
 
     def stop(self):
