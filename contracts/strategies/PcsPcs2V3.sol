@@ -13,57 +13,43 @@ import {PancakeswapLibrary} from "../libraries/uniswap_v2/PancakeswapLibrary.sol
 
 
 contract PcsPcs2V3 is Withdrawable, CHIBurner {
-    uint256 constant BNB_DENOMINATOR = 16;
+    uint256 constant _DEX0_MASK =        0xfc00000000000000000000000000000000000000000000000000000000000000;
+    uint256 constant _DEX1_MASK =        0x03f0000000000000000000000000000000000000000000000000000000000000;
+    uint256 constant _AMOUNT_EXP_MASK =  0x000fc00000000000000000000000000000000000000000000000000000000000;
+    uint256 constant _AMOUNT_MANT_MASK = 0x00003fff00000000000000000000000000000000000000000000000000000000;
+    uint256 constant _TOKEN_0_MASK =     0x00000000ffffffffffffffffffffffffffffffffffffffff0000000000000000;
+    uint256 constant _TOKEN_1_MASK_0 =   0x000000000000000000000000000000000000000000000000ffffffffffffffff;
+    uint256 constant _TOKEN_1_MASK_1 =   0xffffffffffffffffffffffff0000000000000000000000000000000000000000;
+    uint256 constant _TOKEN_2_MASK =     0x000000000000000000000000ffffffffffffffffffffffffffffffffffffffff;
+
     bytes32 constant initCodeHash1 = hex'd0d4c4cd0848c93cb4fd1f498d7013ee6bfb25783ea21593d5834f5d250ece66';
     bytes32 constant initCodeHash2 = hex'00fb7f630766e6a796048ea87d01acd3068e8ff67d078148a3fa3f4a84f69bd5';
     uint256 constant pcs1Fee = 20;
     uint256 constant pcs2Fee = 25;
+    uint256 constant PCS_1 = 0;
+    uint256 constant PCS_2 = 1;
     address constant pcs1Factory = 0xBCfCcbde45cE874adCB698cC183deBcF17952812;
     address constant pcs2Factory = 0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73;
     address constant WBNB = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c;
-    uint8 constant PCS_1 = 0;
-    uint8 constant PCS_2 = 1;
-    function uint2str(uint _i) internal pure returns (string memory _uintAsString) {
-        if (_i == 0) {
-            return "0";
-        }
-        uint j = _i;
-        uint len;
-        while (j != 0) {
-            len++;
-            j /= 10;
-        }
-        bytes memory bstr = new bytes(len);
-        uint k = len - 1;
-        while (_i != 0) {
-            bstr[k--] = byte(uint8(48 + _i % 10));
-            _i /= 10;
-        }
-        return string(bstr);
-    }
 
-    function swap32_0342(  // 0x00013991
-        bytes32
+    function swap32_bZf(  // 0x000019e2
+        bytes32 data
     ) external discountCHIOn restricted {
         uint256 amountLast;
         address token;
-        uint8 firstDex;
-        uint8 secondDex;
-        uint80 tmpAmount;
-        // Data has structure {uint8 firstDex}{uint8 secondDex}{uint80 amount}{bytes20 middlePath}
+        uint256 firstDex;
+        uint256 secondDex;
+        // Data has structure {uint6 firstDex}{uint6 secondDex}{uint6 amountExp}{uint14 amountMant}{bytes20 token}
         assembly {
-            let ptr := mload(0x40)  // Pointer no next free memory location
-            calldatacopy(ptr, 4, 36)  // load bytes32 input (first 4 bytes are reserved to the function signature)
-            firstDex := mload(sub(ptr, 31))
-            secondDex := mload(sub(ptr, 30))
+            firstDex := shr(250, and(data, _DEX0_MASK))
+            secondDex := shr(244, and(data, _DEX1_MASK))
 
-            // bytes 3-12 hold 1/16th amount as uint80 (can represent values up to 2**84 wei = 19.3M BNB)
-            tmpAmount := mload(sub(ptr, 20))
+            let amountExp := shr(238, and(data, _AMOUNT_EXP_MASK))
+            let amountMant := shr(224, and(data, _AMOUNT_MANT_MASK))
+            amountLast := shl(add(amountExp, 6), amountMant)
 
-            // 20 least significant bytes hold the address
-            token := mload(ptr)
+            token := shr(64, and(data, _TOKEN_0_MASK))
         }
-        amountLast = BNB_DENOMINATOR * tmpAmount;
         (
             address firstPair,
             address secondPair,
@@ -81,8 +67,8 @@ contract PcsPcs2V3 is Withdrawable, CHIBurner {
     }
 
     function _get_pairs_amounts_32(
-        uint8 firstDex,
-        uint8 secondDex,
+        uint256 firstDex,
+        uint256 secondDex,
         address token,
         uint256 amountLast
     ) internal view returns(address firstPair, address secondPair, uint256 amountInFirst, uint256 amountInSecond) {
@@ -106,57 +92,91 @@ contract PcsPcs2V3 is Withdrawable, CHIBurner {
         require(amountInFirst < amountLast, 'LR');
     }
 
-    // function swap64_F5e(  // 0x000217b7
-    //     bytes32,
-    //     address path2
-    // ) external discountCHIOn restricted {
-    //     uint8 firstDex;
-    //     uint8 secondDex;
-    //     uint256 amountLast;
-    //     address[] memory path;
-    //     uint80 tmpAmount;
-    //     // Data has structure {uint8 firstDex}{uint8 secondDex}{uint80 amount}{bytes20 middlePath}
-    //     assembly {
-    //         let ptr := add(mload(0x40), 0x20)  // Set pointer to to the location of path[1] (next free memory from 0x40 plus space for path[0])
-    //         calldatacopy(ptr, 4, 36)  // load bytes32 input (first 4 bytes are reserved to the function signature)
-    //         firstDex := mload(sub(ptr, 31))
-    //         secondDex := mload(sub(ptr, 30))
+    function swap64_Fi4(  // 0x00002189
+        bytes32 data0,
+        bytes32 data1
+    ) external discountCHIOn restricted {
+        uint256 amountLast;
+        uint256 firstDex;
+        uint256 secondDex;
+        address[] memory path;
+        // Data has structure {uint6 firstDex}{uint6 secondDex}{uint6 amountExp}{uint14 amountMant}{bytes20 token0}{bytes20 token1}{bytes20 token2}
+        assembly {
+            firstDex := shr(250, and(data0, _DEX0_MASK))
+            secondDex := shr(244, and(data0, _DEX1_MASK))
 
-    //         // bytes 3-12 hold 1/16th amount as uint80 (can represent values up to 2**84 wei = 19.3M BNB)
-    //         tmpAmount := mload(sub(ptr, 20))
+            let amountExp := shr(238, and(data0, _AMOUNT_EXP_MASK))
+            let amountMant := shr(224, and(data0, _AMOUNT_MANT_MASK))
+            amountLast := shl(add(amountExp, 6), amountMant)
 
-    //         mstore(path, 3)
-    //         mstore(add(path, 0x20), WBNB)
-    //         mstore(add(path, 0x80), WBNB)
-    //     }
-    //     path[2] = path2;
-    //     amountLast = BNB_DENOMINATOR * tmpAmount;
-    //     (
-    //         address[] memory pairs,
-    //         uint256[] memory amounts
-    //     ) = _get_pairs_amounts(firstDex, secondDex, amountLast, path);
-    // }
+            mstore(add(path, 0x20), shr(64, and(data0, _TOKEN_0_MASK)))
+            mstore(add(path, 0x40), add(shl(96, and(data0, _TOKEN_1_MASK_0)), shr(160, and(data1, _TOKEN_1_MASK_1))))
+            let token_2 := and(data1, _TOKEN_2_MASK)
+            switch iszero(token_2)
+            case 1 {
+                mstore(path, 3)
+                mstore(add(path, 0x60), WBNB)
+                mstore(0x40, add(path, 0x80))  // Update free memory pointer
+            }
+            default {
+                mstore(path, 4)
+                mstore(add(path, 0x60), token_2)
+                mstore(add(path, 0x80), WBNB)
+                mstore(0x40, add(path, 0xa0))  // Update free memory pointer
+            }
+        }
+        (
+            address firstPair,
+            uint256 amountInFirst,
+            uint256[] memory amounts,
+            address[] memory pairs
+        ) = _get_pairs_amounts(firstDex, secondDex, amountLast, path);
+        TransferHelper.safeTransfer(WBNB, firstPair, amountInFirst);
+        (address token0,) = PancakeswapLibrary.sortTokens(WBNB, path[0]);
 
-    // function _get_pairs_amounts(
-    //     uint8 firstDex,
-    //     uint8 secondDex,
-    //     uint256 amount,
-    //     address[] memory path
-    // ) internal view returns (address[] memory pairs, uint256[] memory amounts) {
-    //     (address firstFactory, bytes32 firstHash, uint256 firstFee) =
-    //         firstDex == PCS_1
-    //             ? (pcs1Factory, initCodeHash1, pcs1Fee)
-    //             : (pcs2Factory, initCodeHash2, pcs2Fee);
-    //     (address secondFactory, bytes32 secondHash, uint256 secondFee) =
-    //         secondDex == PCS_1
-    //             ? (pcs1Factory, initCodeHash1, pcs1Fee)
-    //             : (pcs2Factory, initCodeHash2, pcs2Fee);
-    //     pairs = new address[](path.length + 1);
-    //     pa = PancakeswapLibrary.pairFor(firstFactory, firstHash, WBNB, path[0]);
-    //     secondPair = PancakeswapLibrary.pairFor(secondFactory, secondHash, WBNB, token);
-    // }
+        (uint256 amount0Out, uint256 amount1Out) = token0 == WBNB ? (uint(0), amounts[0]) : (amounts[0], uint(0));
+        IUniswapV2Pair(firstPair).swap(amount0Out, amount1Out, pairs[0], new bytes(0));
 
-    function flash_oHM(  // 0x00009d17
+        _pcs_swap(amounts, path, pairs);
+    }
+
+    function _get_pairs_amounts(
+        uint256 firstDex,
+        uint256 secondDex,
+        uint256 amountLast,
+        address[] memory path
+    ) internal view returns (address firstPair, uint256 amountInFirst, uint256[] memory amounts, address[] memory pairs) {
+        {  // scope to avoid stack too deep errors
+        (address secondFactory, bytes32 secondHash, uint256 secondFee) =
+            secondDex == PCS_1
+                ? (pcs1Factory, initCodeHash1, pcs1Fee)
+                : (pcs2Factory, initCodeHash2, pcs2Fee);
+        pairs = PancakeswapLibrary.getPairs(secondFactory, secondHash, path);
+        amounts = PancakeswapLibrary.getAmountsInPairs(amountLast, path, pairs, secondFee);
+        }
+        (address firstFactory, bytes32 firstHash, uint256 firstFee) =
+            firstDex == PCS_1
+                ? (pcs1Factory, initCodeHash1, pcs1Fee)
+                : (pcs2Factory, initCodeHash2, pcs2Fee);
+        firstPair = PancakeswapLibrary.pairFor(firstFactory, firstHash, WBNB, path[0]);
+        (uint256 reserveIn, uint256 reserveOut) = PancakeswapLibrary.getPairReserves(firstPair, WBNB, path[0]);
+        amountInFirst = PancakeswapLibrary.getAmountIn(amounts[0], reserveIn, reserveOut, firstFee);
+
+        require(amountInFirst < amountLast, 'LR');
+    }
+
+    function _pcs_swap(uint[] memory amounts, address[] memory path, address[] memory pairs) internal {
+        for (uint i; i < path.length - 1; i++) {
+            (address input, address output) = (path[i], path[i + 1]);
+            (address token0,) = PancakeswapLibrary.sortTokens(input, output);
+            uint amountOut = amounts[i + 1];
+            (uint amount0Out, uint amount1Out) = input == token0 ? (uint(0), amountOut) : (amountOut, uint(0));
+            address to = i == path.length - 2 ? address(this) : pairs[i + 1];
+            IUniswapV2Pair(pairs[i]).swap(amount0Out, amount1Out, to, new bytes(0));
+        }
+    }
+
+    function flash_09lc(  // 0x00000d86
         bytes calldata data,
         uint256 amount
     ) external discountCHIOn restricted {

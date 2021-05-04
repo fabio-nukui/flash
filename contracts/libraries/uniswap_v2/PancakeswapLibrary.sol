@@ -88,4 +88,21 @@ library PancakeswapLibrary {
             amounts[i - 1] = getAmountIn(amounts[i], reserveIn, reserveOut, fee);
         }
     }
+
+    // performs chained pairFor
+    function getPairs(address factory, bytes32 initCodeHash, address[] memory path) internal pure returns (address[] memory pairs) {
+        pairs = new address[](path.length - 1);
+        for (uint i; i < path.length - 1; i++) {
+            pairs[i] = pairFor(factory, initCodeHash, path[i], path[i + 1]);
+        }
+    }
+
+    function getAmountsInPairs(uint amountOut, address[] memory path, address[] memory pairs, uint256 fee) internal view returns (uint[] memory amounts) {
+        amounts = new uint[](path.length);
+        amounts[amounts.length - 1] = amountOut;
+        for (uint i = path.length - 1; i > 0; i--) {
+            (uint reserveIn, uint reserveOut) = getPairReserves(pairs[i - 1], path[i - 1], path[i]);
+            amounts[i - 1] = getAmountIn(amounts[i], reserveIn, reserveOut, fee);
+        }
+    }
 }
