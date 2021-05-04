@@ -22,14 +22,14 @@ log = logging.getLogger(__name__)
 RUNNING_STRATEGIES = os.environ['RUNNING_STRATEGIES'].split(',')
 MIN_CONFIRMATIONS = 2
 MIN_ETHERS_WITHDRAW = 0.1  # About 100x the transaction fees on transfer + swap
-PRICE_CHANGE_WITHDRAW_IMPACT = 4  # At 4x, a 25% price decrease last 24h reduces min_withdraw to 0
+PRICE_CHANGE_WITHDRAW_IMPACT = 3  # At 3x, a 33% price decrease last 24h reduces min_withdraw to 0
 MAX_SLIPPAGE = 0.4
 RUN_INTERVAL = 180
 BLOCKS24H = 28_800 if configs.CHAIN_ID == 56 else 6_520
 DEFAULT_PRICE_CHANGE = -0.5  # By default, penalize tokens that we cannot extract prices
 
 # $5.000 reserve allow for arbitrage operation of $10.000 gross profit at 50% share of gas
-NATIVE_CURRENCY_USD_RESERVE = 5_000
+NATIVE_CURRENCY_USD_RESERVE = 100_000
 CHI_MIN_CONTRACT_RESERVE = 300
 CHI_CONTRACT_TOP_UP = 600
 CHI_MINT_PRICE = 181530991848198  # Based on minting 600 CHI at 5.000000005 Gwei
