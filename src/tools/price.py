@@ -77,7 +77,7 @@ def get_chainlink_price_usd(asset: Union[str, Token], web3: Web3 = WEB3) -> floa
 
 @ttl_cache(maxsize=100, ttl=GAS_PRICE_CACHE_TTL)
 def get_gas_price(web3: Web3 = WEB3) -> int:
-    return int(WEB3.eth.gas_price * configs.BASELINE_GAS_PRICE_PREMIUM)
+    return round(WEB3.eth.gas_price * configs.BASELINE_GAS_PRICE_PREMIUM)
 
 
 def get_gas_cost_native_tokens(gas: int, web3: Web3 = WEB3) -> float:
@@ -127,7 +127,7 @@ def get_price_usd(token: Token, pools: list[LiquidityPool], web3: Web3 = WEB3) -
                 continue
             reserve_token_price = get_chainlink_price_usd(reserve.token, web3)
             liquidity = reserve_token_price * reserve.amount_in_units
-            amount_single_usd = int((1 / reserve_token_price) * 10 ** reserve.token.decimals)
+            amount_single_usd = round((1 / reserve_token_price) * 10 ** reserve.token.decimals)
             reserve_token_usd_amount = TokenAmount(reserve.token, amount_single_usd)
             token_usd_amount = pool.get_amount_out(reserve_token_usd_amount, token)
             token_usd_price = 1 / token_usd_amount.amount_in_units

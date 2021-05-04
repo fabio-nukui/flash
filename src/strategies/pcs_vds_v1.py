@@ -38,9 +38,9 @@ class PcsVdsPair(ArbitragePairV1):
         gas_cost_multiplier = 1 + GAS_INCREASE_WITH_HOP * num_hops_extra_hops
 
         if isinstance(self.first_dex, PancakeswapDex):
-            return int(GAS_COST_PCS_FIRST_CHI_ON * gas_cost_multiplier)
+            return round(GAS_COST_PCS_FIRST_CHI_ON * gas_cost_multiplier)
         else:
-            return int(GAS_COST_VDS_FIRST_CHI_ON * gas_cost_multiplier)
+            return round(GAS_COST_VDS_FIRST_CHI_ON * gas_cost_multiplier)
 
     def _get_contract_function(self):
         if type(self.first_dex) == PancakeswapDex:

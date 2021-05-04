@@ -100,8 +100,8 @@ class ArbitragePairV1:
 
         optimization_params = optimization_params or {}
         self.opt_initial_value = optimization_params.get('initial_value', INITIAL_VALUE)
-        self.opt_increment = optimization_params.get('increment', INCREMENT)
-        self.opt_tolerance = optimization_params.get('tolerance', TOLERANCE_USD)
+        self.opt_dx = optimization_params.get('increment', INCREMENT)
+        self.opt_tol = optimization_params.get('tolerance', TOLERANCE_USD)
         self.opt_max_iter = optimization_params.get('max_iter', MAX_ITERATIONS)
         self.opt_use_fallback = optimization_params.get('use_fallback', USE_FALLBACK)
 
@@ -214,7 +214,7 @@ class ArbitragePairV1:
             self.token_last, self.reference_price_pools, self.web3)
         amount_last_initial = TokenAmount(
             self.token_last,
-            int(self.opt_initial_value / usd_price_token_last * 10 ** self.token_last.decimals)
+            round(self.opt_initial_value / usd_price_token_last * 10 ** self.token_last.decimals)
         )
         result_initial = self.estimate_result(amount_last_initial)
         if result_initial < 0:
@@ -224,8 +224,8 @@ class ArbitragePairV1:
             int_amount_last, int_result = tools.optimization.optimizer_second_order(
                 func=self._estimate_result_int,
                 x0=amount_last_initial.amount,
-                dx=int(self.opt_increment * 10 ** self.token_last.decimals / usd_price_token_last),
-                tol=int(self.opt_tolerance * 10 ** self.token_last.decimals / usd_price_token_last),
+                dx=round(self.opt_dx * 10 ** self.token_last.decimals / usd_price_token_last),
+                tol=round(self.opt_tol * 10 ** self.token_last.decimals / usd_price_token_last),
                 max_iter=self.opt_max_iter,
                 use_fallback=self.opt_use_fallback,
             )
@@ -264,7 +264,7 @@ class ArbitragePairV1:
         gas_premium = max(gas_premium, 1.0)
 
         baseline_gas_price = tools.price.get_gas_price()
-        gas_price = int(baseline_gas_price * gas_premium)
+        gas_price = round(baseline_gas_price * gas_premium)
         if gas_price > self.max_gas_price:
             gas_price, gas_premium = self._process_high_gas_price(baseline_gas_price, gas_price)
         self.gas_price = gas_price

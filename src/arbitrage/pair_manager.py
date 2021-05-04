@@ -469,9 +469,10 @@ class PairManager:
                     if load_low_liquidity:
                         min_amount_last = TokenAmount(token_last, 0)
                     else:
+                        price_unit = prices[token_last] * 10 ** token_last.decimals
                         min_amount_last = TokenAmount(
                             token_last,
-                            int(MIN_AMOUNT_OUT_USD / prices[token_last] * 10 ** token_last.decimals)
+                            round(MIN_AMOUNT_OUT_USD / price_unit)
                         )
                     first_dex_routes = _get_routes(
                         first_dex.pools,

@@ -10,8 +10,8 @@ from core import LiquidityPool, Token, TokenAmount, Trade
 from core.base import TradeType
 from tools.cache import ttl_cache
 
-LENDING_PRECISION = int(10 ** 18)
-PRECISION = int(10 ** 18)
+LENDING_PRECISION = 10 ** 18
+PRECISION = 10 ** 18
 FEE_DENOMINATOR = 10_000  # We use basis points (1/10_000) instead of vyper contract's 1/1e10
 N_ITERATIONS = 255  # Number of iterations for numeric calculations
 
@@ -41,7 +41,7 @@ class CurvePool(LiquidityPool):
         )
 
         self.n_coins = len(self.tokens)
-        self._rates = tuple(int(10 ** t.decimals) for t in self.tokens)
+        self._rates = tuple(10 ** t.decimals for t in self.tokens)
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.name})'

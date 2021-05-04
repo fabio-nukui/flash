@@ -83,7 +83,7 @@ class ArbitragePair:
         if self._is_set:
             self._reset()
         amount_last_initial = TokenAmount(
-            self.token_last, int(INITIAL_VALUE * 10 ** self.token_last.decimals))
+            self.token_last, INITIAL_VALUE * 10 ** self.token_last.decimals)
         result_initial = self._estimate_result(amount_last_initial)
         if result_initial < 0:
             # If gross result is negative even with small amount gross, skip optimization
@@ -94,8 +94,8 @@ class ArbitragePair:
         int_amount_last, int_result = tools.optimization.optimizer_second_order(
             func=self._estimate_result_int,
             x0=amount_last_initial.amount,
-            dx=int(INCREMENT * 10 ** self.token_last.decimals),
-            tol=int(TOLERANCE * 10 ** self.token_last.decimals),
+            dx=round(INCREMENT * 10 ** self.token_last.decimals),
+            tol=round(TOLERANCE * 10 ** self.token_last.decimals),
             max_iter=MAX_ITERATIONS,
         )
         if int_amount_last < 0:  # Fail-safe in case optimizer returns negative inputs
@@ -117,7 +117,7 @@ class ArbitragePair:
         gas_premium = GAS_SHARE_OF_PROFIT * gross_result_usd / gas_cost_usd
         gas_premium = max(gas_premium, 1)
 
-        self._gas_price = int(tools.price.get_gas_price() * gas_premium)
+        self._gas_price = round(tools.price.get_gas_price() * gas_premium)
         self.estimated_net_result_usd = gross_result_usd - gas_cost_usd * gas_premium
 
     def execute(self):

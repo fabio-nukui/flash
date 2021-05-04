@@ -107,7 +107,7 @@ class TokenAmount:
         if amount is not None:
             assert -MAX_UINT_256 < amount < MAX_UINT_256, f'{amount=} is out of bounds'
         self.token = token
-        self.amount = int(amount) if amount is not None else amount
+        self.amount = round(amount) if amount is not None else amount
 
         self.symbol = self.token.symbol
 
@@ -155,7 +155,7 @@ class TokenAmount:
     @_not_empty
     def __add__(self, other: Union[TokenAmount, int, float]) -> TokenAmount:
         if isinstance(other, (int, float)):
-            return TokenAmount(self.token, int(self.amount + other))
+            return TokenAmount(self.token, round(self.amount + other))
         if isinstance(other, TokenAmount):
             return TokenAmount(self.token, self.amount + other.amount)
         return NotImplemented
@@ -164,7 +164,7 @@ class TokenAmount:
     @_not_empty
     def __sub__(self, other: Union[TokenAmount, int, float]) -> TokenAmount:
         if isinstance(other, (int, float)):
-            return TokenAmount(self.token, int(self.amount - other))
+            return TokenAmount(self.token, round(self.amount - other))
         if isinstance(other, TokenAmount):
             return TokenAmount(self.token, self.amount - other.amount)
         return NotImplemented
@@ -172,7 +172,7 @@ class TokenAmount:
     @_not_empty
     def __mul__(self, other: Union[int, float]) -> TokenAmount:
         if isinstance(other, (int, float)):
-            return TokenAmount(self.token, int(self.amount * other))
+            return TokenAmount(self.token, round(self.amount * other))
         return NotImplemented
 
     @_same_token
@@ -185,7 +185,7 @@ class TokenAmount:
     @_not_empty
     def __floordiv__(self, other: Union[int, float]) -> TokenAmount:
         if isinstance(other, (int, float)):
-            return TokenAmount(self.token, int(self.amount // other))
+            return TokenAmount(self.token, round(self.amount // other))
         return NotImplemented
 
 

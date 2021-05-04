@@ -62,7 +62,7 @@ def newton_optimizer(
         f_x_im = func(x_i - dx)
         first_derivative = (f_x_ip - f_x_im) / (2 * dx)
         second_derivative = (f_x_ip - 2 * f_x_i + f_x_im) / (dx ** 2)
-        x_i_next = int(x_i - first_derivative / second_derivative)
+        x_i_next = round(x_i - first_derivative / second_derivative)
         if abs(x_i_next - x_i) < tol:
             break
         x_i = x_i_next

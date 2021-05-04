@@ -90,7 +90,7 @@ def exchange_1inch(
         timeout=TIMEOUT_REQUESTS
     )
     tx = res.json()['tx']
-    tx['gas'] = int(tx['gas'] * 1.25)
+    tx['gas'] = round(tx['gas'] * 1.25)
     tx['value'] = int(tx['value'])
     tx['gasPrice'] = int(tx['gasPrice'])
     tx['to'] = web3.toChecksumAddress(tx['to'])

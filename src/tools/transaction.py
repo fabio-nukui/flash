@@ -89,7 +89,7 @@ class TransactionCounter:
         self.address = address
         self.web3 = web3
         self.poll_interval = poll_interval
-        self.max_checks_stay_ahead = int(MAX_SECONDS_TX_COUNTER_STAY_AHEAD / poll_interval)
+        self.max_checks_stay_ahead = round(MAX_SECONDS_TX_COUNTER_STAY_AHEAD / poll_interval)
 
         self.lock = Lock()
         self._count = web3.eth.get_transaction_count(address)

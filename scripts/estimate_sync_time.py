@@ -102,7 +102,7 @@ class Blocks:
     def latest_block(self):
         now = datetime.utcnow()
         seconds_from_reference = (now - REFERENCE_BLOCK['t']).total_seconds()
-        block = int(REFERENCE_BLOCK['n'] + seconds_from_reference / SECONDS_PER_BLOCK)
+        block = round(REFERENCE_BLOCK['n'] + seconds_from_reference / SECONDS_PER_BLOCK)
         return {
             't': now,
             'n': block
