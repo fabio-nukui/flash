@@ -59,7 +59,7 @@ contract PancakeswapEllipsis3PoolV2 is IPancakeCallee, Withdrawable {
     }
 
     function pancakeCall(
-        address sender,
+        address,
         uint256 amount0,
         uint256 amount1,
         bytes calldata data

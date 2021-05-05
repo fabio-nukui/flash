@@ -69,10 +69,10 @@ contract PancakeswapEllipsis3PoolV1B is IPancakeCallee, Withdrawable, CHIBurner 
     }
 
     function pancakeCall(
-        address sender,
+        address,
         uint256 amount0,
         uint256 amount1,
-        bytes calldata data
+        bytes calldata
     ) external override {
         address[] memory path = new address[](2);
         uint256 amountSendCurve;
