@@ -1,5 +1,5 @@
 {
-  "contractName": "PcsPcs2V2B",
+  "contractName": "PcsPcs2V3",
   "abi": [
     {
       "inputs": [],
@@ -23,7 +23,8 @@
     },
     {
       "stateMutability": "payable",
-      "type": "receive"
+      "type": "receive",
+      "payable": true
     },
     {
       "inputs": [
@@ -34,11 +35,11 @@
         },
         {
           "internalType": "uint256",
-          "name": "amountLast",
+          "name": "amount",
           "type": "uint256"
         }
       ],
-      "name": "swap_b2I",
+      "name": "flash_09lc",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -70,6 +71,37 @@
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "data",
+          "type": "bytes32"
+        }
+      ],
+      "name": "swap32_bZf",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "data0",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "data1",
+          "type": "bytes32"
+        }
+      ],
+      "name": "swap64_Fi4",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
     }
   ],
   "compiler": {
@@ -80,8 +112,8 @@
     "56": {
       "events": {},
       "links": {},
-      "address": "0xeFfc9B1AD15F5E29f589192F9175D6945D14761C",
-      "transactionHash": "0x1b03f3c252a344e2f1a57258ef884d91c86717ff7e7c91946e666a1ee241ec9f"
+      "address": "0xf0a5712A38b188d98724351D0a2c234194905CCB",
+      "transactionHash": "0xc63cdf7512dd60478930a99506c77583b53d062bf837d215619867a3be851837"
     }
   },
   "schemaVersion": "3.3.4"
