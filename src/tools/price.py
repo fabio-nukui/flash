@@ -15,7 +15,7 @@ from tools.cache import ttl_cache
 CHAINLINK_PRICE_FEED_ABI = json.load(open('abis/ChainlinkPriceFeed.json'))
 WRAPPED_CURRENCY_TOKEN = Token(
     chain_id=configs.CHAIN_ID,
-    **json.load(open('addresses/wrapped_currency_tokens.json'))[str(configs.CHAIN_ID)]
+    **json.load(open('addresses/wrapped_currency_tokens.json'))[str(configs.CHAIN_ID)],
 )
 
 _USD_PRICE_FEED_ADDRESSES = \

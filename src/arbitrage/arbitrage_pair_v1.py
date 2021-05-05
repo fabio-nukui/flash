@@ -14,6 +14,8 @@ from core.base import TradeType
 from dex import DexProtocol
 from exceptions import InsufficientLiquidity, NotProfitable, OptimizationError
 
+from .encode_data import decompose_amount
+
 log = logging.getLogger(__name__)
 
 # Strategy parameters
@@ -105,14 +107,15 @@ class ArbitragePairV1:
         self.opt_max_iter = optimization_params.get('max_iter', MAX_ITERATIONS)
         self.opt_use_fallback = optimization_params.get('use_fallback', USE_FALLBACK)
 
-        wrapped_currency_token = tools.price.get_wrapped_currency_token()
-        if (
-            route_0.token_in == route_1.token_out == wrapped_currency_token
+        self.wrapped_currency = tools.price.get_wrapped_currency_token()
+        self.wrapped_currency.contract = web3.eth.contract(
+            address=self.wrapped_currency.address,
+            abi=self.wrapped_currency.abi,
+        )
+        self.w_swap = (
+            route_0.token_in == route_1.token_out == self.wrapped_currency
             and self.dex_0 != self.dex_1
-        ):
-            self.w_swap = True
-        else:
-            self.w_swap = False
+        )
 
         self.result_multiplier: float = TOKEN_MULTIPLIERS.get(self.token_first, 1.0)
         self.flag_disabled = False
@@ -127,9 +130,12 @@ class ArbitragePairV1:
         self.timestamp_found: float = 0.0
         self.block_found: int = None
         self.amount_last = TokenAmount(token_last)
+        self._amount_last_exp: int = None
+        self._amount_last_mant: int = None
         self.estimated_result = TokenAmount(token_first)
         self.trade_0: TradePools = None
         self.trade_1: TradePairs = None
+        self.execute_w_swap = False
         self.result_token_usd_price: float = 0.0
         self.estimated_gross_result_usd = 0.0
         self.gas_price = 0
@@ -179,6 +185,10 @@ class ArbitragePairV1:
     @property
     def adjusted_profit(self) -> float:
         return self.estimated_net_result_usd * self.result_multiplier
+
+    def _get_contract_wrapped_currency_balance(self) -> TokenAmount:
+        balance = self.wrapped_currency.contract.functions.balanceOf(self.contract.address).call()
+        return TokenAmount(self.wrapped_currency, balance)
 
     def _estimate_result_int(self, amount_last_int: int) -> int:
         amount_last = TokenAmount(self.token_last, amount_last_int)
@@ -258,6 +268,11 @@ class ArbitragePairV1:
         self.flag_set = True
         self.timestamp_found = datetime.now().timestamp()
         self.block_found = block_number
+        if self.w_swap and amount_last < self._get_contract_wrapped_currency_balance():
+            amount, exp, mant = decompose_amount(amount_last)
+            self._amount_last_exp = exp
+            self._amount_last_mant = mant
+            amount_last.amount = amount
         self.amount_last = amount_last
         self.estimated_result = estimated_result
         self.trade_0, self.trade_1 = self.get_arbitrage_trades(amount_last)
@@ -319,6 +334,7 @@ class ArbitragePairV1:
             'estimated_net_result_usd': self.estimated_net_result_usd,
             'gas_share_of_profit': self.gas_share_of_profit,
             'base_gas_cost': self.base_gas_cost,
+            'fn_name': self._get_contract_function().fn_name,
         }
 
     def get_execution_stats(self) -> dict:
@@ -350,9 +366,12 @@ class ArbitragePairV1:
         self.timestamp_found = 0.0
         self.block_found = None
         self.amount_last = TokenAmount(self.token_last)
+        self._amount_last_exp = None
+        self._amount_last_mant = None
         self.estimated_result = TokenAmount(self.token_first)
         self.trade_0 = None
         self.trade_1 = None
+        self.execute_w_swap = False
         self.result_token_usd_price = 0.0
         self.estimated_gross_result_usd = 0.0
         self.gas_price = 0
