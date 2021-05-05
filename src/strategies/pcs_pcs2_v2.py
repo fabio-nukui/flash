@@ -27,7 +27,7 @@ GAS_INCREASE_WITH_HOP = 0.349470567513196
 GAS_SHARE_OF_PROFIT = 0.24
 MAX_GAS_MULTIPLIER = 7
 
-# Created with notebooks/pcs_mdx_v1.ipynb (2021-04-22)
+# Created with notebooks/strageties/pcs_pcs2_v1.ipynb (2021-05-01)
 ADDRESS_DIRECTORY = 'strategy_files/pcs_pcs2_v1'
 CONTRACT_DATA_FILEPATH = 'deployed_contracts/PcsPcs2V2B.json'
 
@@ -51,6 +51,7 @@ class PcsPcs2Pair(ArbitragePairV1):
         path = ''.join(t.address[2:] for t in self.trade_1.route.tokens)
         return {
             'data': f'0x{dex_1}{dex_0}{path}',
+            'amountLast': self.amount_last.amount,
         }
 
 

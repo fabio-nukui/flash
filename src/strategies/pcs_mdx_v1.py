@@ -45,8 +45,11 @@ class PcsMdxPair(ArbitragePairV1):
             return self.contract.functions.swapPcsFirst
         return self.contract.functions.swapMdxFirst
 
-    def _get_path_argument(self):
-        return [t.address for t in self.trade_1.route.tokens]
+    def _get_function_arguments(self) -> dict:
+        return {
+            'path': [t.address for t in self.trade_1.route.tokens],
+            'amountLast': self.amount_last.amount,
+        }
 
 
 def load_arbitrage_pairs(

@@ -56,7 +56,10 @@ class Pcs2VdsPair(ArbitragePairV1):
                 self.token_last.address,
                 *(p.address for p in self.trade_1.route.pools)
             ]
-        return {'path': path}
+        return {
+            'path': path,
+            'amountLast': self.amount_last.amount,
+        }
 
 
 def get_share_of_profit(params: dict):

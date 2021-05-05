@@ -298,7 +298,6 @@ class ArbitragePairV1:
         return {
             'func': self._get_contract_test_function() if test else self._get_contract_function(),
             **self._get_function_arguments(),
-            'amountLast': self.amount_last.amount,
             'max_gas_': int(self.gas_cost * self.max_gas_multiplier),
             'gas_price_': self.gas_price,
         }
