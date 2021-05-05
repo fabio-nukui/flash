@@ -9,9 +9,9 @@ module.exports = {
     dev: {
       provider: () => new HDWalletProvider({
         privateKeys: [privateKey],
-        providerOrUrl: "http://localhost:8546"
+        providerOrUrl: "http://localhost:8547"
       }),
-      port: 8546,
+      port: 8547,
       network_id: '*',
       gas: 9000000,
       gasPrice: 5000000000,
