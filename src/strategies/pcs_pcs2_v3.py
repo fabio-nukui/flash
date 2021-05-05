@@ -57,7 +57,7 @@ class PcsPcs2Pair(ArbitragePairV1):
     def _get_function_arguments(self) -> dict:
         dex_0 = 0 if type(self.dex_0) == PancakeswapDex else 1
         dex_1 = 0 if type(self.dex_1) == PancakeswapDex else 1
-        if not self.w_swap:
+        if not self.execute_w_swap:
             path = ''.join(t.address[2:] for t in self.trade_1.route.tokens)
             return {
                 'data': f'0x{dex_0:02d}{dex_1:02d}{path}',

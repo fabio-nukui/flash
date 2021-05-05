@@ -269,6 +269,7 @@ class ArbitragePairV1:
         self.timestamp_found = datetime.now().timestamp()
         self.block_found = block_number
         if self.w_swap and amount_last < self._get_contract_wrapped_currency_balance():
+            self.execute_w_swap = True
             amount, exp, mant = decompose_amount(amount_last)
             self._amount_last_exp = exp
             self._amount_last_mant = mant
