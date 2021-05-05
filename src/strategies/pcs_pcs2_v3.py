@@ -61,7 +61,7 @@ class PcsPcs2Pair(ArbitragePairV1):
             path = ''.join(t.address[2:] for t in self.trade_1.route.tokens)
             return {
                 'data': f'0x{dex_0:02d}{dex_1:02d}{path}',
-                'amountLast': self.amount_last.amount,
+                'amount': self.amount_last.amount,
             }
         if len(self.trade_1.route.pools) == 1:
             data = arbitrage.encode_data32(
