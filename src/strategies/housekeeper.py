@@ -124,9 +124,9 @@ class Strategy:
         return f'{self.__class__.__name__}({self.name})'
 
     def _adjust_for_reserve(self, token_amount: TokenAmount, native_amount: float):
-        if token_amount.amount not in self.reserves:
+        if token_amount.token not in self.reserves:
             return token_amount, native_amount
-        adjusted_amount = token_amount - self.reserves[token_amount.amount]
+        adjusted_amount = token_amount - self.reserves[token_amount.token]
         if adjusted_amount < 0:
             return TokenAmount(token_amount.token, 0), 0.0
         return adjusted_amount, native_amount * adjusted_amount.amount / token_amount.amount
