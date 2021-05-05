@@ -26,21 +26,21 @@ contract PcsPcs2V3 is Withdrawable, CHIBurner {
     bytes32 constant initCodeHash2 = hex'00fb7f630766e6a796048ea87d01acd3068e8ff67d078148a3fa3f4a84f69bd5';
     uint256 constant pcs1Fee = 20;
     uint256 constant pcs2Fee = 25;
-    uint256 constant PCS_1 = 0;
-    uint256 constant PCS_2 = 1;
     address constant pcs1Factory = 0xBCfCcbde45cE874adCB698cC183deBcF17952812;
     address constant pcs2Factory = 0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73;
     address constant WBNB = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c;
+    uint8 constant PCS_1 = 0;
+    uint8 constant PCS_2 = 1;
 
     function flash_09lc(  // 0x00000d86
         bytes calldata data,
         uint256 amount
     ) external discountCHIOn restricted {
-        (uint8 firstDex,, address[] memory path) = AddressArrayEncoder.decodeWithHeader2(data);
+        (,uint8 dex1, address[] memory path) = AddressArrayEncoder.decodeWithHeader2(data);
         address pcs1Pair;
         address token0;
         {  // Scope to avoid stack too deep error
-        (address firstFactory, bytes32 firstHash) = firstDex == PCS_1 ? (pcs1Factory, initCodeHash1) : (pcs2Factory, initCodeHash2);
+        (address firstFactory, bytes32 firstHash) = dex1 == PCS_1 ? (pcs1Factory, initCodeHash1) : (pcs2Factory, initCodeHash2);
         pcs1Pair = PancakeswapLibrary.pairFor(firstFactory, firstHash, path[path.length - 2], path[path.length - 1]);
         (token0, ) = PancakeswapLibrary.sortTokens(path[path.length - 2], path[path.length - 1]);
         }
@@ -55,24 +55,24 @@ contract PcsPcs2V3 is Withdrawable, CHIBurner {
         uint256 amount1,
         bytes calldata data
     ) external {
-        (uint8 firstDex, uint8 secondDex, address[] memory path) = AddressArrayEncoder.decodeWithHeader2(data);
+        (uint256 dex0, uint256 dex1, address[] memory path) = AddressArrayEncoder.decodeWithHeader2(data);
         uint256 amountSendPair = amount0 == 0 ? amount1 : amount0;
 
-        (address firstFactory, bytes32 firstHash, uint256 firstFee) =
-            firstDex == PCS_1
+        (address factory0, bytes32 hash_0, uint256 fee0) =
+            dex0 == PCS_1
                 ? (pcs1Factory, initCodeHash1, pcs1Fee)
                 : (pcs2Factory, initCodeHash2, pcs2Fee);
-        (address secondFactory, bytes32 secondHash, uint256 secondFee) =
-            secondDex == PCS_1
+        (address factory1, bytes32 hash_1, uint256 fee1) =
+            dex1 == PCS_1
                 ? (pcs1Factory, initCodeHash1, pcs1Fee)
                 : (pcs2Factory, initCodeHash2, pcs2Fee);
 
-        uint256[] memory amounts = PancakeswapLibrary.getAmountsIn(firstFactory, firstHash, amountSendPair, path, firstFee);
-        exchangePcs(secondFactory, secondHash, secondFee, path[path.length - 1], path[0], amountSendPair, amounts[0]);
+        uint256[] memory amounts = PancakeswapLibrary.getAmountsIn(factory1, hash_1, amountSendPair, path, fee1);
+        exchangePcs(factory0, hash_0, fee0, path[path.length - 1], path[0], amountSendPair, amounts[0]);
 
-        address firstPair = PancakeswapLibrary.pairFor(firstFactory, firstHash, path[0], path[1]);
+        address firstPair = PancakeswapLibrary.pairFor(factory1, hash_1, path[0], path[1]);
         TransferHelper.safeTransfer(path[0], firstPair, amounts[0]);
-        _pcs_swap(firstFactory, firstHash, amounts, path);
+        _pcs_swap(factory1, hash_1, amounts, path);
     }
 
     function exchangePcs(
@@ -113,12 +113,12 @@ contract PcsPcs2V3 is Withdrawable, CHIBurner {
     ) external discountCHIOn restricted {
         uint256 amountLast;
         address token;
-        uint256 firstDex;
-        uint256 secondDex;
-        // Data has structure {uint6 firstDex}{uint6 secondDex}{uint6 amountExp}{uint14 amountMant}{bytes20 token}
+        uint8 dex0;
+        uint8 dex1;
+        // Data has structure {uint6 dex0}{uint6 dex1}{uint6 amountExp}{uint14 amountMant}{bytes20 token}
         assembly {
-            firstDex := shr(250, and(data, _DEX0_MASK))
-            secondDex := shr(244, and(data, _DEX1_MASK))
+            dex0 := shr(250, and(data, _DEX0_MASK))
+            dex1 := shr(244, and(data, _DEX1_MASK))
 
             let amountExp := shr(238, and(data, _AMOUNT_EXP_MASK))
             let amountMant := shr(224, and(data, _AMOUNT_MANT_MASK))
@@ -127,45 +127,46 @@ contract PcsPcs2V3 is Withdrawable, CHIBurner {
             token := shr(64, and(data, _TOKEN_0_MASK))
         }
         (
-            address firstPair,
-            address secondPair,
-            uint256 amountInFirst,
-            uint256 amountInSecond
-        ) = _get_pairs_amounts32(firstDex, secondDex, token, amountLast);
-        TransferHelper.safeTransfer(WBNB, firstPair, amountInFirst);
+            address pair0,
+            address pair1,
+            uint256 amountIn0,
+            uint256 amountIn1
+        ) = _get_pairs_amounts32(dex0, dex1, token, amountLast);
+        TransferHelper.safeTransfer(WBNB, pair0, amountIn0);
+
         (address token0,) = PancakeswapLibrary.sortTokens(WBNB, token);
 
-        (uint256 amount0Out, uint256 amount1Out) = token0 == WBNB ? (uint(0), amountInSecond) : (amountInSecond, uint(0));
-        IUniswapV2Pair(firstPair).swap(amount0Out, amount1Out, secondPair, new bytes(0));
+        (uint256 amount0Out, uint256 amount1Out) = token0 == WBNB ? (uint(0), amountIn1) : (amountIn1, uint(0));
+        IUniswapV2Pair(pair0).swap(amount0Out, amount1Out, pair1, new bytes(0));
 
         (amount0Out, amount1Out) = token0 == WBNB ? (amountLast, uint(0)) : (uint(0), amountLast);
-        IUniswapV2Pair(secondPair).swap(amount0Out, amount1Out, address(this), new bytes(0));
+        IUniswapV2Pair(pair1).swap(amount0Out, amount1Out, address(this), new bytes(0));
     }
 
     function _get_pairs_amounts32(
-        uint256 firstDex,
-        uint256 secondDex,
+        uint8 dex0,
+        uint8 dex1,
         address token,
         uint256 amountLast
-    ) internal view returns(address firstPair, address secondPair, uint256 amountInFirst, uint256 amountInSecond) {
+    ) internal view returns(address pair0, address pair1, uint256 amountIn0, uint256 amountIn1) {
         {  // scope to avoid stack too deep errors
-        (address secondFactory, bytes32 secondHash, uint256 secondFee) =
-            secondDex == PCS_1
+        (address factory1, bytes32 hash_1, uint256 fee1) =
+            dex1 == PCS_1
                 ? (pcs1Factory, initCodeHash1, pcs1Fee)
                 : (pcs2Factory, initCodeHash2, pcs2Fee);
-        secondPair = PancakeswapLibrary.pairFor(secondFactory, secondHash, WBNB, token);
-        (uint256 reserveIn, uint256 reserveOut) = PancakeswapLibrary.getPairReserves(secondPair, token, WBNB);
-        amountInSecond = PancakeswapLibrary.getAmountIn(amountLast, reserveIn, reserveOut, secondFee);
+        pair1 = PancakeswapLibrary.pairFor(factory1, hash_1, WBNB, token);
+        (uint256 reserveIn, uint256 reserveOut) = PancakeswapLibrary.getPairReserves(pair1, token, WBNB);
+        amountIn1 = PancakeswapLibrary.getAmountIn(amountLast, reserveIn, reserveOut, fee1);
         }
-        (address firstFactory, bytes32 firstHash, uint256 firstFee) =
-            firstDex == PCS_1
+        (address factory0, bytes32 hash_0, uint256 fee0) =
+            dex0 == PCS_1
                 ? (pcs1Factory, initCodeHash1, pcs1Fee)
                 : (pcs2Factory, initCodeHash2, pcs2Fee);
-        firstPair = PancakeswapLibrary.pairFor(firstFactory, firstHash, WBNB, token);
-        (uint256 reserveIn, uint256 reserveOut) = PancakeswapLibrary.getPairReserves(firstPair, WBNB, token);
-        amountInFirst = PancakeswapLibrary.getAmountIn(amountInSecond, reserveIn, reserveOut, firstFee);
+        pair0 = PancakeswapLibrary.pairFor(factory0, hash_0, WBNB, token);
+        (uint256 reserveIn, uint256 reserveOut) = PancakeswapLibrary.getPairReserves(pair0, WBNB, token);
+        amountIn0 = PancakeswapLibrary.getAmountIn(amountIn1, reserveIn, reserveOut, fee0);
 
-        require(amountInFirst < amountLast, 'LR');
+        require(amountIn0 < amountLast, 'LR');
     }
 
     function swap64_Fi4(  // 0x00002189
@@ -173,13 +174,13 @@ contract PcsPcs2V3 is Withdrawable, CHIBurner {
         bytes32 data1
     ) external discountCHIOn restricted {
         uint256 amountLast;
-        uint256 firstDex;
-        uint256 secondDex;
+        uint8 dex0;
+        uint8 dex1;
         address[] memory path;
-        // Data has structure {uint6 firstDex}{uint6 secondDex}{uint6 amountExp}{uint14 amountMant}{bytes20 token0}{bytes20 token1}{bytes20 token2}
+        // Data has structure {uint6 dex0}{uint6 dex1}{uint6 amountExp}{uint14 amountMant}{bytes20 token0}{bytes20 token1}{bytes20 token2}
         assembly {
-            firstDex := shr(250, and(data0, _DEX0_MASK))
-            secondDex := shr(244, and(data0, _DEX1_MASK))
+            dex0 := shr(250, and(data0, _DEX0_MASK))
+            dex1 := shr(244, and(data0, _DEX1_MASK))
 
             let amountExp := shr(238, and(data0, _AMOUNT_EXP_MASK))
             let amountMant := shr(224, and(data0, _AMOUNT_MANT_MASK))
@@ -202,43 +203,43 @@ contract PcsPcs2V3 is Withdrawable, CHIBurner {
             }
         }
         (
-            address firstPair,
-            uint256 amountInFirst,
+            address pair0,
+            uint256 amountIn0,
             uint256[] memory amounts,
             address[] memory pairs
-        ) = _get_pairs_amounts64(firstDex, secondDex, amountLast, path);
-        TransferHelper.safeTransfer(WBNB, firstPair, amountInFirst);
+        ) = _get_pairs_amounts64(dex0, dex1, amountLast, path);
+        TransferHelper.safeTransfer(WBNB, pair0, amountIn0);
         (address token0,) = PancakeswapLibrary.sortTokens(WBNB, path[0]);
 
         (uint256 amount0Out, uint256 amount1Out) = token0 == WBNB ? (uint(0), amounts[0]) : (amounts[0], uint(0));
-        IUniswapV2Pair(firstPair).swap(amount0Out, amount1Out, pairs[0], new bytes(0));
+        IUniswapV2Pair(pair0).swap(amount0Out, amount1Out, pairs[0], new bytes(0));
 
         _pcs_swap(amounts, path, pairs);
     }
 
     function _get_pairs_amounts64(
-        uint256 firstDex,
-        uint256 secondDex,
+        uint8 dex0,
+        uint8 dex1,
         uint256 amountLast,
         address[] memory path
-    ) internal view returns (address firstPair, uint256 amountInFirst, uint256[] memory amounts, address[] memory pairs) {
+    ) internal view returns (address pair0, uint256 amountIn0, uint256[] memory amounts, address[] memory pairs) {
         {  // scope to avoid stack too deep errors
-        (address secondFactory, bytes32 secondHash, uint256 secondFee) =
-            secondDex == PCS_1
+        (address factory1, bytes32 hash_1, uint256 fee1) =
+            dex1 == PCS_1
                 ? (pcs1Factory, initCodeHash1, pcs1Fee)
                 : (pcs2Factory, initCodeHash2, pcs2Fee);
-        pairs = PancakeswapLibrary.getPairs(secondFactory, secondHash, path);
-        amounts = PancakeswapLibrary.getAmountsInPairs(amountLast, path, pairs, secondFee);
+        pairs = PancakeswapLibrary.getPairs(factory1, hash_1, path);
+        amounts = PancakeswapLibrary.getAmountsInPairs(amountLast, path, pairs, fee1);
         }
-        (address firstFactory, bytes32 firstHash, uint256 firstFee) =
-            firstDex == PCS_1
+        (address factory0, bytes32 hash_0, uint256 fee0) =
+            dex0 == PCS_1
                 ? (pcs1Factory, initCodeHash1, pcs1Fee)
                 : (pcs2Factory, initCodeHash2, pcs2Fee);
-        firstPair = PancakeswapLibrary.pairFor(firstFactory, firstHash, WBNB, path[0]);
-        (uint256 reserveIn, uint256 reserveOut) = PancakeswapLibrary.getPairReserves(firstPair, WBNB, path[0]);
-        amountInFirst = PancakeswapLibrary.getAmountIn(amounts[0], reserveIn, reserveOut, firstFee);
+        pair0 = PancakeswapLibrary.pairFor(factory0, hash_0, WBNB, path[0]);
+        (uint256 reserveIn, uint256 reserveOut) = PancakeswapLibrary.getPairReserves(pair0, WBNB, path[0]);
+        amountIn0 = PancakeswapLibrary.getAmountIn(amounts[0], reserveIn, reserveOut, fee0);
 
-        require(amountInFirst < amountLast, 'LR');
+        require(amountIn0 < amountLast, 'LR');
     }
 
     function _pcs_swap(
