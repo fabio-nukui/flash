@@ -28,12 +28,12 @@ RUN_INTERVAL = 180
 BLOCKS24H = 28_800 if configs.CHAIN_ID == 56 else 6_520
 DEFAULT_PRICE_CHANGE = -0.5  # By default, penalize tokens that we cannot extract prices
 
-# $5.000 reserve allow for arbitrage operation of $10.000 gross profit at 50% share of gas
-NATIVE_CURRENCY_USD_RESERVE = 100_000
+# $5.000 reserve allow for arbitrage operation of $20.000 gross profit at 25% share of gas
+NATIVE_CURRENCY_USD_RESERVE = 5_000
 CHI_MIN_CONTRACT_RESERVE = 300
-CHI_CONTRACT_TOP_UP = 600
+CHI_CONTRACT_TOP_UP = 900
 CHI_MINT_PRICE = 181530991848198  # Based on minting 600 CHI at 5.000000005 Gwei
-CHI_MINT_MAX_GAS = 23_000_000
+CHI_MINT_MAX_GAS = 34_000_000
 
 ERC20_ABI = json.load(open('abis/IERC20.json'))
 WETH_ABI = json.load(open('abis/IWETH9.json'))
@@ -50,6 +50,10 @@ TOKEN_MULTIPLIER_WEIGHT = 0.2
 TOKEN_MULTIPLIERS = {
     Token(configs.CHAIN_ID, **data['token']): 1 + data['weight'] * TOKEN_MULTIPLIER_WEIGHT
     for data in json.load(open(PREFERED_TOKENS_FILE))[str(configs.CHAIN_ID)]
+}
+
+STRATEGIES_RESERVES = {
+    'pcs_pcs2_v3': {WRAPPED_CURRENCY_TOKEN: 200 * 10 ** 18},  # 200 BNB for w-swaps
 }
 
 
@@ -111,6 +115,7 @@ class Strategy:
         self.contract = contract
         self.dexes = dexes
         self.name = name
+        self.reserves: dict[Token, int] = STRATEGIES_RESERVES.get(self.name, {})
 
         self.tokens = list({token for dex in dexes.values() for token in dex.tokens})
         self.pools = [pool for dex in dexes.values() for pool in dex.pools]
@@ -118,11 +123,20 @@ class Strategy:
     def __repr__(self):
         return f'{self.__class__.__name__}({self.name})'
 
+    def _adjust_for_reserve(self, token_amount: TokenAmount, native_amount: float):
+        if token_amount.amount not in self.reserves:
+            return token_amount, native_amount
+        adjusted_amount = token_amount - self.reserves[token_amount.amount]
+        if adjusted_amount < 0:
+            return TokenAmount(token_amount.token, 0), 0.0
+        return adjusted_amount, native_amount * adjusted_amount.amount / token_amount.amount
+
     def withdraw_tokens(self):
         balances = get_address_balances_in_native_currency(self.contract.address, self.tokens)
         price_change_24h = get_price_changes_last_24h(self.tokens, self.pools, self.web3)
         amounts_withdraw = []
         for (token_amount, native_amount), price_change in zip(balances, price_change_24h):
+            token_amount, native_amount = self._adjust_for_reserve(token_amount, native_amount)
             price_impact_on_withdraw = 1 + price_change * PRICE_CHANGE_WITHDRAW_IMPACT
             token_multiplier = TOKEN_MULTIPLIERS.get(token_amount.token, 1.0)
             min_withdraw = MIN_ETHERS_WITHDRAW * price_impact_on_withdraw * token_multiplier
