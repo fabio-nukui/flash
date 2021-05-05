@@ -23,8 +23,8 @@ DEX_PROTOCOLS = {
 }
 
 # Gas-related parameters; data from notebooks/pcs_vds_analysis.ipynb (2021-04-20)
-GAS_COST_PCS_FIRST_CHI_ON = 156_279.7
-GAS_COST_VDS_FIRST_CHI_ON = 139_586.4
+GAS_COST_PCS_1_CHI_ON = 156_279.7
+GAS_COST_VDS_1_CHI_ON = 139_586.4
 GAS_INCREASE_WITH_HOP = 0.266831606034439
 
 # Created with notebooks/2021-04-12-pcs_vds_v1.ipynb
@@ -34,30 +34,30 @@ CONTRACT_DATA_FILEPATH = 'deployed_contracts/PcsVdsV1B.json'
 
 class PcsVdsPair(ArbitragePairV1):
     def _get_gas_cost(self) -> int:
-        num_hops_extra_hops = len(self.first_trade.route.pools) - 1
+        num_hops_extra_hops = len(self.trade_1.route.pools) - 1
         gas_cost_multiplier = 1 + GAS_INCREASE_WITH_HOP * num_hops_extra_hops
 
-        if isinstance(self.first_dex, PancakeswapDex):
-            return round(GAS_COST_PCS_FIRST_CHI_ON * gas_cost_multiplier)
+        if type(self.dex_1) == PancakeswapDex:
+            return round(GAS_COST_PCS_1_CHI_ON * gas_cost_multiplier)
         else:
-            return round(GAS_COST_VDS_FIRST_CHI_ON * gas_cost_multiplier)
+            return round(GAS_COST_VDS_1_CHI_ON * gas_cost_multiplier)
 
     def _get_contract_function(self):
-        if type(self.first_dex) == PancakeswapDex:
+        if type(self.dex_1) == PancakeswapDex:
             return self.contract.functions.swapPcsFirst
         return self.contract.functions.swapVdsFirst
 
     def _get_function_arguments(self) -> dict():
-        if type(self.first_dex) == PancakeswapDex:
+        if type(self.dex_1) == PancakeswapDex:
             path = [
                 self.second_trade.route.pools[0].address,
-                *(t.address for t in self.first_trade.route.tokens)
+                *(t.address for t in self.trade_1.route.tokens)
             ]
         else:
             path = [
                 self.token_first.address,
                 self.token_last.address,
-                *(p.address for p in self.first_trade.route.pools)
+                *(p.address for p in self.trade_1.route.pools)
             ]
         return {'path': path}
 
@@ -71,7 +71,7 @@ def get_share_of_profit(params: dict):
     ]
     route_addresses = [
         pool.address
-        for pool in params['first_route'].pools + params['second_route'].pools
+        for pool in params['route_0'].pools + params['route_1'].pools
     ]
     if any(addr in route_addresses for addr in reduced_gas_share_pools):
         return 0.01

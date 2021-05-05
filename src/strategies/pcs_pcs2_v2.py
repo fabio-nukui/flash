@@ -14,17 +14,16 @@ from dex import PancakeswapDex, PancakeswapDexV2
 log = logging.getLogger(__name__)
 
 # Strategy parameters
-MAX_HOPS_FIRST_DEX = 2
+MAX_HOPS_DEX_1 = 2
 SELF_TRADE = True
 DEX_PROTOCOLS = {
     'pcs_dex': PancakeswapDex,
     'pcs2_dex': PancakeswapDexV2,
 }
 
-# Estimations
-GAS_COST_PCS1_FIRST_CHI_ON = 130_000
-GAS_COST_PCS2_FIRST_CHI_ON = 130_000
-GAS_INCREASE_WITH_HOP = 0.2908916690437962
+# Data from notebooks/profitability_analysis.ipynb (2021-05-03)
+GAS_COST_SWAP = 137_392.4
+GAS_INCREASE_WITH_HOP = 0.349470567513196
 GAS_SHARE_OF_PROFIT = 0.24
 MAX_GAS_MULTIPLIER = 7
 
@@ -38,23 +37,20 @@ USE_FALLBACK = False
 
 class PcsPcs2Pair(ArbitragePairV1):
     def _get_gas_cost(self) -> int:
-        num_hops_extra_hops = len(self.first_trade.route.pools) - 1
+        num_hops_extra_hops = len(self.trade_1.route.pools) - 1
         gas_cost_multiplier = 1 + GAS_INCREASE_WITH_HOP * num_hops_extra_hops
 
-        if type(self.first_dex) == PancakeswapDex:
-            return round(GAS_COST_PCS1_FIRST_CHI_ON * gas_cost_multiplier)
-        else:
-            return round(GAS_COST_PCS2_FIRST_CHI_ON * gas_cost_multiplier)
+        return round(GAS_COST_SWAP * gas_cost_multiplier)
 
     def _get_contract_function(self):
         return self.contract.functions.swap_b2I
 
     def _get_function_arguments(self) -> dict:
-        first_dex = '00' if type(self.first_dex) == PancakeswapDex else '01'
-        second_dex = '00' if type(self.first_dex) == PancakeswapDexV2 else '01'
-        path = ''.join(t.address[2:] for t in self.first_trade.route.tokens)
+        dex_1 = '00' if type(self.dex_1) == PancakeswapDex else '01'
+        dex_0 = '00' if type(self.dex_0) == PancakeswapDex else '01'
+        path = ''.join(t.address[2:] for t in self.trade_1.route.tokens)
         return {
-            'data': f'0x{first_dex}{second_dex}{path}',
+            'data': f'0x{dex_1}{dex_0}{path}',
         }
 
 
@@ -65,7 +61,7 @@ def get_share_of_profit(params: dict):
         '0x3Ee4de968E47877F432226d6a9A0DAD6EAc6001b': 0.14,  # pcs sALPACA/ALPACA
         '0x6615187234104CE7d2fb1deF75eDb9d77408230D': 0.14,  # pcs2 sALPACA/ALPACA
     }
-    for pool in params['first_route'].pools + params['second_route'].pools:
+    for pool in params['route_0'].pools + params['route_1'].pools:
         if pool.address in reduced_gas_share_pools:
             return reduced_gas_share_pools[pool.address]
     return GAS_SHARE_OF_PROFIT
@@ -89,7 +85,7 @@ def load_arbitrage_pairs(
         for params in PairManager.get_v1_pool_arguments(
             dexes,
             web3,
-            MAX_HOPS_FIRST_DEX,
+            MAX_HOPS_DEX_1,
             SELF_TRADE,
             load_low_liquidity,
         )

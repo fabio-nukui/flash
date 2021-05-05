@@ -11,7 +11,7 @@ import sys
 import time
 from copy import copy
 from enum import Enum
-from itertools import combinations_with_replacement, permutations
+from itertools import product, permutations
 from typing import Iterable, Type, Union
 
 from web3 import Web3
@@ -34,7 +34,7 @@ ARBITRAGE_PAIR_SUMMARY_FILENAME = 'summary.json'
 ARBITRAGE_PAIR_SUMMARY_BACKUP_FILENAME = 'summary_BAK.json'
 
 DEFAULT_MIN_PROFITABILITY = 2.0
-DEFAULT_MAX_HOPS_FIRST_DEX = 2
+DEFAULT_MAX_HOPS_DEX_1 = 2
 DEFAULT_MIN_POOL_SUCCESS_RATE = 0.2
 DEFAULT_MIN_POOL_SUCCESS_RATE_SAMPLE_SIZE = 20
 DEFAULT_MAX_POOL_REPEATED_FAILURES = 5
@@ -70,14 +70,14 @@ class ManagedPair:
         self.n_failures = 0
         self.transactions: list[dict] = []
 
-        self.first_route_addresses = [p.address for p in self.arb.first_route.pools]
-        self.second_route_addresses = [p.address for p in self.arb.second_route.pools]
+        self.route_0_addresses = [p.address for p in self.arb.route_0.pools]
+        self.route_1_addresses = [p.address for p in self.arb.route_1.pools]
 
         addresses = [
             arb.token_first.address,
             arb.token_last.address,
-            *self.first_route_addresses,
-            *self.second_route_addresses,
+            *self.route_1_addresses,  # route_1_addresses need to be first for compatibility
+            *self.route_0_addresses,
         ]
         self.hash_ = Web3.sha3(text=''.join(addresses)).hex()[:42]
         self.data_directory = data_directory / 'arb_pairs' / self.hash_
@@ -128,8 +128,8 @@ class ManagedPair:
         if 'addresses' in summary_data:
             assert self.arb.token_first.address == summary_data['addresses']['token_fist']
             assert self.arb.token_last.address == summary_data['addresses']['token_last']
-            assert self.first_route_addresses == summary_data['addresses']['first_route']
-            assert self.second_route_addresses == summary_data['addresses']['second_route']
+            assert self.route_0_addresses == summary_data['addresses']['route_0']
+            assert self.route_1_addresses == summary_data['addresses']['route_1']
         self._flag_disabled = summary_data.get('disabled', False)
         self.n_successes = summary_data.get('n_successes', 0)
         self.n_failures = summary_data.get('n_failures', 0)
@@ -164,8 +164,8 @@ class ManagedPair:
             'addresses': {
                 'token_fist': self.arb.token_first.address,
                 'token_last': self.arb.token_last.address,
-                'first_route': self.first_route_addresses,
-                'second_route': self.second_route_addresses,
+                'route_0': self.route_0_addresses,
+                'route_1': self.route_1_addresses,
             },
             'disabled': self.disabled,
             'n_successes': self.n_successes,
@@ -448,7 +448,7 @@ class PairManager:
     def get_v1_pool_arguments(
         dexes: Iterable[DexProtocol],
         web3: Web3,
-        max_hops_first_dex: int = DEFAULT_MAX_HOPS_FIRST_DEX,
+        max_hops_dex_1: int = DEFAULT_MAX_HOPS_DEX_1,
         self_trade: bool = False,
         load_low_liquidity: bool = False,
     ) -> Iterable[tuple[DexProtocol, DexProtocol]]:
@@ -461,41 +461,35 @@ class PairManager:
                     prices[token] = tools.price.get_price_usd(token, all_pools, web3)
                 except InsufficientLiquidity:
                     pass
-        for first_dex, second_dex in _get_dex_pairs(dexes, self_trade):
-            for pool in second_dex.pools:
-                for token_first, token_last in permutations(pool.tokens):
+        for dex_0, dex_1 in _get_dex_pairs(dexes, self_trade):
+            for pool_0 in dex_0.pools:
+                for token_first, token_last in permutations(pool_0.tokens):
                     if token_last not in prices and not load_low_liquidity:
                         continue
                     if load_low_liquidity:
                         min_amount_last = TokenAmount(token_last, 0)
                     else:
-                        price_unit = prices[token_last] * 10 ** token_last.decimals
+                        price_unit = prices[token_last] / 10 ** token_last.decimals
                         min_amount_last = TokenAmount(
                             token_last,
                             round(MIN_AMOUNT_OUT_USD / price_unit)
                         )
-                    first_dex_routes = _get_routes(
-                        first_dex.pools,
-                        token_first,
-                        min_amount_last,
-                        max_hops_first_dex,
-                    )
-                    second_route = Route(
-                        [pool],
-                        token_first,
-                        token_last,
-                        [token_last, token_first],  # The order for token_first/token_last is inverted for the second route  # noqa: E501
-                    )
-                    for first_route in first_dex_routes:
-                        if pool in first_route.pools:
-                            continue
+
+                    # The order for token_first/token_last is inverted for the second route_0
+                    route_0 = Route([pool_0], token_first, token_last, [token_last, token_first])
+
+                    pools_1 = [pool for pool in dex_1.pools if pool != pool_0]
+                    dex_1_routes = _get_routes(
+                        pools_1, token_first, min_amount_last, max_hops_dex_1)
+
+                    for route_1 in dex_1_routes:
                         yield {
                             'token_first': token_first,
                             'token_last': token_last,
-                            'first_route': first_route,
-                            'second_route': second_route,
-                            'first_dex': first_dex,
-                            'second_dex': second_dex,
+                            'route_0': route_0,
+                            'route_1': route_1,
+                            'dex_0': dex_0,
+                            'dex_1': dex_1,
                             'web3': web3,
                         }
 
@@ -516,12 +510,8 @@ def _get_dex_pairs(
     self_trade: bool,
 ) -> Iterable[tuple[DexProtocol, DexProtocol]]:
     if self_trade:
-        for dex_0, dex_1 in combinations_with_replacement(dexes, 2):
-            if dex_0 != dex_1:
-                yield dex_0, dex_1
-                yield dex_1, dex_0
-            else:
-                yield dex_0, dex_1
+        for dex_0, dex_1 in product(dexes, repeat=2):
+            yield dex_0, dex_1
     else:
         for dex_0, dex_1 in permutations(dexes, 2):
             yield dex_0, dex_1

@@ -60,10 +60,10 @@ class ArbitragePairV1:
         self,
         token_first: Token,
         token_last: Token,
-        first_route: RoutePairs,
-        second_route: Route,
-        first_dex: DexProtocol,
-        second_dex: DexProtocol,
+        route_0: Route,
+        route_1: RoutePairs,
+        dex_0: DexProtocol,
+        dex_1: DexProtocol,
         contract: Contract,
         web3: Web3,
         min_confirmations: int = DEFAULT_MIN_CONFIRMATIONS,
@@ -76,18 +76,18 @@ class ArbitragePairV1:
         optimization_params: dict = None,
     ):
         """"The V1 pair has two fixed routes:
-            - The first route is a route of one or more liquidity pairs
-            - The second route has a single generic liquidity pool
-            The flash trade occurs at the last pair of the first route
+            - route_0 has a single generic liquidity pool
+            - route_1 is a route of one or more liquidity pairs
+            Flash trade occurs at the last pair of the route_1
         """
-        assert len(first_route.pools) >= 1
-        assert len(second_route.pools) == 1
+        assert len(route_0.pools) == 1
+        assert len(route_1.pools) >= 1
         self.token_first = token_first
         self.token_last = token_last
-        self.first_route = first_route
-        self.second_route = second_route
-        self.first_dex = first_dex
-        self.second_dex = second_dex
+        self.route_0 = route_0
+        self.dex_0 = dex_0
+        self.route_1 = route_1
+        self.dex_1 = dex_1
         self.contract = contract
         self.web3 = web3
         self.min_confirmations = min_confirmations
@@ -105,11 +105,20 @@ class ArbitragePairV1:
         self.opt_max_iter = optimization_params.get('max_iter', MAX_ITERATIONS)
         self.opt_use_fallback = optimization_params.get('use_fallback', USE_FALLBACK)
 
+        wrapped_currency_token = tools.price.get_wrapped_currency_token()
+        if (
+            route_0.token_in == route_1.token_out == wrapped_currency_token
+            and self.dex_0 != self.dex_1
+        ):
+            self.w_swap = True
+        else:
+            self.w_swap = False
+
         self.result_multiplier: float = TOKEN_MULTIPLIERS.get(self.token_first, 1.0)
         self.flag_disabled = False
         self.reference_price_pools = [
             pool
-            for pool in self.first_dex.pools + self.second_dex.pools
+            for pool in self.dex_0.pools + self.dex_1.pools
             if token_first in pool.tokens or token_last in pool.tokens
         ]
 
@@ -119,8 +128,8 @@ class ArbitragePairV1:
         self.block_found: int = None
         self.amount_last = TokenAmount(token_last)
         self.estimated_result = TokenAmount(token_first)
-        self.first_trade: TradePairs = None
-        self.second_trade: TradePools = None
+        self.trade_0: TradePools = None
+        self.trade_1: TradePairs = None
         self.result_token_usd_price: float = 0.0
         self.estimated_gross_result_usd = 0.0
         self.gas_price = 0
@@ -142,8 +151,8 @@ class ArbitragePairV1:
     def __repr__(self):
         return (
             f'{self.__class__.__name__}('
-            f'{self.first_dex}({self.first_route.symbols}), '
-            f'{self.second_dex}({self.second_route.symbols}), '
+            f'{self.dex_0}({self.route_0.symbols}), '
+            f'{self.dex_1}({self.route_1.symbols}), '
             f'est_result=US${self.estimated_net_result_usd:,.2f})'
         )
 
@@ -161,11 +170,11 @@ class ArbitragePairV1:
 
     @property
     def pools(self) -> list[LiquidityPool]:
-        return self.first_route.pools + self.second_route.pools
+        return self.route_0.pools + self.route_1.pools
 
     @property
     def tokens(self) -> list[Token]:
-        return list(set(self.first_route.tokens + self.second_route.tokens))
+        return list(set(self.route_0.tokens + self.route_1.tokens))
 
     @property
     def adjusted_profit(self) -> float:
@@ -176,23 +185,23 @@ class ArbitragePairV1:
         return self.estimate_result(amount_last).amount
 
     def estimate_result(self, amount_last: TokenAmount) -> TokenAmount:
-        first_trade, second_trade = self.get_arbitrage_trades(amount_last)
-        return second_trade.amount_out - first_trade.amount_in
+        trade_0, trade_1 = self.get_arbitrage_trades(amount_last)
+        return trade_0.amount_out - trade_1.amount_in
 
-    def get_arbitrage_trades(self, amount_last: TokenAmount) -> tuple[TradePairs, TradePairs]:
-        first_trade = TradePairs(
-            amount_in=self.first_route.get_amount_in(amount_last),
-            amount_out=amount_last,
-            route=self.first_route,
-            trade_type=TradeType.exact_out,
-        )
-        second_trade = TradePools(
+    def get_arbitrage_trades(self, amount_last: TokenAmount) -> tuple[TradePools, TradePairs]:
+        trade_0 = TradePools(
             amount_in=amount_last,
-            amount_out=self.second_route.get_amount_out(amount_last),
-            route=self.second_route,
+            amount_out=self.route_0.get_amount_out(amount_last),
+            route=self.route_0,
             trade_type=TradeType.exact_in,
         )
-        return first_trade, second_trade
+        trade_1 = TradePairs(
+            amount_in=self.route_1.get_amount_in(amount_last),
+            amount_out=amount_last,
+            route=self.route_1,
+            trade_type=TradeType.exact_out,
+        )
+        return trade_0, trade_1
 
     def update_estimate(self, block_number: int = None):
         if self.flag_disabled:
@@ -251,7 +260,7 @@ class ArbitragePairV1:
         self.block_found = block_number
         self.amount_last = amount_last
         self.estimated_result = estimated_result
-        self.first_trade, self.second_trade = self.get_arbitrage_trades(amount_last)
+        self.trade_0, self.trade_1 = self.get_arbitrage_trades(amount_last)
 
         self.result_token_usd_price = tools.price.get_price_usd(
             estimated_result.token, self.reference_price_pools, self.web3)
@@ -332,8 +341,7 @@ class ArbitragePairV1:
         self.tx_hash = tools.transaction.sign_and_send_contract_tx(**self._get_tx_arguments())
         self.timestamp_sent = datetime.now().timestamp()
         log.info(f'Sent transaction with hash {self.tx_hash}')
-        log.info(
-            f'Trades: {self.first_dex}:{self.first_trade}; {self.second_dex}:{self.second_trade}')
+        log.info(f'Trades: {self.dex_0}:{self.trade_0}; {self.dex_1}:{self.trade_1}')
         log.info(self.get_params())
         reserves = {pool: pool.reserves for pool in self.pools}
         log.debug(f'Reserves: {reserves}')
@@ -344,8 +352,8 @@ class ArbitragePairV1:
         self.block_found = None
         self.amount_last = TokenAmount(self.token_last)
         self.estimated_result = TokenAmount(self.token_first)
-        self.first_trade = None
-        self.second_trade = None
+        self.trade_0 = None
+        self.trade_1 = None
         self.result_token_usd_price = 0.0
         self.estimated_gross_result_usd = 0.0
         self.gas_price = 0

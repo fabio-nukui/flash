@@ -18,10 +18,10 @@ DEX_PROTOCOLS = {
     'vds_dex': ValueDefiSwapDex,
 }
 
-# Gas-related parameters; extrapoated from from notebooks/pcs_vds_analysis.ipynb (2021-04-20)
-GAS_COST_PCS_FIRST_CHI_ON = 156_279.7
-GAS_COST_VDS_FIRST_CHI_ON = 139_586.4
-GAS_INCREASE_WITH_HOP = 0.266831606034439
+# Data from notebooks/profitability_analysis.ipynb (2021-05-03)
+GAS_COST_PCS_1 = 157_139.86
+GAS_COST_VDS_1 = 157_218.18
+GAS_INCREASE_WITH_HOP = 0.25228347537028
 GAS_SHARE_OF_PROFIT = 0.24
 
 # Created with notebooks/strategies/pcs2_vds_v1.ipynb (2021-04-25)
@@ -31,30 +31,30 @@ CONTRACT_DATA_FILEPATH = 'deployed_contracts/Pcs2VdsV1.json'
 
 class Pcs2VdsPair(ArbitragePairV1):
     def _get_gas_cost(self) -> int:
-        num_hops_extra_hops = len(self.first_trade.route.pools) - 1
+        num_hops_extra_hops = len(self.trade_1.route.pools) - 1
         gas_cost_multiplier = 1 + GAS_INCREASE_WITH_HOP * num_hops_extra_hops
 
-        if type(self.first_dex) == PancakeswapDexV2:
-            return round(GAS_COST_PCS_FIRST_CHI_ON * gas_cost_multiplier)
+        if type(self.dex_1) == PancakeswapDexV2:
+            return round(GAS_COST_PCS_1 * gas_cost_multiplier)
         else:
-            return round(GAS_COST_VDS_FIRST_CHI_ON * gas_cost_multiplier)
+            return round(GAS_COST_VDS_1 * gas_cost_multiplier)
 
     def _get_contract_function(self):
-        if type(self.first_dex) == PancakeswapDexV2:
+        if type(self.dex_1) == PancakeswapDexV2:
             return self.contract.functions.swapPcsFirst
         return self.contract.functions.swapVdsFirst
 
     def _get_function_arguments(self) -> dict():
-        if type(self.first_dex) == PancakeswapDexV2:
+        if type(self.dex_1) == PancakeswapDexV2:
             path = [
                 self.second_trade.route.pools[0].address,
-                *(t.address for t in self.first_trade.route.tokens)
+                *(t.address for t in self.trade_1.route.tokens)
             ]
         else:
             path = [
                 self.token_first.address,
                 self.token_last.address,
-                *(p.address for p in self.first_trade.route.pools)
+                *(p.address for p in self.trade_1.route.pools)
             ]
         return {'path': path}
 
@@ -66,7 +66,7 @@ def get_share_of_profit(params: dict):
     ]
     route_addresses = [
         pool.address
-        for pool in params['first_route'].pools + params['second_route'].pools
+        for pool in params['route_0'].pools + params['route_1'].pools
     ]
     if any(addr in route_addresses for addr in reduced_gas_share_pools):
         return 0.01
