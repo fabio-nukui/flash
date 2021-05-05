@@ -476,7 +476,7 @@ class PairManager:
                         )
 
                     # The order for token_first/token_last is inverted for the second route_0
-                    route_0 = Route([pool_0], token_first, token_last, [token_last, token_first])
+                    route_0 = Route([pool_0], [token_last, token_first])
 
                     pools_1 = [pool for pool in dex_1.pools if pool != pool_0]
                     dex_1_routes = _get_routes(

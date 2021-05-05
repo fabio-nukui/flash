@@ -122,7 +122,7 @@ class RoutePairs(Route):
             else:
                 tokens.append(pair.tokens[0])
 
-        super().__init__(pools, token_in, token_out, tokens)
+        super().__init__(pools, tokens)
 
     def get_amount_out(self, amount_in: TokenAmount) -> TokenAmount:
         """Implementation of get_amount_out that uses the fact that all pools are pairs"""

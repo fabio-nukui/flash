@@ -326,14 +326,12 @@ class Route:
     def __init__(
         self,
         pools: list[LiquidityPool],
-        token_in: Token,
-        token_out: Token,
         tokens: list[Token],
     ):
         """Route of liquidity pools, use to compute trade with in/out amounts"""
         self.pools = pools
-        self.token_in = token_in
-        self.token_out = token_out
+        self.token_in = tokens[0]
+        self.token_out = tokens[-1]
         self.tokens = tokens
 
     @property
