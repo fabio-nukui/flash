@@ -2,6 +2,7 @@ import json
 import logging
 from datetime import datetime
 from enum import Enum
+from typing import Callable
 
 from web3 import Web3
 from web3.contract import Contract, ContractFunction
@@ -75,6 +76,7 @@ class ArbitragePairV1:
         max_gas_price: int = MAX_GAS_PRICE,
         max_gas_multiplier: float = MAX_GAS_MULTIPLIER,
         high_gas_price_strategy: HighGasPriceStrategy = HighGasPriceStrategy.baseline_3x,
+        decomposer_function: Callable = decompose_amount,
         optimization_params: dict = None,
     ):
         """"The V1 pair has two fixed routes:
@@ -99,6 +101,7 @@ class ArbitragePairV1:
         self.max_gas_price = max_gas_price
         self.max_gas_multiplier = max_gas_multiplier
         self.high_gas_price_strategy = high_gas_price_strategy
+        self.decomposer_function = decomposer_function
 
         optimization_params = optimization_params or {}
         self.opt_initial_value = optimization_params.get('initial_value', INITIAL_VALUE)
@@ -112,7 +115,7 @@ class ArbitragePairV1:
             address=self.wrapped_currency.address,
             abi=self.wrapped_currency.abi,
         )
-        self.w_swap = (
+        self._w_swap = (
             route_0.token_in == route_1.token_out == self.wrapped_currency
             and self.dex_0 != self.dex_1
         )
@@ -268,9 +271,9 @@ class ArbitragePairV1:
         self.flag_set = True
         self.timestamp_found = datetime.now().timestamp()
         self.block_found = block_number
-        if self.w_swap and amount_last < self._get_contract_wrapped_currency_balance():
+        if self._w_swap and amount_last < self._get_contract_wrapped_currency_balance():
             self.execute_w_swap = True
-            amount, exp, mant = decompose_amount(amount_last)
+            amount, exp, mant = self.decomposer_function(amount_last)
             self._amount_last_exp = exp
             self._amount_last_mant = mant
             amount_last.amount = amount

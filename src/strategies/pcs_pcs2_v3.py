@@ -42,12 +42,12 @@ class PcsPcs2Pair(ArbitragePairV1):
         num_hops_extra_hops = len(self.trade_1.route.pools) - 1
         gas_cost_multiplier = 1 + GAS_INCREASE_WITH_HOP * num_hops_extra_hops
 
-        if not self.w_swap:
+        if not self.execute_w_swap:
             return round(GAS_COST_FLASH_SWAP * gas_cost_multiplier)
         return round(GAS_COST_W_SWAP * gas_cost_multiplier)
 
     def _get_contract_function(self):
-        if not self.w_swap:
+        if not self.execute_w_swap:
             return self.contract.functions.flash_09lc
         if len(self.trade_1.route.pools) == 1:
             return self.contract.functions.swap32_bZf
