@@ -24,7 +24,7 @@ module.exports = {
       }),
       network_id: 97,
       confirmations: 1,
-      timeoutBlocks: 200,
+      timeoutBlocks: 20,
       gas: 9000000,
       gasPrice: 5000000001,
       skipDryRun: true
@@ -36,7 +36,7 @@ module.exports = {
       }),
       network_id: 56,
       confirmations: 3,
-      timeoutBlocks: 200,
+      timeoutBlocks: 20,
       gas: 9000000,
       gasPrice: 5000000001
     },
