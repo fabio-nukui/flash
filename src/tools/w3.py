@@ -79,12 +79,14 @@ class BlockListener:
         verbose: bool = True,
         poll_interval: float = configs.POLL_INTERVAL,
         ignore_shut_down_flag: bool = False,
+        update_block_config: bool = False,
     ):
         self.web3 = get_web3() if web3 is None else web3
         self.filter = self.web3.eth.filter(block_label)
         self.verbose = verbose
         self.poll_interval = poll_interval
         self.ignore_shut_down_flag = ignore_shut_down_flag
+        self.update_block_config = update_block_config
 
     def wait_for_new_blocks(self) -> int:
         while self.ignore_shut_down_flag or not process.is_shutting_down:
@@ -95,6 +97,8 @@ class BlockListener:
                 block_number = self.web3.eth.block_number
                 if self.verbose:
                     log.debug(f'New block: {block_number}')
+                if self.update_block_config:
+                    configs.BLOCK = block_number
                 yield block_number
             time.sleep(self.poll_interval)
         log.info('Stopped listener')

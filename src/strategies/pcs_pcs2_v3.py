@@ -7,7 +7,6 @@ from web3 import Web3
 from web3.contract import Contract
 
 import arbitrage
-import configs
 import tools
 from arbitrage import ArbitragePairV1, PairManager
 from dex import PancakeswapDex, PancakeswapDexV2
@@ -118,8 +117,7 @@ def run():
     contract = tools.transaction.load_contract(CONTRACT_DATA_FILEPATH)
     arbitrage_pairs = load_arbitrage_pairs(dict_dex.values(), contract, web3)
     pair_manager = PairManager(ADDRESS_DIRECTORY, arbitrage_pairs, web3)
-    listener = tools.w3.BlockListener(web3)
+    listener = tools.w3.BlockListener(web3, update_block_config=True)
     for block_number in listener.wait_for_new_blocks():
-        configs.BLOCK = block_number
         tools.cache.clear_caches()
         pair_manager.update_and_execute(block_number)
