@@ -10,14 +10,12 @@ from tools import process
 log = logging.getLogger(__name__)
 
 
-def from_uri(endpoint_uri: str, verbose: bool = True) -> Web3:
+def from_uri(endpoint_uri: str) -> Web3:
     middlewares = []
     if configs.POA_CHAIN:
         middlewares.append(geth_poa_middleware)
 
     if endpoint_uri.startswith('http'):
-        if verbose:
-            log.warning('HTTPProvider does not support filters')
         provider = HTTPProvider(endpoint_uri)
     elif endpoint_uri.startswith('wss'):
         provider = WebsocketProvider(endpoint_uri)
@@ -28,12 +26,12 @@ def from_uri(endpoint_uri: str, verbose: bool = True) -> Web3:
     return Web3(provider, middlewares)
 
 
-def get_web3(verbose: bool = False, use_remote: bool = configs.USE_REMOTE_RCP_CONNECTION) -> Web3:
+def get_web3(use_remote: bool = configs.USE_REMOTE_RCP_CONNECTION) -> Web3:
     if use_remote:
-        web3_remote = from_uri(configs.RPC_REMOTE_URI, verbose)
+        web3_remote = from_uri(configs.RPC_REMOTE_URI)
     else:
-        web3_remote = from_uri('wss://dummy.com', verbose)
-    web3_local = from_uri(configs.RPC_LOCAL_URI, verbose)
+        web3_remote = from_uri('wss://dummy.com')
+    web3_local = from_uri(configs.RPC_LOCAL_URI)
 
     try:
         last_block_remote = web3_remote.eth.block_number
