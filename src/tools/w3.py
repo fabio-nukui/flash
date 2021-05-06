@@ -26,7 +26,7 @@ def from_uri(endpoint_uri: str) -> Web3:
     return Web3(provider, middlewares)
 
 
-def get_web3(use_remote: bool = configs.USE_REMOTE_RCP_CONNECTION) -> Web3:
+def get_web3(verbose: bool = False, use_remote: bool = configs.USE_REMOTE_RCP_CONNECTION) -> Web3:
     if use_remote:
         web3_remote = from_uri(configs.RPC_REMOTE_URI)
     else:
@@ -76,18 +76,16 @@ class BlockListener:
         block_label='latest',
         verbose: bool = True,
         poll_interval: float = configs.POLL_INTERVAL,
-        ignore_shut_down_flag: bool = False,
         update_block_config: bool = False,
     ):
         self.web3 = get_web3() if web3 is None else web3
         self.filter = self.web3.eth.filter(block_label)
         self.verbose = verbose
         self.poll_interval = poll_interval
-        self.ignore_shut_down_flag = ignore_shut_down_flag
         self.update_block_config = update_block_config
 
     def wait_for_new_blocks(self) -> int:
-        while self.ignore_shut_down_flag or not process.is_shutting_down:
+        while not process.is_shutting_down:
             entries = self.filter.get_new_entries()
             if len(entries) > 0:
                 if len(entries) > 1:

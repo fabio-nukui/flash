@@ -35,7 +35,7 @@ class BackgroundWeb3:
     def __init__(self, uri: str, verbose: bool = False):
         self.uri = uri
         self.verbose = verbose
-        self.web3 = w3.from_uri(uri, verbose=False)
+        self.web3 = w3.from_uri(uri)
         self._executor = futures.ThreadPoolExecutor(1)
         self._heartbeat_thread: Thread
         if not uri == configs.RPC_LOCAL_URI:
@@ -242,11 +242,7 @@ def wait_tx_finish(
     verbose: bool = False,
     min_confirmations: int = 1,
 ):
-    listener = w3.BlockListener(
-        web3,
-        poll_interval=TX_WAIT_POLL_INTERVAL,
-        ignore_shut_down_flag=True,
-    )
+    listener = w3.BlockListener(web3, poll_interval=TX_WAIT_POLL_INTERVAL)
     max_blocks_wait = max_blocks_wait or MAX_BLOCKS_WAIT_RECEIPT
     n = 0
     for current_block in listener.wait_for_new_blocks():
