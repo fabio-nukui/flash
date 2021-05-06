@@ -259,8 +259,8 @@ class ManagedPool:
                     f'{self}: {self.max_repeated_failures} repeated failures at block '
                     f'{block_failures[i + self.max_repeated_failures]}, disabling pool'
                 )
-                break
                 self.disable()
+                break
         self.block_failures = block_failures[-self.max_repeated_failures:]
 
     def check_disable(self):
