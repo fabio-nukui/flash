@@ -1,4 +1,4 @@
-from . import cache, exchange, http, optimization, price, simulation, transaction, w3
+from . import cache, exchange, http, optimization, price, process, simulation, transaction, w3
 
 __all__ = [
     'cache',
@@ -6,6 +6,7 @@ __all__ = [
     'http',
     'optimization',
     'price',
+    'process',
     'simulation',
     'transaction',
     'w3',

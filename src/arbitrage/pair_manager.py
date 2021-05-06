@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import atexit
 import json
 import logging
 import os
 import pathlib
 import re
-import signal
 import sys
 import time
 from copy import copy
@@ -319,9 +317,7 @@ class PairManager:
         ]
         for pool in self.pools:
             pool.sort_and_check()
-        atexit.register(self._handle_exit)
-        signal.signal(signal.SIGINT, self._handle_exit)
-        signal.signal(signal.SIGTERM, self._handle_exit)
+        tools.process.register_exit_handle(self._handle_exit)
 
     def __repr__(self):
         return f'{self.__class__.__name__}(n_pairs={len(self.arbitrage_pairs)})'
@@ -410,7 +406,7 @@ class PairManager:
                 sys.exit()
 
     def _handle_exit(self, *args):
-        log.info('Shutting down')
+        log.info(f'{self}: preparing for shut down')
         block_number = self.web3.eth.block_number
         log.info(f'{block_number=}')
         for _ in range(10):

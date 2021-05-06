@@ -114,7 +114,6 @@ class TransactionCounter:
                     if self._count < count:
                         with self.lock:
                             self._count = count
-
             except Exception:
                 log.debug('TransactionCounter listener failed, restarting in 1 sec')
                 time.sleep(1)
@@ -243,7 +242,11 @@ def wait_tx_finish(
     verbose: bool = False,
     min_confirmations: int = 1,
 ):
-    listener = w3.BlockListener(web3, poll_interval=TX_WAIT_POLL_INTERVAL)
+    listener = w3.BlockListener(
+        web3,
+        poll_interval=TX_WAIT_POLL_INTERVAL,
+        ignore_shut_down_flag=True,
+    )
     max_blocks_wait = max_blocks_wait or MAX_BLOCKS_WAIT_RECEIPT
     n = 0
     for current_block in listener.wait_for_new_blocks():

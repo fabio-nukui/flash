@@ -5,6 +5,7 @@ from web3 import HTTPProvider, IPCProvider, Web3, WebsocketProvider
 from web3.middleware import geth_poa_middleware
 
 import configs
+from tools import process
 
 log = logging.getLogger(__name__)
 
@@ -77,14 +78,16 @@ class BlockListener:
         block_label='latest',
         verbose: bool = True,
         poll_interval: float = configs.POLL_INTERVAL,
+        ignore_shut_down_flag: bool = False,
     ):
         self.web3 = get_web3() if web3 is None else web3
         self.filter = self.web3.eth.filter(block_label)
         self.verbose = verbose
         self.poll_interval = poll_interval
+        self.ignore_shut_down_flag = ignore_shut_down_flag
 
     def wait_for_new_blocks(self) -> int:
-        while True:
+        while self.ignore_shut_down_flag or not process.is_shutting_down:
             entries = self.filter.get_new_entries()
             if len(entries) > 0:
                 if len(entries) > 1:
@@ -94,3 +97,4 @@ class BlockListener:
                     log.debug(f'New block: {block_number}')
                 yield block_number
             time.sleep(self.poll_interval)
+        log.info('Stopped listener')
