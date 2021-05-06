@@ -58,7 +58,7 @@ class ManagedPair:
         data_directory: pathlib.Path,
     ):
         self.arb = arb
-        self.pools = [pool for pool in pools if pool.lp in arb.pools]
+        self.pools = {pool for pool in pools if pool.lp in arb.pools}
         self.data_directory = data_directory
 
         self._change_summary_file = False
@@ -311,6 +311,7 @@ class PairManager:
             )
             for lp in all_pools
         ]
+        self._running_pools = set()
         self._arbitrage_pairs = [
             ManagedPair(arb, self.pools, self.addresses_directory)
             for arb in arbitrage_pairs
@@ -342,40 +343,38 @@ class PairManager:
         self._update_pools()
         log.info(f'{self}: Completed run on {block_number=}')
 
-    def _update_and_execute(self, block_number: int, next_round_pairs: list[ManagedPair]) -> bool:
-        pairs = []
-        for pair in next_round_pairs:
-            pair.arb.update_estimate(block_number)
-            if pair.arb.estimated_net_result_usd > self.min_profitability:
-                pairs.append(pair)
-        if not pairs:
-            return
-        best_pair = max(pairs, key=lambda x: x.arb.adjusted_profit)
-        log.info(f'Arbitrage opportunity found on block {block_number}')
-        if not best_pair.test_pools():
-            return
-        if (current_block := self.web3.eth.block_number) != block_number:
-            log.warning(
-                'Latest block advanced since beggining of iteration: '
-                f'{block_number=} vs {current_block=}'
-            )
-            return
-        best_pair.arb.execute()
-
     def _get_next_round_pairs(self, block_number: int) -> list[ManagedPair]:
-        running_tokens = set()
+        self._running_pools.clear()
         for pair in self.arbitrage_pairs:
             if pair.is_running(block_number):
-                for token in pair.arb.tokens:
-                    running_tokens.add(token)
+                self._running_pools.update(pair.pools)
         return [
             pair
             for pair in self.arbitrage_pairs
-            if (
-                pair.arb.token_first not in running_tokens
-                and pair.arb.token_last not in running_tokens
-            )
+            if not pair.pools & self._running_pools
         ]
+
+    def _update_and_execute(self, block_number: int, next_round_pairs: list[ManagedPair]) -> bool:
+        best_pairs = []
+        for pair in next_round_pairs:
+            pair.arb.update_estimate(block_number)
+            if pair.arb.estimated_net_result_usd > self.min_profitability:
+                best_pairs.append(pair)
+        if not best_pairs:
+            return
+        best_pairs = sorted(best_pairs, key=lambda x: x.arb.adjusted_profit, reverse=True)
+        log.info(f'Arbitrage opportunity(ies) found on block {block_number}')
+        for pair in best_pairs:
+            if not pair.test_pools() or pair.pools & self._running_pools:
+                continue
+            if (current_block := self.web3.eth.block_number) != block_number:
+                log.warning(
+                    'Latest block advanced since beggining of iteration: '
+                    f'{block_number=} vs {current_block=}'
+                )
+                return
+            self._running_pools.update(pair.pools)
+            pair.arb.execute()
 
     def _update_arb_pairs(self):
         for arb_pair in self._arbitrage_pairs:
