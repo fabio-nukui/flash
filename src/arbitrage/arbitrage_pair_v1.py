@@ -19,7 +19,7 @@ from .encode_data import decompose_amount
 log = logging.getLogger(__name__)
 
 # Strategy parameters
-DEFAULT_MIN_CONFIRMATIONS = 1
+DEFAULT_MIN_CONFIRMATIONS = 2
 DEFAULT_MAX_TRANSACTION_CHECKS = 20
 MAX_GAS_PRICE = 21428571428571  # Equal to 3 BNB/ETH tx cost at 140_000 gas
 BASE_GAS_COST = 140_000
