@@ -33,9 +33,6 @@ MAX_GAS_MULTIPLIER = 7
 ADDRESS_DIRECTORY = 'strategy_files/pcs_pcs2_v1'
 CONTRACT_DATA_FILEPATH = 'deployed_contracts/PcsPcs2V3.json'
 
-# Optimization params
-USE_FALLBACK = False
-
 
 class PcsPcs2Pair(ArbitragePairV1):
     def _get_gas_cost(self) -> int:
@@ -92,14 +89,12 @@ def load_arbitrage_pairs(
     web3: Web3,
     load_low_liquidity: bool = False,
 ) -> list[PcsPcs2Pair]:
-    optimization_params = {'use_fallback': USE_FALLBACK}
     return [
         PcsPcs2Pair(
             **params,
             contract=contract,
             gas_share_of_profit=get_share_of_profit(params),
             max_gas_multiplier=MAX_GAS_MULTIPLIER,
-            optimization_params=optimization_params,
             w_swap_available=W_SWAP_AVAILABLE,
         )
         for params in PairManager.get_v1_pool_arguments(
