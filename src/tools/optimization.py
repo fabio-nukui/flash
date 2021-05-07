@@ -32,7 +32,6 @@ def optimizer_second_order(
     except Exception as e:
         if not use_fallback:
             raise e
-        log.debug(f'Newton method error: {e!r}. Using fallback')
         return bissection_optimizer(func, x0, dx, tol, max_iter)
 
 

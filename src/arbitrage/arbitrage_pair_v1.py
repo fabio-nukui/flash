@@ -231,7 +231,10 @@ class ArbitragePairV1:
             log.info(f'Insufficient liquidity for {self}, removing it from next iterations')
             self.reset()
             self.flag_disabled = True
-        except (NotProfitable, OptimizationError):
+        except OptimizationError as e:
+            log.debug(f'{self}: Error during optimization: {e}')
+            return
+        except NotProfitable:
             return
 
     def get_updated_results(self) -> tuple[TokenAmount, TokenAmount]:
@@ -254,10 +257,7 @@ class ArbitragePairV1:
                 max_iter=self.opt_max_iter,
                 use_fallback=self.opt_use_fallback,
             )
-        except Exception as e:
-            if self.opt_use_fallback:
-                log.info(f'{self}: Error during optimization: {e!r}')
-                log.debug('Error: ', exc_info=True)
+        except Exception:
             raise OptimizationError
         if int_amount_last < 0:  # Fail-safe in case optimizer returns negative inputs
             raise OptimizationError
