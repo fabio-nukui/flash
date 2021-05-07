@@ -102,7 +102,7 @@ class ManagedPair:
         self.arb.flag_disabled = True
         self._change_summary_file = True
 
-    def is_running(self, block_number: int) -> bool:
+    def is_running(self, block_number: int = None) -> bool:
         is_running = self.arb.is_running(block_number)
         if not is_running and self.arb.flag_execute:
             tx = self.arb.get_tx_stats()
@@ -406,12 +406,10 @@ class PairManager:
 
     def _handle_exit(self, *args):
         log.info(f'{self}: preparing for shut down')
-        block_number = self.web3.eth.block_number
-        log.info(f'{block_number=}')
         for _ in range(10):
-            if any(pair.is_running(block_number) for pair in self.arbitrage_pairs):
+            if any(pair.is_running() for pair in self.arbitrage_pairs):
                 log.info('Waiting for transactions receipts')
-                time.sleep(0.65)  # 'docker stop' waits for 10 seconds before program closes
+                time.sleep(0.6)  # 'docker stop' waits for 10 seconds before program closes
             else:
                 break
         log.info('Updating pairs')

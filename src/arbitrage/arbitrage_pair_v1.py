@@ -399,7 +399,7 @@ class ArbitragePairV1:
         self.gas_used = None
         self.block_send_delay = None
 
-    def is_running(self, current_block: int) -> bool:
+    def is_running(self, current_block: int = None) -> bool:
         if not self._is_running:
             return False
         try:
@@ -423,7 +423,10 @@ class ArbitragePairV1:
             self.tx_status = TxStatus.failed
             log.info(self.get_execution_stats())
             return False
-        elif current_block - self.block_executed < (self.min_confirmations - 1):
+        elif (
+            current_block is not None
+            and current_block - self.block_executed < (self.min_confirmations - 1)
+        ):
             return True
         # Minimum amount of confimations passed
         log.info(
