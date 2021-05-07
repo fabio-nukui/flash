@@ -76,15 +76,13 @@ class BlockListener:
         block_label='latest',
         verbose: bool = True,
         poll_interval: float = configs.POLL_INTERVAL,
-        update_block_config: bool = False,
     ):
         self.web3 = get_web3() if web3 is None else web3
         self.filter = self.web3.eth.filter(block_label)
         self.verbose = verbose
         self.poll_interval = poll_interval
-        self.update_block_config = update_block_config
 
-    def wait_for_new_blocks(self) -> int:
+    def wait_for_new_blocks(self, update_block_config: bool = False) -> int:
         while not process.is_shutting_down:
             entries = self.filter.get_new_entries()
             if len(entries) > 0:
@@ -93,8 +91,10 @@ class BlockListener:
                 block_number = self.web3.eth.block_number
                 if self.verbose:
                     log.debug(f'New block: {block_number}')
-                if self.update_block_config:
-                    configs.BLOCK = block_number
+                if update_block_config:
+                    if configs.BLOCK == block_number:
+                        log.info('Chain reorg')
+                    else:
+                        configs.BLOCK = block_number
                 yield block_number
             time.sleep(self.poll_interval)
-        log.info('Stopped listener')

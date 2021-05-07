@@ -73,7 +73,7 @@ def run():
     contract = tools.transaction.load_contract(CONTRACT_DATA_FILEPATH)
     arbitrage_pairs = load_arbitrage_pairs(dexes.values(), contract, web3)
     pair_manager = PairManager(ADDRESS_DIRECTORY, arbitrage_pairs, web3)
-    listener = tools.w3.BlockListener(web3, update_block_config=True)
-    for block_number in listener.wait_for_new_blocks():
+    listener = tools.w3.BlockListener(web3)
+    for block_number in listener.wait_for_new_blocks(update_block_config=True):
         tools.cache.clear_caches()
         pair_manager.update_and_execute(block_number)

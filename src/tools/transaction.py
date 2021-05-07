@@ -252,12 +252,12 @@ def wait_tx_finish(
             n += 1
             if n >= max_blocks_wait:
                 raise Exception(f'Transactio {tx_hash} not found after {n} blocks')
-            continue
-        if receipt.status == 0:
-            log.info(f'Failed to send transaction: {tx_hash}')
-            return
-        elif current_block - receipt.blockNumber >= (min_confirmations - 1):
-            return
+        else:
+            if receipt.status == 0:
+                log.info(f'Failed to send transaction: {tx_hash}')
+                return
+            if current_block - receipt.blockNumber >= (min_confirmations - 1):
+                return
 
 
 def _get_providers() -> list[BackgroundWeb3]:

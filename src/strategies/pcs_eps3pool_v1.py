@@ -190,8 +190,8 @@ def run():
         ArbitragePair(token_first, token_last, cake_dex, eps_dex, contract, web3)
         for token_first, token_last in permutations(eps_dex.tokens, 2)
     ]
-    listener = tools.w3.BlockListener(web3, update_block_config=True)
-    for block_number in listener.wait_for_new_blocks():
+    listener = tools.w3.BlockListener(web3)
+    for block_number in listener.wait_for_new_blocks(update_block_config=True):
         tools.cache.clear_caches()
         if any([pair.is_running(block_number) for pair in arbitrage_pairs]):
             continue

@@ -75,8 +75,8 @@ class PcsPcs2Pair(ArbitragePairV1):
 
 def get_share_of_profit(params: dict):
     reduced_gas_share_pools = {
-        '0xfC207DB720851f52545229E406068b205E02B952': 0.01,  # pcs xBLZD/WBNB
-        '0xD9002B7E7d63A71F04a16840DA028e1cd534889D': 0.01,  # pcs2 xBLZD/WBNB
+        '0xfC207DB720851f52545229E406068b205E02B952': 0.02,  # pcs xBLZD/WBNB
+        '0xD9002B7E7d63A71F04a16840DA028e1cd534889D': 0.02,  # pcs2 xBLZD/WBNB
         '0x3Ee4de968E47877F432226d6a9A0DAD6EAc6001b': 0.14,  # pcs sALPACA/ALPACA
         '0x6615187234104CE7d2fb1deF75eDb9d77408230D': 0.14,  # pcs2 sALPACA/ALPACA
     }
@@ -117,7 +117,7 @@ def run():
     contract = tools.transaction.load_contract(CONTRACT_DATA_FILEPATH)
     arbitrage_pairs = load_arbitrage_pairs(dict_dex.values(), contract, web3)
     pair_manager = PairManager(ADDRESS_DIRECTORY, arbitrage_pairs, web3)
-    listener = tools.w3.BlockListener(web3, update_block_config=True)
-    for block_number in listener.wait_for_new_blocks():
+    listener = tools.w3.BlockListener(web3)
+    for block_number in listener.wait_for_new_blocks(update_block_config=True):
         tools.cache.clear_caches()
         pair_manager.update_and_execute(block_number)
