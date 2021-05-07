@@ -331,7 +331,9 @@ class PairManager:
             if not arb_pair.disabled
         ]
 
-    def update_and_execute(self, block_number: int):
+    def update_and_execute(self, block_number: int = None):
+        if block_number is None:
+            return  # Case when process is shutting down
         next_round_pairs = self._get_next_round_pairs(block_number)  # Needs to be called before checking for status  # noqa: E501
         if any(arb_pair.arb.tx_status == TxStatus.succeeded for arb_pair in self.arbitrage_pairs):
             self.block_failures = []

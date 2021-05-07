@@ -83,9 +83,11 @@ class BlockListener:
         self.poll_interval = poll_interval
 
     def wait_for_new_blocks(self, update_block_config: bool = False) -> int:
-        while not process.is_shutting_down():
+        while True:
             entries = self.filter.get_new_entries()
             if len(entries) > 0:
+                if process.is_shutting_down():
+                    return
                 if len(entries) > 1:
                     log.warning(f'More than one block passed since last iteration ({len(entries)})')
                 block_number = self.web3.eth.block_number
