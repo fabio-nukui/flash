@@ -20,7 +20,7 @@ DEX_PROTOCOLS = {
     'pcs_dex': PancakeswapDex,
     'pcs2_dex': PancakeswapDexV2,
 }
-WRAPPED_CURRENCY_SWAP = True
+W_SWAP_AVAILABLE = True
 
 # Data from notebooks/profitability_analysis.ipynb (2021-05-03)
 GAS_COST_W_SWAP = 107_000
@@ -100,6 +100,7 @@ def load_arbitrage_pairs(
             gas_share_of_profit=get_share_of_profit(params),
             max_gas_multiplier=MAX_GAS_MULTIPLIER,
             optimization_params=optimization_params,
+            w_swap_available=W_SWAP_AVAILABLE,
         )
         for params in PairManager.get_v1_pool_arguments(
             dexes,

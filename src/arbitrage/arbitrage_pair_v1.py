@@ -78,6 +78,7 @@ class ArbitragePairV1:
         high_gas_price_strategy: HighGasPriceStrategy = HighGasPriceStrategy.baseline_3x,
         decomposer_function: Callable = decompose_amount,
         optimization_params: dict = None,
+        w_swap_available: bool = False,
     ):
         """"The V1 pair has two fixed routes:
             - route_0 has a single generic liquidity pool
@@ -115,10 +116,13 @@ class ArbitragePairV1:
             address=self.wrapped_currency.address,
             abi=self.wrapped_currency.abi,
         )
-        self._w_swap = (
-            route_0.token_in == route_1.token_out == self.wrapped_currency
-            and self.dex_0 != self.dex_1
-        )
+        if w_swap_available:
+            self._w_swap = (
+                route_0.token_in == route_1.token_out == self.wrapped_currency
+                and self.dex_0 != self.dex_1
+            )
+        else:
+            self._w_swap = False
 
         self.result_multiplier: float = TOKEN_MULTIPLIERS.get(self.token_first, 1.0)
         self.flag_disabled = False
@@ -197,23 +201,23 @@ class ArbitragePairV1:
         amount_last = TokenAmount(self.token_last, amount_last_int)
         return self.estimate_result(amount_last).amount
 
-    def estimate_result(self, amount_last: TokenAmount) -> TokenAmount:
-        trade_0, trade_1 = self.get_arbitrage_trades(amount_last)
+    def estimate_result(self, amount_last: TokenAmount, w_swap: bool = False) -> TokenAmount:
+        trade_0, trade_1 = self.get_arbitrage_trades(amount_last, w_swap)
+        if w_swap:
+            return trade_1.amount_out - trade_0.amount_in
         return trade_0.amount_out - trade_1.amount_in
 
-    def get_arbitrage_trades(self, amount_last: TokenAmount) -> tuple[TradePools, TradePairs]:
-        trade_0 = TradePools(
-            amount_in=amount_last,
-            amount_out=self.route_0.get_amount_out(amount_last),
-            route=self.route_0,
-            trade_type=TradeType.exact_in,
-        )
-        trade_1 = TradePairs(
-            amount_in=self.route_1.get_amount_in(amount_last),
-            amount_out=amount_last,
-            route=self.route_1,
-            trade_type=TradeType.exact_out,
-        )
+    def get_arbitrage_trades(
+        self,
+        amount_last: TokenAmount,
+        w_swap: bool = False,
+    ) -> tuple[TradePools, TradePairs]:
+        if w_swap:
+            trade_1 = TradePairs(self.route_1, amount_out=amount_last)
+            trade_0 = TradePairs(self.route_0, amount_out=trade_1.amount_in)
+        else:
+            trade_0 = TradePools(self.route_0, amount_in=amount_last)
+            trade_1 = TradePairs(self.route_1, amount_out=amount_last)
         return trade_0, trade_1
 
     def update_estimate(self, block_number: int = None):
@@ -277,6 +281,7 @@ class ArbitragePairV1:
             self._amount_last_exp = exp
             self._amount_last_mant = mant
             amount_last.amount = amount
+            estimated_result = self.estimate_result(amount_last, w_swap=True)
         self.amount_last = amount_last
         self.estimated_result = estimated_result
         self.trade_0, self.trade_1 = self.get_arbitrage_trades(amount_last)
@@ -339,6 +344,7 @@ class ArbitragePairV1:
             'gas_share_of_profit': self.gas_share_of_profit,
             'base_gas_cost': self.base_gas_cost,
             'fn_name': self._get_contract_function().fn_name,
+            'execute_w_swap': self.execute_w_swap,
         }
 
     def get_execution_stats(self) -> dict:

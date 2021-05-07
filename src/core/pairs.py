@@ -142,14 +142,14 @@ class RoutePairs(Route):
 class TradePairs(TradePools):
     def __init__(
         self,
-        amount_in: TokenAmount,
-        amount_out: TokenAmount,
         route: RoutePairs,
+        amount_in: TokenAmount = None,
+        amount_out: TokenAmount = None,
         max_slippage: int = None,
         trade_type: TradeType = None,
     ):
         """Trade involving a sequence of liquidity pools"""
-        super().__init__(amount_in, amount_out, route, max_slippage, trade_type)
+        super().__init__(route, amount_in, amount_out, max_slippage, trade_type)
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.route.symbols}: {self._str_in_out})'
@@ -220,7 +220,6 @@ class TradePairs(TradePools):
                 trade = TradePairs(
                     route=route,
                     amount_in=original_amount_in,
-                    amount_out=TokenAmount(token_out),
                     max_slippage=max_slippage
                 )
                 best_trades.append(trade)
@@ -304,7 +303,6 @@ class TradePairs(TradePools):
                 route = RoutePairs([pool, *current_pools], token_in, original_amount_out.token)
                 trade = TradePairs(
                     route=route,
-                    amount_in=TokenAmount(token_in),
                     amount_out=original_amount_out,
                     max_slippage=max_slippage
                 )

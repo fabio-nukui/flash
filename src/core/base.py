@@ -4,7 +4,7 @@ import functools
 import json
 import logging
 from enum import Enum
-from typing import Iterable, Union, overload
+from typing import Iterable, Optional, Union, overload
 
 from web3 import Web3
 from web3.contract import Contract
@@ -216,11 +216,15 @@ class Price:
         return NotImplemented
 
 
+def _is_empty(amount: Optional[TokenAmount]) -> bool:
+    return amount is None or amount.is_empty()
+
+
 class Trade:
     def __init__(
         self,
-        amount_in: TokenAmount,
-        amount_out: TokenAmount,
+        amount_in: TokenAmount = None,
+        amount_out: TokenAmount = None,
         max_slippage: int = None,
         trade_type: TradeType = None,
     ):
@@ -229,21 +233,19 @@ class Trade:
             - For Exact Out trade, set amount_out.amount to zero
             - For Exact In/Out trade, set both amounts to non-zero
         """
-        assert not amount_in.is_empty() or not amount_out.is_empty(), \
+        assert not _is_empty(amount_in) or not _is_empty(amount_out), \
             'At least one of amount_in or amount_out must be not empty'
 
-        self.token_in = amount_in.token
-        self.token_out = amount_out.token
         self.max_slippage = DEFAULT_MAX_SLIPPAGE if max_slippage is None else max_slippage
 
-        if not amount_in.is_empty() and amount_out.is_empty():
+        if not _is_empty(amount_in) and _is_empty(amount_out):
             assert trade_type is None or trade_type == TradeType.exact_in
             self.trade_type = TradeType.exact_in
             self.amount_in = amount_in
             self.max_amount_in = amount_in
             self.amount_out = self._get_amount_out()
             self.min_amount_out = self.amount_out * 10_000 // (10_000 + self.max_slippage)
-        elif amount_in.is_empty() and not amount_out.is_empty():
+        elif _is_empty(amount_in) and not _is_empty(amount_out):
             assert trade_type is None or trade_type == TradeType.exact_out
             self.trade_type = TradeType.exact_out
             self.amount_out = amount_out
@@ -256,6 +258,10 @@ class Trade:
             self.max_amount_in = amount_in
             self.amount_out = amount_out
             self.min_amount_out = amount_out
+
+        # Assign after amounts to avoid errors when they are None
+        self.token_in = self.amount_in.token
+        self.token_out = self.amount_out.token
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self._str_in_out})'
@@ -359,9 +365,9 @@ class Route:
 class TradePools(Trade):
     def __init__(
         self,
-        amount_in: TokenAmount,
-        amount_out: TokenAmount,
         route: Route,
+        amount_in: TokenAmount = None,
+        amount_out: TokenAmount = None,
         max_slippage: int = None,
         trade_type: TradeType = None,
     ):
