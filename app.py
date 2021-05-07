@@ -10,7 +10,7 @@ log = logging.getLogger(__name__)
 
 def main():
     strategy = importlib.import_module(f'strategies.{configs.STRATEGY}')
-    while not tools.process.is_shutting_down:
+    while not tools.process.is_shutting_down():
         try:
             log.info(f'Starting strategy {configs.STRATEGY}')
             strategy.run()

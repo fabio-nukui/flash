@@ -10,7 +10,6 @@ _lock = Lock()
 _is_shutting_down = False
 
 
-@property
 def is_shutting_down() -> bool:
     with _lock:
         return _is_shutting_down

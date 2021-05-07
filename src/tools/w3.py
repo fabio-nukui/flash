@@ -83,7 +83,7 @@ class BlockListener:
         self.poll_interval = poll_interval
 
     def wait_for_new_blocks(self, update_block_config: bool = False) -> int:
-        while not process.is_shutting_down:
+        while not process.is_shutting_down():
             entries = self.filter.get_new_entries()
             if len(entries) > 0:
                 if len(entries) > 1:
