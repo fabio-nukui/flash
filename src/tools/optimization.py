@@ -42,6 +42,7 @@ def newton_optimizer(
     dx: int,
     tol: int = 10 ** 18,
     max_iter: int = DEFAULT_MAX_ITER,
+    positive_only: bool = True,
 ) -> tuple[int, int]:
     """Optimizes function using Newton's method and finite differences, where variables are in int.
 
@@ -63,6 +64,8 @@ def newton_optimizer(
         first_derivative = (f_x_ip - f_x_im) / (2 * dx)
         second_derivative = (f_x_ip - 2 * f_x_i + f_x_im) / (dx ** 2)
         x_i_next = round(x_i - first_derivative / second_derivative)
+        if x_i_next < 0 and x_i < 0 and positive_only:
+            raise Exception(f'Negative result when {positive_only=}')
         if abs(x_i_next - x_i) < tol:
             break
         x_i = x_i_next
@@ -77,7 +80,7 @@ def bissection_optimizer(
     max_iter: int = DEFAULT_MAX_ITER,
 ):
     """Optimizes function by searching for point where derivative is zero using bissection search.
-    Works only if derivative(x) > 0.
+    Works only if derivative(x0) > 0. Guaranteed to converge for convex functions
 
     Args:
         func (Callable): Function to be maximized
@@ -113,7 +116,7 @@ def bissection_search(
 ) -> int:
     i += 1
     if x_right - x_left < tol or i >= max_iter:
-        return (x_left + x_right) // 2
+        return round((x_left + x_right) / 2)
     y_left = func(x_left) if y_left is None else y_left
     y_right = func(x_right) if y_right is None else y_right
     if y_right > 0:
