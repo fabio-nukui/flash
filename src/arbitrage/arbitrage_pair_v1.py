@@ -11,7 +11,6 @@ from web3.exceptions import TransactionNotFound
 import configs
 import tools
 from core import LiquidityPool, Route, RoutePairs, Token, TokenAmount, TradePairs, TradePools
-from core.base import TradeType
 from dex import DexProtocol
 from exceptions import InsufficientLiquidity, NotProfitable, OptimizationError
 
