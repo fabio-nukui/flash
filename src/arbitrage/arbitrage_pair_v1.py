@@ -283,7 +283,8 @@ class ArbitragePairV1:
             estimated_result = self.estimate_result(amount_last, w_swap=True)
         self.amount_last = amount_last
         self.estimated_result = estimated_result
-        self.trade_0, self.trade_1 = self.get_arbitrage_trades(amount_last)
+        self.trade_0, self.trade_1 = self.get_arbitrage_trades(
+            amount_last, w_swap=self.execute_w_swap)
 
         self.result_token_usd_price = tools.price.get_price_usd(
             estimated_result.token, self.reference_price_pools, self.web3)
