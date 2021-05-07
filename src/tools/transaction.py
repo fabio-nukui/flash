@@ -98,6 +98,12 @@ class TransactionCounter:
         self._tread = Thread(target=self._keep_count_updated, daemon=True)
         self._tread.start()
 
+    def reset(self):
+        count = self.web3.eth.get_transaction_count(self.address)
+        if self._count != count:
+            with self.lock:
+                self._count = count
+
     def _keep_count_updated(self):
         while True:
             try:

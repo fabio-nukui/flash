@@ -6,8 +6,7 @@ from contextlib import contextmanager
 from typing import Union
 
 import configs
-import tools
-
+from tools import cache, transaction
 
 DEFAULT_RPC_HTTP_ENDPOINT = 'http://localhost:8545'
 DEFAULT_HARDHAT_FORK_PORT = 8546
@@ -76,33 +75,44 @@ def simulate_block(
     clear_all_caches: bool = True,
     fork_network: bool = False,
     hardhat_fork_process: HardhatForkProcess = None,
+    reset_tx_counter: bool = False,
 ):
     if not fork_network:
         previous_block = configs.BLOCK
         block = 'latest' if block is None else block
         block = int(block) if not isinstance(block, str) else block  # Avoid errors with numpy.int
-        tools.cache.clear_caches(clear_all=clear_all_caches)
         try:
+            cache.clear_caches(clear_all=clear_all_caches)
+            if reset_tx_counter:
+                transaction.ACCOUNT_TX_COUNTER.reset()
             configs.BLOCK = block
             yield
         finally:
             configs.BLOCK = previous_block
-            tools.cache.clear_caches(clear_all=clear_all_caches)
+            cache.clear_caches(clear_all=clear_all_caches)
     elif hardhat_fork_process is None:
         try:
             hardhat_fork_process = HardhatForkProcess(block)
             hardhat_fork_process.start()
-            tools.cache.clear_caches(clear_all=clear_all_caches)
+            if reset_tx_counter:
+                transaction.ACCOUNT_TX_COUNTER.reset()
+            cache.clear_caches(clear_all=clear_all_caches)
             yield
         finally:
             hardhat_fork_process.stop()
-            tools.cache.clear_caches(clear_all=clear_all_caches)
+            cache.clear_caches(clear_all=clear_all_caches)
+            if reset_tx_counter:
+                transaction.ACCOUNT_TX_COUNTER.reset()
     else:
         previous_block = hardhat_fork_process.block
         try:
             hardhat_fork_process.restart_at_block(block)
-            tools.cache.clear_caches(clear_all=clear_all_caches)
+            cache.clear_caches(clear_all=clear_all_caches)
+            if reset_tx_counter:
+                transaction.ACCOUNT_TX_COUNTER.reset()
             yield
         finally:
             hardhat_fork_process.restart_at_block(previous_block)
-            tools.cache.clear_caches(clear_all=clear_all_caches)
+            cache.clear_caches(clear_all=clear_all_caches)
+            if reset_tx_counter:
+                transaction.ACCOUNT_TX_COUNTER.reset()
