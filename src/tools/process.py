@@ -1,17 +1,26 @@
 import atexit
 import logging
 import signal
+from threading import Lock
 from typing import Callable
 
 log = logging.getLogger(__name__)
 
-is_shutting_down = False
+_lock = Lock()
+_is_shutting_down = False
+
+
+@property
+def is_shutting_down() -> bool:
+    with _lock:
+        return _is_shutting_down
 
 
 def set_shutting_down_flag():
     log.info('Shutting down')
-    global is_shutting_down
-    is_shutting_down = True
+    global _is_shutting_down
+    with _lock:
+        _is_shutting_down = True
 
 
 def register_exit_handle(func: Callable):
