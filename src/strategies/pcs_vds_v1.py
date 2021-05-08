@@ -49,7 +49,7 @@ class PcsVdsPair(ArbitragePairV1):
     def _get_function_arguments(self) -> dict():
         if type(self.dex_1) == PancakeswapDex:
             path = [
-                self.second_trade.route.pools[0].address,
+                self.trade_1.route.pools[0].address,
                 *(t.address for t in self.trade_1.route.tokens)
             ]
         else:
