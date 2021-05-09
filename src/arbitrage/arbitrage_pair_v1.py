@@ -227,6 +227,8 @@ class ArbitragePairV1:
             self._set_arbitrage_params(amount_last, estimated_result, block_number)
         except InsufficientLiquidity:
             log.info(f'Insufficient liquidity for {self}, removing it from next iterations')
+            reserves = {pool: pool.reserves for pool in self.pools}
+            log.debug(f'Reserves: {reserves}')
             self.reset()
             self.flag_disabled = True
         except OptimizationError as e:
