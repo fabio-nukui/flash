@@ -82,6 +82,7 @@ rm-dev: ## Remove stopped dev container
 	docker rm $(DEV_CONTAINER_NAME)
 
 build: ## Build docker prod image
+	echo $(GIT_BRANCH) > docker/git_commit
 	docker build --target prod -t $(IMAGE_NAME) -f docker/Dockerfile .
 
 start: ## Start docker container running arbitrage strategy "$STRAT" (e.g.: make start STRAT=1)

@@ -56,6 +56,8 @@ COPY --chown=$USER:$GID deployed_contracts ${HOME}/work/deployed_contracts
 
 COPY --chown=$USER:$GID src ${HOME}/work/src
 
+COPY --chown=$USER:$GID docker/git_commit ${HOME}/work/git_commit
+
 CMD ["python", "app.py"]
 
 ############################################ DEV ###################################################

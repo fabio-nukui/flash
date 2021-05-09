@@ -19,6 +19,7 @@ env/
 .cache
 .local
 .python_history
+/docker/git_commit
 
 # Application files
 /strategy_files
