@@ -4,7 +4,7 @@ from typing import Callable, Union
 log = logging.getLogger(__name__)
 
 DEFAULT_MAX_ITER = 100
-BISSECTION_SEARCH_EXPANSION = 10
+BISSECTION_SEARCH_EXPANSION = 2
 
 Number = Union[int, float]
 
