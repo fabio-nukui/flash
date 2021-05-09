@@ -115,13 +115,11 @@ class ArbitragePairV1:
             address=self.wrapped_currency.address,
             abi=self.wrapped_currency.abi,
         )
-        if w_swap_available:
-            self._w_swap = (
-                route_0.token_in == route_1.token_out == self.wrapped_currency
-                and self.dex_0 != self.dex_1
+        self._w_swap = (
+            w_swap_available
+            and route_0.token_in == route_1.token_out == self.wrapped_currency
+            and self.dex_0 != self.dex_1
             )
-        else:
-            self._w_swap = False
 
         self.result_multiplier: float = TOKEN_MULTIPLIERS.get(self.token_first, 1.0)
         self.flag_disabled = False
