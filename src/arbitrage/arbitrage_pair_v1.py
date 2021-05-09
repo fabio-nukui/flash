@@ -230,7 +230,7 @@ class ArbitragePairV1:
             self.reset()
             self.flag_disabled = True
         except OptimizationError as e:
-            log.debug(f'{self}: Error during optimization: {e.__class__}({e})')
+            log.debug(f'{self}: Error during optimization: {e!r}')
             return
         except NotProfitable:
             return
