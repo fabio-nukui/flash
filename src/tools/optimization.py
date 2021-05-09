@@ -97,7 +97,7 @@ def bissection_optimizer(
     x_right = x0 * BISSECTION_SEARCH_EXPANSION
 
     y_left = derivative(x0)
-    assert y_left > 0, "bissection_optimizer only work for f'(x0) > 0"
+    assert y_left >= 0, "bissection_optimizer only work for f'(x0) >= 0"
 
     x = bissection_search(derivative, x_left, x_right, tol, max_iter, y_left=y_left)
     return x, func(x)
