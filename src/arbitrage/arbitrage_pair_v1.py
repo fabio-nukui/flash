@@ -255,10 +255,10 @@ class ArbitragePairV1:
                 max_iter=self.opt_max_iter,
                 use_fallback=self.opt_use_fallback,
             )
-        except Exception:
-            raise OptimizationError
+        except Exception as e:
+            raise OptimizationError(e.args)
         if int_amount_last < 0:  # Fail-safe in case optimizer returns negative inputs
-            raise OptimizationError
+            raise OptimizationError('Negative int_amount_last')
         amount_last = TokenAmount(self.token_last, int_amount_last)
         estimated_result = TokenAmount(self.token_first, int_result)
         return amount_last, estimated_result
