@@ -48,6 +48,7 @@ help: ## Show this message
 	@$(PYTHON) -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
 build-dev: ## Build docker dev image
+	echo $(GIT_BRANCH) > docker/git_commit
 	docker build --target dev -t $(DEV_IMAGE_NAME) -f docker/Dockerfile .
 
 start-dev: ## Start docker container for development
