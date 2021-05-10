@@ -2,14 +2,16 @@
 import asyncio
 import concurrent.futures
 import os
+import sys
 import time
 from random import random
 
 import requests
 from tqdm import tqdm
 
-URL = 'https://s3.ap-northeast-1.amazonaws.com/dex-bin.bnbstatic.com/s3-witness-data-download/chaindata_202103.zip?AWSAccessKeyId=AKIAYINE6SBQPUZDDRRO&Expires=1641450253&Signature=hOC8I8HSpCOytlYMVQwKRc5oUaI%3D'  # noqa: E501
-OUTPUT = 'chaindata_202103.zip'
+URL = 'https://binance-smart-chain-snapshot.s3.amazonaws.com/snap.tar.gz'
+DOWNLOAD_DIR = sys.argv[1] if len(sys.argv) > 0 else '/mnt/nvme0'
+OUTPUT = os.path.join(DOWNLOAD_DIR, 'snap.tar.gz')
 DOWNLOAD_JIGGLE_TIME = 10
 N_WORKERS = 60
 BLOCK_SIZE_DISK_WRITE = 10_2400  # 100 KB
@@ -45,6 +47,8 @@ def download_range(url, start, end, output):
         finally:
             if os.path.exists(f'{output}_incomplete'):
                 os.remove(f'{output}_incomplete')
+    else:
+        raise Exception(f'Error when downloading {output}')
     print(f'Finished {output}')
 
 

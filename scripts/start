@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+# Copy this script and downloader.py to directory of BSC node
+# Change python3 downloader.py [...] line for aws s3 cp [...] if downloading chaindata from s3
+
+set -eux
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+DOWNLOAD_DIR="${1:-"$DIR"}"
+
+sudo -i -u ubuntu bash << EOF
+cd "$DIR"
+wget https://github.com/binance-chain/bsc/releases/download/v1.0.7-hf.2/geth_linux
+chmod +x geth_linux
+EOF
+
+ln -sf "$DIR"/geth_linux /usr/local/bin/geth
+
+sudo -i -u ubuntu bash << EOF
+cd "$DIR"
+wget $(curl -s https://api.github.com/repos/binance-chain/bsc/releases/latest |grep browser_ |grep mainnet |cut -d\" -f4)
+unzip mainnet.zip
+rm mainnet.zip
+
+geth --datadir node init genesis.json
+rm genesis.json
+rm -r node/geth/chaindata
+
+pip3 install requests tqdm
+python3 downloader.py "$DOWNLOAD_DIR"
+
+tar --use-compress-program=pigz -xvf "$DOWNLOAD_DIR"/snap.tar.gz
+mv snap-bsc/chaindata node/geth
+rm -r snap-bsc
+EOF
+
+systemctl daemon-reload
+systemctl start geth
+
