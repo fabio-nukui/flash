@@ -1,5 +1,5 @@
 ########################################### BASE ###################################################
-FROM condaforge/miniforge3:4.9.2-7 as base
+FROM condaforge/miniforge3:4.10.1-0 as base
 
 ARG USER=flash
 ARG UID=1000
@@ -24,14 +24,13 @@ RUN useradd -m -s /bin/bash -N -u $UID $USER && \
 USER $USER
 
 RUN conda install --quiet --yes \
-        'boto3==1.17.44' \
-        'cachetools==4.2.1' \
-        'httpx==0.17.1' \
-        'python==3.9.2' \
+        'boto3==1.17.69' \
+        'cachetools==4.2.2' \
+        'httpx==0.18.1' \
         'python-json-logger==2.0.1' \
         'pyyaml==5.4.1' \
         'watchtower==1.0.6' \
-        'web3==5.17.0' && \
+        'web3==5.19.0' && \
     conda clean --all -f -y && \
     fix-permissions $HOME $CONDA_DIR
 
