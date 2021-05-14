@@ -8,9 +8,9 @@ from web3 import Web3, HTTPProvider
 
 
 POOL_INTERVAL = 1
-PAT = re.compile(r'^t=(?P<t>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}).+msg="Imported new chain segment".+\bnumber=(?P<n>\d+)\b')  # noqa: E501
-N_LINES_BUFFER = 100
-N_RECENT_FILES_READ = 2
+PAT = re.compile(r'^t=(?P<t>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}).+msg="Imported new chain segment".+\bnumber=(?P<n>[\d,]+)\b')  # noqa: E501
+N_LINES_BUFFER = 10_000
+N_RECENT_FILES_READ = 10
 
 SECONDS_PER_BLOCK = 3
 RPC_ENDPOINT = 'https://bsc-dataseed.binance.org'
@@ -70,7 +70,7 @@ class Logs:
             d = match.groupdict()
             yield {
                 't': datetime.fromisoformat(d['t']),
-                'n': int(d['n'])
+                'n': int(d['n'].replace(',', '_'))
             }
 
 
@@ -94,7 +94,7 @@ class Blocks:
         if self.oldest_processed_block == self.last_processed_block:
             return float('nan')
         delta_time = self.oldest_processed_block['t'] - self.last_processed_block['t']
-        delta_seconds = delta_time.total_seconds()
+        delta_seconds = delta_time.total_seconds() or 0.001
         delta_blocks = self.oldest_processed_block['n'] - self.last_processed_block['n']
         return delta_blocks / delta_seconds
 
