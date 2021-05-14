@@ -220,11 +220,10 @@ class ArbitragePairV1:
     def update_estimate(self, block_number: int = None):
         if self.flag_disabled:
             return
+        if self.flag_set:
+            self.reset()
         try:
-            if self.flag_set:
-                self.reset()
             amount_last, estimated_result = self.get_updated_results()
-            self._set_arbitrage_params(amount_last, estimated_result, block_number)
         except InsufficientLiquidity:
             log.info(f'Insufficient liquidity for {self}, removing it from next iterations')
             reserves = {pool: pool.reserves for pool in self.pools}
@@ -233,9 +232,10 @@ class ArbitragePairV1:
             self.flag_disabled = True
         except OptimizationError as e:
             log.debug(f'{self}: Error during optimization: {e!r}')
-            return
         except NotProfitable:
-            return
+            pass
+        else:
+            self._set_arbitrage_params(amount_last, estimated_result, block_number)
 
     def get_updated_results(self) -> tuple[TokenAmount, TokenAmount]:
         usd_price_token_last = tools.price.get_price_usd(
