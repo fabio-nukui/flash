@@ -25,7 +25,7 @@ MIN_CONFIRMATIONS = 2
 MIN_ETHERS_WITHDRAW = 0.1  # About 100x the transaction fees on transfer + swap
 PRICE_CHANGE_WITHDRAW_IMPACT = 3  # At 3x, a 33% price decrease last 24h reduces min_withdraw to 0
 MAX_SLIPPAGE = 0.4
-RUN_INTERVAL = 180
+RUN_INTERVAL = 60
 DEFAULT_PRICE_CHANGE = -0.5  # By default, penalize tokens that we cannot extract prices
 
 # $5.000 reserve allow for arbitrage operation of $20.000 gross profit at 25% share of gas
