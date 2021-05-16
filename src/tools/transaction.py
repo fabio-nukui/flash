@@ -6,6 +6,7 @@ import random
 import time
 import traceback
 from concurrent import futures
+from copy import copy
 from threading import Lock, Thread
 
 from eth_account.datastructures import SignedTransaction
@@ -171,6 +172,7 @@ def sign_and_send_tx(
     max_blocks_wait: int = None,
     account: Account = None,
 ) -> str:
+    tx = copy(tx)
     account = ACCOUNT if account is None else account
     tx['gas'] = tx.get('gas', 1_000_000)
 
