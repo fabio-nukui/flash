@@ -33,7 +33,7 @@ PRICE_FEEDS.update({WRAPPED_CURRENCY_TOKEN: _USD_PRICE_FEED_ADDRESSES['native_cu
 
 # These functions should not be used for too time-critical data, so ttl can be higher
 USD_PRICE_CACHE_TTL = 60
-GAS_PRICE_CACHE_TTL = 300
+GAS_PRICE_CACHE_TTL = 30
 USD_PRICE_DATA_STALE = 3600
 
 WEB3 = w3.get_web3()
@@ -77,7 +77,8 @@ def get_chainlink_price_usd(asset: Union[str, Token], web3: Web3 = WEB3) -> floa
 
 @ttl_cache(maxsize=100, ttl=GAS_PRICE_CACHE_TTL)
 def get_gas_price(web3: Web3 = WEB3) -> int:
-    return round(WEB3.eth.gas_price * configs.BASELINE_GAS_PRICE_PREMIUM)
+    gas_price = max(web3.eth.gas_price, configs.MIN_GAS_PRICE)  # Fix for geth BSC geth 1.1.0 beta
+    return round(gas_price * configs.BASELINE_GAS_PRICE_PREMIUM)
 
 
 def get_gas_cost_native_tokens(gas: int, web3: Web3 = WEB3) -> float:

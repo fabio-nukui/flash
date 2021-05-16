@@ -225,7 +225,6 @@ def sign_and_send_contract_tx(
 ) -> str:
     web3 = func.web3
     account = ACCOUNT if account_ is None else account_
-    gas_price_ = price.get_gas_price() if gas_price_ is None else gas_price_
     if _has_chi_flag(func) and kwargs.get(CHI_FLAG) is not None:
         kwargs[CHI_FLAG] = 0 if gas_price_ < 2 * price.get_gas_price() else 1
 
@@ -234,8 +233,7 @@ def sign_and_send_contract_tx(
         'value': value_,
         'chainId': configs.CHAIN_ID,
         'gas': max_gas_,
-        'nonce': get_nonce(account.address, web3),
-        'gasPrice': gas_price_,
+        'gasPrice': price.get_gas_price() if gas_price_ is None else gas_price_,
     })
     return sign_and_send_tx(tx, web3, wait_finish_, max_blocks_wait_, account)
 
