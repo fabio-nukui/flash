@@ -170,7 +170,6 @@ def sign_and_send_tx(
     wait_finish: bool = False,
     max_blocks_wait: int = None,
     account: Account = None,
-    verbose: bool = False,
 ) -> str:
     account = ACCOUNT if account is None else account
     tx['gas'] = tx.get('gas', 1_000_000)
@@ -185,7 +184,7 @@ def sign_and_send_tx(
     broadcast_tx(signed_tx)
 
     if wait_finish:
-        wait_tx_finish(tx_hash, web3, max_blocks_wait, verbose)
+        wait_tx_finish(tx_hash, web3, max_blocks_wait)
     return tx_hash
 
 
@@ -245,7 +244,6 @@ def wait_tx_finish(
     tx_hash: str,
     web3: Web3,
     max_blocks_wait: int = None,
-    verbose: bool = False,
     min_confirmations: int = 1,
 ):
     listener = w3.BlockListener(web3, poll_interval=TX_WAIT_POLL_INTERVAL)
@@ -257,7 +255,7 @@ def wait_tx_finish(
         except TransactionNotFound:
             n += 1
             if n >= max_blocks_wait:
-                raise Exception(f'Transactio {tx_hash} not found after {n} blocks')
+                raise Exception(f'Transaction {tx_hash} not found after {n} blocks')
         else:
             if receipt.status == 0:
                 log.info(f'Failed to send transaction: {tx_hash}')
