@@ -1,11 +1,9 @@
 import logging
-import os
 import time
 from datetime import datetime
 from random import random
 
-from web3 import Account
-
+import configs
 import tools
 
 log = logging.getLogger(__name__)
@@ -29,9 +27,8 @@ def get_wake_up_interval(seconds_from_last_harvest):
 
 def run():
     web3 = tools.w3.get_web3()
-    account = Account.from_key(os.environ['PK_2'])
     tx_harvest = {
-        'from': account.address,
+        'from': configs.ADDRESS,
         'to': IRON_VAULT_ADDRESS,
         'data': SELECTOR_HARVEST_ALL_STRATEGIES,
         'gas': 1_500_000,
@@ -41,13 +38,13 @@ def run():
         'data': SELECTOR_TIMESTAMP_LAST_HARVEST,
     }
 
-    while web3.eth.get_balance(account.address) > MIN_BNB_BALANCE * 10 ** 18:
+    while web3.eth.get_balance(configs.ADDRESS) > MIN_BNB_BALANCE * 10 ** 18:
         timestamp_last_harvest = int.from_bytes(web3.eth.call(tx_last_timestamp), 'big')
         seconds_from_last_harvest = datetime.now().timestamp() - timestamp_last_harvest
         log.info(f'{seconds_from_last_harvest:.1f} seconds from last harvest')
         if seconds_from_last_harvest > MIN_SECONDS_HARVEST:
             log.info('Harvesting strategy')
-            tools.transaction.sign_and_send_tx(tx_harvest, web3, wait_finish=True, account=account)
+            tools.transaction.sign_and_send_tx(tx_harvest, web3, wait_finish=True)
             seconds_from_last_harvest = 0
         interval = get_wake_up_interval(seconds_from_last_harvest)
         log.info(f'Sleeping for {interval:.1f} seconds')
