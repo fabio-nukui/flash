@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 from datetime import datetime
 from random import random
@@ -10,8 +11,8 @@ log = logging.getLogger(__name__)
 
 MIN_BNB_BALANCE = 0.03
 IRON_VAULT_ADDRESS = '0xEf8803b4c9600d7F0991654732Be306337de84b9'
-MIN_SECONDS_HARVEST = 3600 * 7
-MAX_SECONDS_HARVEST = 3600 * 9
+MIN_SECONDS_HARVEST = float(os.environ['MIN_SECONDS_HARVEST'])
+MAX_SECONDS_HARVEST = float(os.environ['MAX_SECONDS_HARVEST'])
 SELECTOR_HARVEST_ALL_STRATEGIES = '0x1997db76'
 SELECTOR_TIMESTAMP_LAST_HARVEST = '0xa44c00da'
 
