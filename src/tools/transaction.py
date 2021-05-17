@@ -30,6 +30,7 @@ MAX_SECONDS_TX_COUNTER_STAY_AHEAD = 30
 CONNECTION_KEEP_ALIVE_TIME_INTERVAL = 30
 MAX_BLOCKS_WAIT_RECEIPT = 20
 CHI_FLAG = 'chiFlag'
+DEFAULT_MAX_GAS = 1_000_000
 
 
 class BackgroundWeb3:
@@ -169,12 +170,11 @@ def sign_and_send_tx(
     tx: dict,
     web3: Web3,
     wait_finish: bool = False,
-    max_blocks_wait: int = None,
-    account: Account = None,
+    max_blocks_wait: int = MAX_BLOCKS_WAIT_RECEIPT,
+    account: Account = ACCOUNT,
 ) -> str:
     tx = copy(tx)
-    account = ACCOUNT if account is None else account
-    tx['gas'] = tx.get('gas', 1_000_000)
+    tx['gas'] = tx.get('gas', DEFAULT_MAX_GAS)
 
     # Do not use dict get() with default, or it will update nonce unnecessarily
     tx['nonce'] = tx['nonce'] if 'nonce' in tx else get_nonce(account.address, web3)
@@ -193,22 +193,21 @@ def sign_and_send_tx(
 def dry_run_contract_tx(
     func: ContractFunction,
     *args,
-    account_: Account = None,
+    account_: Account = ACCOUNT,
     value_: int = 0,
     gas_price_: int = None,
-    max_gas_: int = 1_000_000,
+    max_gas_: int = DEFAULT_MAX_GAS,
     **kwargs,
 ) -> str:
     web3 = func.web3
-    account = ACCOUNT if account_ is None else account_
     gas_price_ = price.get_gas_price() if gas_price_ is None else gas_price_
 
     tx = func(*args, **kwargs).buildTransaction({
-        'from': account.address,
+        'from': account_.address,
         'value': value_,
         'chainId': configs.CHAIN_ID,
         'gas': max_gas_,
-        'nonce': get_nonce(account.address, web3, dry_run=True),
+        'nonce': get_nonce(account_.address, web3, dry_run=True),
         'gasPrice': gas_price_,
     })
     return web3.eth.call(tx, block_identifier=configs.BLOCK).hex()
@@ -217,37 +216,35 @@ def dry_run_contract_tx(
 def sign_and_send_contract_tx(
     func: ContractFunction,
     *args,
-    account_: Account = None,
+    account_: Account = ACCOUNT,
     value_: int = 0,
     gas_price_: int = None,
-    max_gas_: int = 1_000_000,
+    max_gas_: int = DEFAULT_MAX_GAS,
     wait_finish_: bool = False,
-    max_blocks_wait_: int = None,
+    max_blocks_wait_: int = MAX_BLOCKS_WAIT_RECEIPT,
     **kwargs,
 ) -> str:
     web3 = func.web3
-    account = ACCOUNT if account_ is None else account_
     if _has_chi_flag(func) and kwargs.get(CHI_FLAG) is not None:
         kwargs[CHI_FLAG] = 0 if gas_price_ < 2 * price.get_gas_price() else 1
 
     tx = func(*args, **kwargs).buildTransaction({
-        'from': account.address,
+        'from': account_.address,
         'value': value_,
         'chainId': configs.CHAIN_ID,
         'gas': max_gas_,
         'gasPrice': price.get_gas_price() if gas_price_ is None else gas_price_,
     })
-    return sign_and_send_tx(tx, web3, wait_finish_, max_blocks_wait_, account)
+    return sign_and_send_tx(tx, web3, wait_finish_, max_blocks_wait_, account_)
 
 
 def wait_tx_finish(
     tx_hash: str,
     web3: Web3,
-    max_blocks_wait: int = None,
+    max_blocks_wait: int = MAX_BLOCKS_WAIT_RECEIPT,
     min_confirmations: int = 1,
 ):
     listener = w3.BlockListener(web3, poll_interval=TX_WAIT_POLL_INTERVAL)
-    max_blocks_wait = max_blocks_wait or MAX_BLOCKS_WAIT_RECEIPT
     n = 0
     for current_block in listener.wait_for_new_blocks():
         try:
