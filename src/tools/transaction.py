@@ -171,9 +171,10 @@ def sign_and_send_tx(
     web3: Web3,
     wait_finish: bool = False,
     max_blocks_wait: int = MAX_BLOCKS_WAIT_RECEIPT,
-    account: Account = ACCOUNT,
+    account: Account = None,
 ) -> str:
     tx = copy(tx)
+    account = ACCOUNT if account is None else account
     tx['gas'] = tx.get('gas', DEFAULT_MAX_GAS)
 
     # Do not use dict get() with default, or it will update nonce unnecessarily
@@ -193,21 +194,22 @@ def sign_and_send_tx(
 def dry_run_contract_tx(
     func: ContractFunction,
     *args,
-    account_: Account = ACCOUNT,
+    account_: Account = None,
     value_: int = 0,
     gas_price_: int = None,
     max_gas_: int = DEFAULT_MAX_GAS,
     **kwargs,
 ) -> str:
     web3 = func.web3
+    account = ACCOUNT if account_ is None else account_
     gas_price_ = price.get_gas_price() if gas_price_ is None else gas_price_
 
     tx = func(*args, **kwargs).buildTransaction({
-        'from': account_.address,
+        'from': account.address,
         'value': value_,
         'chainId': configs.CHAIN_ID,
         'gas': max_gas_,
-        'nonce': get_nonce(account_.address, web3, dry_run=True),
+        'nonce': get_nonce(account.address, web3, dry_run=True),
         'gasPrice': gas_price_,
     })
     return web3.eth.call(tx, block_identifier=configs.BLOCK).hex()
@@ -216,7 +218,7 @@ def dry_run_contract_tx(
 def sign_and_send_contract_tx(
     func: ContractFunction,
     *args,
-    account_: Account = ACCOUNT,
+    account_: Account = None,
     value_: int = 0,
     gas_price_: int = None,
     max_gas_: int = DEFAULT_MAX_GAS,
@@ -225,17 +227,18 @@ def sign_and_send_contract_tx(
     **kwargs,
 ) -> str:
     web3 = func.web3
+    account = ACCOUNT if account_ is None else account_
     if _has_chi_flag(func) and kwargs.get(CHI_FLAG) is not None:
         kwargs[CHI_FLAG] = 0 if gas_price_ < 2 * price.get_gas_price() else 1
 
     tx = func(*args, **kwargs).buildTransaction({
-        'from': account_.address,
+        'from': account.address,
         'value': value_,
         'chainId': configs.CHAIN_ID,
         'gas': max_gas_,
         'gasPrice': price.get_gas_price() if gas_price_ is None else gas_price_,
     })
-    return sign_and_send_tx(tx, web3, wait_finish_, max_blocks_wait_, account_)
+    return sign_and_send_tx(tx, web3, wait_finish_, max_blocks_wait_, account)
 
 
 def wait_tx_finish(
