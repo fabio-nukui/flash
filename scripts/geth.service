@@ -9,9 +9,9 @@ StartLimitIntervalSec=0
 [Service]
 Type=simple
 # full-node e3.2xlarge
-ExecStart=geth --config /mnt/nvme0/bsc/config.toml --datadir /mnt/nvme0/bsc/node --pprof --pprofaddr 0.0.0.0 --rpc --metrics --cache 18432 --syncmode fast
+ExecStart=geth --config /mnt/nvme0/bsc/config.toml --datadir /mnt/nvme0/bsc/node --pprof --pprofaddr 0.0.0.0 --rpc --metrics --cache 18432 --rpc.allow-unprotected-txs --syncmode fast
 # archive-node e3en.3xlarge
-#ExecStart=geth --config /mnt/nvme1/bsc/config.toml --datadir /mnt/nvme1/bsc/node --pprof --pprofaddr 0.0.0.0 --rpc --metrics --cache 30720 --gcmode archive --syncmode full
+#ExecStart=geth --config /mnt/nvme1/bsc/config.toml --datadir /mnt/nvme1/bsc/node --pprof --pprofaddr 0.0.0.0 --rpc --metrics --cache 30720 --rpc.allow-unprotected-txs --gcmode archive --syncmode full --txlookuplimit=0
 User=ubuntu
 Restart=on-failure
 RestartSec=1

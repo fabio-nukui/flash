@@ -199,7 +199,7 @@ class Price:
         return f'{self.__class__.__name__}({self.amount_in}/{self.amount_out}: {self.value:,})'
 
     @overload
-    def __mul__(self, other: (int, float)) -> Price: ...  # noqa: E704
+    def __mul__(self, other: Union[int, float]) -> Price: ...  # noqa: E704
 
     @overload
     def __mul__(self, other: TokenAmount) -> TokenAmount: ...  # noqa: E704

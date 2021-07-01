@@ -20,12 +20,12 @@ from exceptions import InsufficientLiquidity
 log = logging.getLogger(__name__)
 
 RUNNING_STRATEGIES = os.environ['RUNNING_STRATEGIES'].split(',')
+N_BLOCKS_PRICE_CHANGE = int(os.environ['N_BLOCKS_PRICE_CHANGE'])
 MIN_CONFIRMATIONS = 2
 MIN_ETHERS_WITHDRAW = 0.1  # About 100x the transaction fees on transfer + swap
 PRICE_CHANGE_WITHDRAW_IMPACT = 3  # At 3x, a 33% price decrease last 24h reduces min_withdraw to 0
 MAX_SLIPPAGE = 0.4
-RUN_INTERVAL = 180
-BLOCKS24H = 28_800 if configs.CHAIN_ID == 56 else 6_520
+RUN_INTERVAL = 60
 DEFAULT_PRICE_CHANGE = -0.5  # By default, penalize tokens that we cannot extract prices
 
 # $5.000 reserve allow for arbitrage operation of $20.000 gross profit at 25% share of gas
@@ -82,12 +82,12 @@ def get_address_balances_in_native_currency(
     return balances
 
 
-def get_price_changes_last_24h(
+def get_price_changes(
     tokens: list[Token],
     pools: list[LiquidityPair],
     web3: Web3
 ) -> list[float]:
-    with tools.simulation.simulate_block(web3.eth.block_number - BLOCKS24H):
+    with tools.simulation.simulate_block(web3.eth.block_number - N_BLOCKS_PRICE_CHANGE):
         prices_24h = []
         for token in tokens:
             try:
@@ -133,9 +133,9 @@ class Strategy:
 
     def withdraw_tokens(self):
         balances = get_address_balances_in_native_currency(self.contract.address, self.tokens)
-        price_change_24h = get_price_changes_last_24h(self.tokens, self.pools, self.web3)
+        price_changes = get_price_changes(self.tokens, self.pools, self.web3)
         amounts_withdraw = []
-        for (token_amount, native_amount), price_change in zip(balances, price_change_24h):
+        for (token_amount, native_amount), price_change in zip(balances, price_changes):
             token_amount, native_amount = self._adjust_for_reserve(token_amount, native_amount)
             price_impact_on_withdraw = 1 + price_change * PRICE_CHANGE_WITHDRAW_IMPACT
             token_multiplier = TOKEN_MULTIPLIERS.get(token_amount.token, 1.0)

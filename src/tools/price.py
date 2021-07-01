@@ -33,7 +33,7 @@ PRICE_FEEDS.update({WRAPPED_CURRENCY_TOKEN: _USD_PRICE_FEED_ADDRESSES['native_cu
 
 # These functions should not be used for too time-critical data, so ttl can be higher
 USD_PRICE_CACHE_TTL = 60
-GAS_PRICE_CACHE_TTL = 300
+GAS_PRICE_CACHE_TTL = 30
 USD_PRICE_DATA_STALE = 3600
 
 WEB3 = w3.get_web3()
@@ -77,7 +77,8 @@ def get_chainlink_price_usd(asset: Union[str, Token], web3: Web3 = WEB3) -> floa
 
 @ttl_cache(maxsize=100, ttl=GAS_PRICE_CACHE_TTL)
 def get_gas_price(web3: Web3 = WEB3) -> int:
-    return round(WEB3.eth.gas_price * configs.BASELINE_GAS_PRICE_PREMIUM)
+    gas_price = max(web3.eth.gas_price, configs.MIN_GAS_PRICE)  # Fix for geth BSC geth 1.1.0 beta
+    return round(gas_price * configs.BASELINE_GAS_PRICE_PREMIUM)
 
 
 def get_gas_cost_native_tokens(gas: int, web3: Web3 = WEB3) -> float:
@@ -110,7 +111,25 @@ async def get_prices_coingecko(addresses: Iterable[str]) -> dict[str, float]:
     }
 
 
-def get_price_usd(token: Token, pools: list[LiquidityPool], web3: Web3 = WEB3) -> float:
+def _get_token_price(
+    token: Token,
+    pool: LiquidityPool,
+    reserve: TokenAmount,
+    reserve_token_price: float,
+) -> float:
+    amount_single_usd = (1 / reserve_token_price) * 10 ** reserve.token.decimals
+    reserve_token_usd_amount = TokenAmount(reserve.token, amount_single_usd)
+    token_usd_amount = pool.get_amount_out(reserve_token_usd_amount, token)
+    token_usd_price = 1 / token_usd_amount.amount_in_units
+    return token_usd_price
+
+
+def get_price_usd(
+    token: Token,
+    pools: list[LiquidityPool],
+    web3: Web3 = WEB3,
+    _use_fallback: bool = True,
+) -> float:
     """Return token price in USD using chainlink and, if token not in chainlink, by comparing
     vs liquidity pool with largest liquidity in known tokens
     """
@@ -127,11 +146,24 @@ def get_price_usd(token: Token, pools: list[LiquidityPool], web3: Web3 = WEB3) -
                 continue
             reserve_token_price = get_chainlink_price_usd(reserve.token, web3)
             liquidity = reserve_token_price * reserve.amount_in_units
-            amount_single_usd = round((1 / reserve_token_price) * 10 ** reserve.token.decimals)
-            reserve_token_usd_amount = TokenAmount(reserve.token, amount_single_usd)
-            token_usd_amount = pool.get_amount_out(reserve_token_usd_amount, token)
-            token_usd_price = 1 / token_usd_amount.amount_in_units
+            token_usd_price = _get_token_price(token, pool, reserve, reserve_token_price)
             liquidity_prices.append((liquidity, token_usd_price))
+    if not liquidity_prices and _use_fallback:
+        # Fallback by using reference tokens that share the same pool(s)
+        for pool in pools:
+            if token not in pool.tokens:
+                continue
+            for reserve in pool.reserves:
+                if token == reserve.token:
+                    continue
+                try:
+                    reserve_token_price = get_price_usd(
+                        reserve.token, pools, web3, _use_fallback=False)
+                except InsufficientLiquidity:
+                    continue
+                liquidity = reserve_token_price * reserve.amount_in_units
+                token_usd_price = _get_token_price(token, pool, reserve, reserve_token_price)
+                liquidity_prices.append((liquidity, token_usd_price))
     if not liquidity_prices:
         raise InsufficientLiquidity('Found no token with chainlink price linked to input token.')
     return max(liquidity_prices)[1]

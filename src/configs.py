@@ -28,6 +28,7 @@ CACHE_LOG_LEVEL = os.getenv('CACHE_LOG_LEVEL', 'INFO')
 
 # Gas
 BASELINE_GAS_PRICE_PREMIUM = float(os.getenv('BASELINE_GAS_PRICE_PREMIUM', '1.0000000012'))
+MIN_GAS_PRICE = int(os.getenv('MIN_GAS_PRICE', '5000000000'))
 
 # Testing
 BLOCK = 'latest'
